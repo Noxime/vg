@@ -1,0 +1,15 @@
+[package]
+name = "kea"
+version = "0.1.0"
+authors = ["Noxim <noxim#6410>"]
+
+[package.metadata.android]
+label = "Kea DEV"
+res = "res"
+assets = "assets"
+icon = "@mipmap/ic_launcher"
+
+[dependencies]
+android_glue = { git = "https://github.com/tomaka/android-rs-glue" }
+glutin = "0.18.0"
+gl = "0.10.0"
