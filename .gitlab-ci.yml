@@ -1,5 +1,5 @@
 image: "rust:latest"
-build:cargo
+build:cargo:
   script:
   - rustc --version && cargo --version
   - cargo build --verbose
