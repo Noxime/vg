@@ -25,7 +25,8 @@ impl Display {
             )).with_dimensions(glutin::dpi::LogicalSize::new(width as f64, height as f64));
 
         let context = glutin::ContextBuilder::new()
-            .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)));
+            .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
+            .with_vsync(false);
 
         let gl_window = glutin::GlWindow::new(window, context, &events).unwrap();
 
@@ -57,7 +58,7 @@ impl Display {
         }
     }
 
-    pub fn swap(&mut self, x: f32) {
+    pub fn swap(&mut self) {
         if let Err(why) = self.handle.swap_buffers() {
             log!("Buffer swap failed: {}", why);
             //TODO: oof
@@ -83,7 +84,6 @@ impl Display {
             }
             log!("Recreated window");
         };
-        self.api.clear(1.0, x, 1.0);
     }
 
     pub fn events(&mut self) {
