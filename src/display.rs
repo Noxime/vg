@@ -54,7 +54,7 @@ impl Display {
             handle: gl_window,
             events,
             closing: false,
-            api: Box::new(GLApi),
+            api: Box::new(GLApi::new()),
         }
     }
 

@@ -3,7 +3,6 @@ mod macros;
 mod api;
 mod arch;
 mod display;
-mod shader;
 mod sprite;
 
 use display::Display;
@@ -21,12 +20,12 @@ fn main() {
         include_str!("../assets/shaders/default.fs")
     ) {
         Ok(v) => v,
-        Err(shader::ShaderError::CompileError(why)) => panic!("Shader compilation failed: {}", why),
+        Err(api::ShaderError::CompileError(why)) => panic!("Shader compilation failed: {}", why),
         _ => panic!("Shader compilation failed"),
     };
 
     // log!("Loading default sprite");
-    // let sprite = sprite::Sprite::new("textures/test.png");
+    let sprite = sprite::Sprite::new("textures/test.png").expect("failed to make sprite");
 
     use std::time::Instant;
     let mut start = Instant::now();
@@ -45,7 +44,8 @@ fn main() {
 
         // rendering code
         display.api.clear(1.0, 1.0, 1.0);
-
+        sprite.draw(&shader, &display.api);
+        
         // present
         display.swap();
     }

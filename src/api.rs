@@ -2,9 +2,23 @@ extern crate gl;
 extern crate glutin;
 
 use self::gl::types::*;
-use shader::*;
 use std::ffi::CString;
+use std::os::raw::c_void;
 use std::ptr;
+
+#[derive(Debug)]
+pub struct Shader(u32);
+impl Shader {
+    pub fn new(id: u32) -> Self {
+        Shader(id)
+    }
+}
+
+#[derive(Debug)]
+pub enum ShaderError {
+    StringError,
+    CompileError(String),
+}
 
 pub trait GfxApi {
     // clear the current buffer with specified color
@@ -12,7 +26,7 @@ pub trait GfxApi {
     // take shader sources and compile them down to a shader
     fn compile_shader(&self, vertex: &str, fragment: &str) -> Result<Shader, ShaderError>;
     // basic vertex drawing method, do not use for production code as it is slow
-    fn debug_draw_vertices(&self, shader: Shader, vertices: Vec<(f32, f32, f32)>);
+    fn debug_draw_vertices(&self, shader: &Shader, vertices: &Vec<(f32, f32, f32)>);
 }
 
 pub struct GLApi;
@@ -22,36 +36,10 @@ impl GfxApi for GLApi {
             gl::ClearColor(r, g, b, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            gl::UseProgram(3);
-            // great... on some platforms c_char is u8 and on some i8, this repeated *const _ will convert it (shrug)
-            let pos = gl::GetAttribLocation(3, &[80i8, 0i8] as *const _ as *const _) as u32;
-            // log!("attrib loc: {}", pos);
-            gl::EnableVertexAttribArray(pos);
-
-            let vertices: [f32; 6] = [
-                0.25, 0.25,
-                0.75, 0.25,
-                0.25, 0.75
-            ];
-
-            use std::mem::size_of;
-            use std::os::raw::c_void;
-            gl::VertexAttribPointer(
-                pos,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                2 * size_of::<f32>() as i32,
-                vertices.as_ptr() as *const c_void,
-            );
-            gl::DrawArrays(gl::TRIANGLES, 0, vertices.len() as i32);
-
-            gl::DisableVertexAttribArray(pos);
-
-            match gl::GetError() {
-                0 => (),
-                v => log!("GL error: {}", v),
-            }
+            // match gl::GetError() {
+            //     0 => (),
+            //     v => log!("GL error: {}", v),
+            // }
         }
     }
 
@@ -102,10 +90,52 @@ impl GfxApi for GLApi {
         }))
     }
 
-    fn debug_draw_vertices(&self, shader: Shader, vertices: Vec<(f32, f32, f32)>) {}
+    fn debug_draw_vertices(&self, shader: &Shader, vertices: &Vec<(f32, f32, f32)>) {
+        unsafe {
+            gl::UseProgram(shader.0);
+            // great... on some platforms c_char is u8 and on some i8, this repeated *const _ will convert it (shrug)
+            let pos =
+                gl::GetAttribLocation(shader.0, b"a_position\0" as *const _ as *const _) as u32;
+            // log!("attrib loc: {}", pos);
+
+            gl::EnableVertexAttribArray(pos);
+
+            use std::mem::size_of;
+            gl::VertexAttribPointer(
+                pos,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                size_of::<(f32, f32, f32)>() as i32,
+                vertices.as_ptr() as *const c_void,
+            );
+            gl::DrawArrays(gl::TRIANGLES, 0, vertices.len() as i32);
+
+            gl::DisableVertexAttribArray(pos);
+        }
+    }
 }
 
 impl GLApi {
+    pub fn new() -> Self {
+        unsafe {
+            gl::DebugMessageCallback(Self::debug_callback, 0 as *const c_void);
+        }
+        GLApi
+    }
+
+    extern "system" fn debug_callback(
+        _: GLenum,
+        _: GLenum,
+        _: GLuint,
+        _: GLenum,
+        _: GLsizei,
+        _: *const GLchar,
+        _: *mut c_void,
+    ) {
+        log!("GL: Callback");
+    }
+
     fn compile_one(&self, source: &str, type_: GLenum) -> Result<GLuint, ShaderError> {
         Ok(unsafe {
             let shader = gl::CreateShader(type_);
