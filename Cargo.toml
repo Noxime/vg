@@ -13,3 +13,4 @@ icon = "@mipmap/ic_launcher"
 android_glue = { git = "https://github.com/tomaka/android-rs-glue" }
 glutin = "0.18.0"
 gl = "0.10.0"
+png = "0.12.0"

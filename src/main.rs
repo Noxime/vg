@@ -14,10 +14,10 @@ fn main() {
     let mut display = Display::new(1280, 720);
 
     let shader = match display.api.compile_shader(
-        //&arch::load_string("shaders/default.vs").expect("shaders/default.vs not found"),
-        //&arch::load_string("shaders/default.fs").expect("shaders/default.fs not found"),
-        include_str!("../assets/shaders/default.vs"),
-        include_str!("../assets/shaders/default.fs")
+        &arch::load_string("shaders/default.vs").expect("shaders/default.vs not found"),
+        &arch::load_string("shaders/default.fs").expect("shaders/default.fs not found"),
+        // include_str!("../assets/shaders/default.vs"),
+        // include_str!("../assets/shaders/default.fs")
     ) {
         Ok(v) => v,
         Err(api::ShaderError::CompileError(why)) => panic!("Shader compilation failed: {}", why),
@@ -25,7 +25,7 @@ fn main() {
     };
 
     // log!("Loading default sprite");
-    let sprite = sprite::Sprite::new("textures/test.png").expect("failed to make sprite");
+    let sprite = sprite::Sprite::new(&display.api, "textures/test.png").expect("failed to make sprite");
 
     use std::time::Instant;
     let mut start = Instant::now();
@@ -43,10 +43,11 @@ fn main() {
         display.events();
 
         // rendering code
-        display.api.clear(1.0, 1.0, 1.0);
+        display.api.clear(0.5, 0.3, 0.7);
         sprite.draw(&shader, &display.api);
         
         // present
         display.swap();
     }
+    log!("Game has quit");
 }

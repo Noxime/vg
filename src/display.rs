@@ -87,7 +87,10 @@ impl Display {
     }
 
     pub fn events(&mut self) {
+
         let mut closing = false;
+        let mut resizing = None;
+
         self.events.poll_events(|e| match e {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -99,9 +102,15 @@ impl Display {
             } => {
                 // TODO: handle resize gracefully
                 log!("Window resized to: {}x{}", size.width, size.height);
+                resizing = Some((size.width as usize, size.height as usize));
             }
             _ => (),
         });
+
         self.closing = closing;
+        if let Some((width, height)) = resizing {
+
+        self.api.resize(width, height);
+        }
     }
 }
