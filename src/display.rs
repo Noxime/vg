@@ -30,6 +30,11 @@ impl Display {
 
         let gl_window = glutin::GlWindow::new(window, context, &events).unwrap();
 
+        let (width, height) = {
+            let size = gl_window.get_inner_size().unwrap();
+            (size.width as _, size.height as _)
+        };
+
         log!("Window created");
         log!("GFX API: {:?}", gl_window.get_api());
         log!("GFX res: {}x{}", width, height);
@@ -54,7 +59,7 @@ impl Display {
             handle: gl_window,
             events,
             closing: false,
-            api: Box::new(GLApi::new()),
+            api: Box::new(GLApi::new(width, height)),
         }
     }
 

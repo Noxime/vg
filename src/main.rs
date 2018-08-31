@@ -10,7 +10,6 @@ use display::Display;
 fn main() {
     // initialize architecture specific systems
     arch::init();
-    log!("Arch initialized");
     let mut display = Display::new(1280, 720);
 
     let shader = match display.api.compile_shader(
@@ -29,9 +28,15 @@ fn main() {
 
     use std::time::Instant;
     let mut start = Instant::now();
+    let time = Instant::now();
     let mut frames = 0;
 
     while !display.closing {
+        let time = {
+            let x = time.elapsed();
+            x.as_secs() as f64 + (x.subsec_nanos() as f64 / 1_000_000_000.0)
+        };
+
         if start.elapsed().as_secs() > 0 {
             log!("FPS: {} ({:.2}ms)", frames, 1000.0 / frames as f32);
             frames = 0;
@@ -43,8 +48,8 @@ fn main() {
         display.events();
 
         // rendering code
-        display.api.clear(0.5, 0.3, 0.7);
-        sprite.draw(&shader, &display.api);
+        display.api.clear(0.2, 0.2, 0.2);
+        sprite.draw(&shader, &display.api, ((0.0, time.sin() as f32 * 0.5), (0.5, 0.5)));
         
         // present
         display.swap();

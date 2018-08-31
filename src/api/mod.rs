@@ -24,7 +24,8 @@ pub trait GfxApi {
     // clear the current buffer with specified color
     fn clear(&self, r: f32, g: f32, b: f32);
     // resize the current window
-    fn resize(&self, width: usize, height: usize);
+    fn resize(&mut self, width: usize, height: usize);
+    fn size(&self) -> (usize, usize);
     // take shader sources and compile them down to a shader
     fn compile_shader(&self, vertex: &str, fragment: &str) -> Result<Shader, ShaderError>;
     // send some texture data (RGBA @ 8bits/channel) to the GPU and get a "handle" back to it

@@ -10,7 +10,10 @@ use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
 
-pub struct GLApi;
+pub struct GLApi {
+    size: (usize, usize)
+}
+
 impl GfxApi for GLApi {
     fn clear(&self, r: f32, g: f32, b: f32) {
         unsafe {
@@ -24,10 +27,15 @@ impl GfxApi for GLApi {
         }
     }
 
-    fn resize(&self, width: usize, height: usize) {
+    fn resize(&mut self, width: usize, height: usize) {
         unsafe {
             gl::Viewport(0, 0, width as i32, height as i32);
+            self.size = (width, height);
         }
+    }
+
+    fn size(&self) -> (usize, usize) {
+        self.size
     }
 
     fn compile_shader(&self, vertex: &str, fragment: &str) -> Result<Shader, ShaderError> {
@@ -124,6 +132,12 @@ impl GfxApi for GLApi {
                 gl::Uniform1i(uni as _, 0);
             }
 
+            // update some generic uniforms
+            {
+                let uni = gl::GetUniformLocation(shader.0, b"u_resolution\0" as *const _ as *const _) as u32;
+                gl::Uniform2f(uni as _, self.size.0 as _, self.size.1 as _);
+            }
+
             // great... on some platforms c_char is u8 and on some i8, this repeated *const _ will convert it (shrug)
             let pos =
                 gl::GetAttribLocation(shader.0, b"a_position\0" as *const _ as *const _) as u32;
@@ -171,7 +185,7 @@ impl GfxApi for GLApi {
 }
 
 impl GLApi {
-    pub fn new() -> Self {
+    pub fn new(width: usize, height: usize) -> Self {
         unsafe {
             // enable debugging TODO: Figure out why this doesnt actually call
             gl::DebugMessageCallback(Self::debug_callback, 0 as *const c_void);
@@ -180,7 +194,9 @@ impl GLApi {
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         }
-        GLApi
+        GLApi {
+            size: (width, height)
+        }
     }
 
     extern "system" fn debug_callback(
