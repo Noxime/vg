@@ -17,8 +17,9 @@ pub struct GLApi {
 impl GfxApi for GLApi {
     fn clear(&self, r: f32, g: f32, b: f32) {
         unsafe {
-            gl::ClearColor(r, g, b, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+if gl::ClearColor::is_loaded() { gl::ClearColor(r, g, b, 1.0); } else { println!("GL: glClearColor not loaded"); }
+if gl::Clear::is_loaded() { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); } else { println!("GL: glClear not loaded"); }
+
 
             // match gl::GetError() {
             //     0 => (),
@@ -188,7 +189,7 @@ impl GLApi {
     pub fn new(width: usize, height: usize) -> Self {
         unsafe {
             // enable debugging TODO: Figure out why this doesnt actually call
-            gl::DebugMessageCallback(Self::debug_callback, 0 as *const c_void);
+            //gl::DebugMessageCallback(Self::debug_callback, 0 as *const c_void);
 
             // enable transparency
             gl::Enable(gl::BLEND);

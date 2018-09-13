@@ -43,7 +43,8 @@ fn _colortype(v: png::ColorType) -> &'static str {
 #[allow(dead_code)]
 pub fn load_png(path: &str) -> Result<(usize, usize, Vec<u8>), ()> {
     log!("Loading png `{}`", path);
-    let decoder = png::Decoder::new(File::open(Path::new("assets").join(path)).map_err(|_| ())?);
+    //let decoder = png::Decoder::new(File::open(Path::new("assets").join(path)).map_err(|_| ())?);
+    let decoder = png::Decoder::new(&include_bytes!("../../assets/textures/test.png")[..]);
     log!("Reading png info");
     let (info, mut reader) = decoder.read_info().map_err(|_| ())?;
 

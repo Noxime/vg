@@ -50,6 +50,7 @@ impl Display {
         //TODO: Move this to api.rs
         let mut count = 0;
         gl::load_with(|symbol| {
+            println!("{}: {}", count, symbol);
             count += 1;
             gl_window.get_proc_address(symbol) as *const _
         });

@@ -1,0 +1,359 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 48;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		542E97D8214B020300E2C560 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542E97D7214B020300E2C560 /* AppDelegate.swift */; };
+		542E97DA214B020300E2C560 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542E97D9214B020300E2C560 /* ViewController.swift */; };
+		542E97DD214B020300E2C560 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542E97DB214B020300E2C560 /* Main.storyboard */; };
+		542E97DF214B020300E2C560 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 542E97DE214B020300E2C560 /* Assets.xcassets */; };
+		542E97E2214B020300E2C560 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542E97E0214B020300E2C560 /* LaunchScreen.storyboard */; };
+		542E97EB214B02FD00E2C560 /* libkea.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 542E97EA214B02FD00E2C560 /* libkea.a */; };
+		542E97ED214B030A00E2C560 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 542E97EC214B030A00E2C560 /* libresolv.tbd */; };
+		542E97F1214B080800E2C560 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542E97F0214B080800E2C560 /* main.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		542E97D4214B020200E2C560 /* kea.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kea.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		542E97D7214B020300E2C560 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		542E97D9214B020300E2C560 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		542E97DC214B020300E2C560 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		542E97DE214B020300E2C560 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		542E97E1214B020300E2C560 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		542E97E3214B020300E2C560 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		542E97EA214B02FD00E2C560 /* libkea.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkea.a; path = ../../target/universal/release/libkea.a; sourceTree = "<group>"; };
+		542E97EC214B030A00E2C560 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
+		542E97EE214B038800E2C560 /* kea.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kea.h; path = ../../src/kea.h; sourceTree = "<group>"; };
+		542E97EF214B03BB00E2C560 /* kea-bridging-header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "kea-bridging-header.h"; sourceTree = "<group>"; };
+		542E97F0214B080800E2C560 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		542E97D1214B020200E2C560 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				542E97ED214B030A00E2C560 /* libresolv.tbd in Frameworks */,
+				542E97EB214B02FD00E2C560 /* libkea.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		542E97CB214B020100E2C560 = {
+			isa = PBXGroup;
+			children = (
+				542E97EF214B03BB00E2C560 /* kea-bridging-header.h */,
+				542E97EE214B038800E2C560 /* kea.h */,
+				542E97D6214B020200E2C560 /* kea */,
+				542E97D5214B020200E2C560 /* Products */,
+				542E97E9214B02FD00E2C560 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		542E97D5214B020200E2C560 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				542E97D4214B020200E2C560 /* kea.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		542E97D6214B020200E2C560 /* kea */ = {
+			isa = PBXGroup;
+			children = (
+				542E97D7214B020300E2C560 /* AppDelegate.swift */,
+				542E97D9214B020300E2C560 /* ViewController.swift */,
+				542E97F0214B080800E2C560 /* main.swift */,
+				542E97DB214B020300E2C560 /* Main.storyboard */,
+				542E97DE214B020300E2C560 /* Assets.xcassets */,
+				542E97E0214B020300E2C560 /* LaunchScreen.storyboard */,
+				542E97E3214B020300E2C560 /* Info.plist */,
+			);
+			path = kea;
+			sourceTree = "<group>";
+		};
+		542E97E9214B02FD00E2C560 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				542E97EC214B030A00E2C560 /* libresolv.tbd */,
+				542E97EA214B02FD00E2C560 /* libkea.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		542E97D3214B020200E2C560 /* kea */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 542E97E6214B020300E2C560 /* Build configuration list for PBXNativeTarget "kea" */;
+			buildPhases = (
+				542E97D0214B020200E2C560 /* Sources */,
+				542E97D1214B020200E2C560 /* Frameworks */,
+				542E97D2214B020200E2C560 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = kea;
+			productName = kea;
+			productReference = 542E97D4214B020200E2C560 /* kea.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		542E97CC214B020100E2C560 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0920;
+				LastUpgradeCheck = 0920;
+				ORGANIZATIONNAME = noxim;
+				TargetAttributes = {
+					542E97D3214B020200E2C560 = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 542E97CF214B020200E2C560 /* Build configuration list for PBXProject "kea" */;
+			compatibilityVersion = "Xcode 8.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 542E97CB214B020100E2C560;
+			productRefGroup = 542E97D5214B020200E2C560 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				542E97D3214B020200E2C560 /* kea */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		542E97D2214B020200E2C560 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				542E97E2214B020300E2C560 /* LaunchScreen.storyboard in Resources */,
+				542E97DF214B020300E2C560 /* Assets.xcassets in Resources */,
+				542E97DD214B020300E2C560 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		542E97D0214B020200E2C560 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				542E97DA214B020300E2C560 /* ViewController.swift in Sources */,
+				542E97D8214B020300E2C560 /* AppDelegate.swift in Sources */,
+				542E97F1214B080800E2C560 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		542E97DB214B020300E2C560 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				542E97DC214B020300E2C560 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		542E97E0214B020300E2C560 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				542E97E1214B020300E2C560 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		542E97E4214B020300E2C560 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		542E97E5214B020300E2C560 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		542E97E7214B020300E2C560 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = YP66SK7WJM;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = kea/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../target/universal/release";
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.kea;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/kea-bridging-header.h";
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		542E97E8214B020300E2C560 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = YP66SK7WJM;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = kea/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../target/universal/release";
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.kea;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/kea-bridging-header.h";
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		542E97CF214B020200E2C560 /* Build configuration list for PBXProject "kea" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				542E97E4214B020300E2C560 /* Debug */,
+				542E97E5214B020300E2C560 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		542E97E6214B020300E2C560 /* Build configuration list for PBXNativeTarget "kea" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				542E97E7214B020300E2C560 /* Debug */,
+				542E97E8214B020300E2C560 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 542E97CC214B020100E2C560 /* Project object */;
+}

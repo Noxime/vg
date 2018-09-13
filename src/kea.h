@@ -1,1 +1,1 @@
-void ios_main();
+void kea_run();
