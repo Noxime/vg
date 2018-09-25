@@ -2,6 +2,39 @@
 name = "kea"
 version = "0.0.0"
 authors = ["noxim <Noxim#6410>"]
+license = "MIT"
 publish = false
 
+[[bin]]
+name = "kea_testing"
+path = "src/testing_main.rs"
+
+# TODO: Figure out what is the best way to do backend support... somethin wrong
+# here
+[features]
+default = [ "backend-gl" ]
+backend-gl = ["gfx-backend-gl"]
+backend-vk = ["gfx-backend-vulkan"]
+backend-mt = ["gfx-backend-metal"]
+backend-dx = ["gfx-backend-dx12"]
+
+
 [dependencies]
+log = "0.4.5"
+pretty_env_logger = "0.2.4"
+winit = "0.17.2"
+gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
+gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
+gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
+# gfx-backend-metal = { git = "https://github.com/gfx-rs/gfx", optional = true }
+# gfx-backend-dx12 = { git = "https://github.com/gfx-rs/gfx", optional = true }
+
+# metal available only on apple hardware
+[target.'cfg(any(target_os = "macos", all(target_os = "ios", target_arch = "aarch64")))'.dependencies.gfx-backend-metal]
+git = "https://github.com/gfx-rs/gfx"
+optional = true
+
+# dx12 is only available on windows
+[target.'cfg(windows)'.dependencies.gfx-backend-dx12]
+git = "https://github.com/gfx-rs/gfx"
+optional = true
