@@ -18,5 +18,6 @@ fn main() {
     };
     info!("Using: {:?}", api);
 
+    // graphics::create(Vec2::new(800, 600), "Kea".into(), &api);
     graphics::create(Vec2::new(800, 600), "Kea".into(), &api);
 }
