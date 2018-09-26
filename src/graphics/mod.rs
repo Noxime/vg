@@ -7,17 +7,17 @@ extern crate gfx_backend_metal;
 #[cfg(feature = "backend-vk")]
 extern crate gfx_backend_vulkan;
 extern crate gfx_hal;
-extern crate winit;
-// #[macro_use]
-// extern crate lazy_static;
 
 use vectors::*;
+use winit::*;
 
 use self::gfx_hal::format::{AsFormat, Rgba8Srgb as ColorFormat};
 use self::gfx_hal::{
     adapter::DeviceType, image, pass, pool, pso::PipelineStage, Adapter, Backend, Device, Graphics,
     Instance, PhysicalDevice, Surface,
 };
+
+use std::sync::{Mutex, Arc};
 
 const MAX_BUFFERS: usize = 16;
 
@@ -31,6 +31,15 @@ pub enum API {
     MT,
     #[cfg(feature = "backend-dx")]
     DX,
+}
+
+/// Various errors that might rise from graphics api invocations
+#[derive(Debug)]
+pub enum RenderError {
+    /// There were no devices available for given api
+    NoAdapter,
+    /// This adapter and api do not support graphics
+    NoGraphics,
 }
 
 // return the support status for available API's in the preferred order
@@ -49,19 +58,19 @@ pub fn supported() -> Vec<(API, bool)> {
 
 // lazy_static! {
 //     static ref BACKEND: Backend
-// }
+// 
 
-pub fn create(size: Vec2<usize>, title: String, api: &API) {
+pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop, RenderError> {
     trace!(
         "Creating {:?} based window with size {}x{}",
         api,
         size.x,
         size.y
     );
-    let mut events = winit::EventsLoop::new();
+    let mut events = EventsLoop::new();
 
-    let window_builder = winit::WindowBuilder::new()
-        .with_dimensions(winit::dpi::LogicalSize::new(size.x as _, size.y as _))
+    let window_builder = WindowBuilder::new()
+        .with_dimensions(dpi::LogicalSize::new(size.x as _, size.y as _))
         .with_title(title);
 
     // let mut adapters: Vec<Adapter<Backend=B>>;
@@ -78,50 +87,59 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) {
                 gfx_backend_gl::glutin::GlWindow::new(window_builder, builder, &events).unwrap()
             };
             let surface = gfx_backend_gl::Surface::from_window(window);
-            let mut adapter = pick_adapter(surface.enumerate_adapters());
-            prepare_renderer(adapter, surface);
+            let mut adapter = pick_adapter(surface.enumerate_adapters())?;
+            prepare_renderer(adapter, surface)?
         }
         #[cfg(feature = "backend-vk")]
         API::VK => {
             let window = window_builder.build(&events).unwrap();
             let instance = gfx_backend_vulkan::Instance::create("kea", 1);
             let surface = instance.create_surface(&window);
-            let mut adapter = pick_adapter(instance.enumerate_adapters());
-            prepare_renderer(adapter, surface);
+            let mut adapter = pick_adapter(instance.enumerate_adapters())?;
+            prepare_renderer(adapter, surface)?
         }
         #[cfg(feature = "backend-mt")]
         API::MT => {
             let window = window_builder.build(&events).unwrap();
-            let instance = gfx_backend_vulkan::Instance::create("kea", 1);
+            let instance = gfx_backend_metal::Instance::create("kea", 1);
             let surface = instance.create_surface(&window);
-            let mut adapter = pick_adapter(instance.enumerate_adapters());
-            prepare_renderer(adapter, surface);
+            let mut adapter = pick_adapter(instance.enumerate_adapters())?;
+            prepare_renderer(adapter, surface)?
         }
         #[cfg(feature = "backend-dx")]
         API::DX => {
             let window = window_builder.build(&events).unwrap();
             let instance = gfx_backend_dx12::Instance::create("kea", 1);
             let surface = instance.create_surface(&window);
-            let mut adapter = pick_adapter(instance.enumerate_adapters());
-            prepare_renderer(adapter, surface);
+            let mut adapter = pick_adapter(instance.enumerate_adapters())?;
+            prepare_renderer(adapter, surface)?
         }
     }
+
+    Ok(events)
 }
 
-fn prepare_renderer<B: Backend>(adapter: Adapter<B>, surface: impl Surface<B>) {
+fn prepare_renderer<B: Backend>(adapter: Adapter<B>, surface: impl Surface<B>) -> Result<(), RenderError> {
     let mut adapter = adapter;
     let (device, mut queue_group) = adapter
         .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
-        .unwrap();
+        .map_err(|why| {
+            error!("Getting graphics queue failed, {}, returning NoGraphics", why);
+            RenderError::NoGraphics
+        })?;
     let mut command_pool = device.create_command_pool_typed(
         &queue_group,
         pool::CommandPoolCreateFlags::empty(),
         MAX_BUFFERS,
     );
     let render_pass = create_render_pass(device);
+    Ok(())
 }
 
-fn pick_adapter<B: Backend>(adapters: Vec<Adapter<B>>) -> Adapter<B> {
+fn pick_adapter<B: Backend>(adapters: Vec<Adapter<B>>) -> Result<Adapter<B>, RenderError> {
+    if adapters.len() == 0 {
+        return Err(RenderError::NoAdapter);
+    }
     let mut adapters = adapters;
     debug!("Adapters available:");
     for adapter in &adapters {
@@ -139,7 +157,7 @@ fn pick_adapter<B: Backend>(adapters: Vec<Adapter<B>>) -> Adapter<B> {
             adapter.info.name
         );
     }
-    adapters.remove(0)
+    Ok(adapters.remove(0))
 }
 
 fn create_render_pass<B: Backend>(device: impl Device<B>) -> <B as Backend>::RenderPass {

@@ -3,21 +3,18 @@ extern crate kea;
 
 use kea::*;
 use kea::vectors::*;
+use kea::scene::*;
+
+enum SceneName {
+    Main,
+}
 
 fn main() {
-    init();
+    run(Vec2::new(800, 600), "Kea Game".into(), &scene_loader);
+}
 
-    let api = {
-        info!("Supported API's:");
-        let apis = graphics::supported();
-        for (i, (api, support)) in apis.iter().enumerate() {
-            info!("  {}: {:?} = {}", i, api, support);
-        }
-        let (api, _) = apis.get(0).expect("No APIs available");
-        *api
-    };
-    info!("Using: {:?}", api);
-
-    // graphics::create(Vec2::new(800, 600), "Kea".into(), &api);
-    graphics::create(Vec2::new(800, 600), "Kea".into(), &api);
+fn scene_loader(scene: SceneName) -> Scene {
+    match scene {
+        SceneName::Main => Scene::new(),
+    }
 }
