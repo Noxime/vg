@@ -17,7 +17,7 @@ use self::gfx_hal::{
     Instance, PhysicalDevice, Surface,
 };
 
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 const MAX_BUFFERS: usize = 16;
 
@@ -58,7 +58,7 @@ pub fn supported() -> Vec<(API, bool)> {
 
 // lazy_static! {
 //     static ref BACKEND: Backend
-// 
+//
 
 pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop, RenderError> {
     trace!(
@@ -119,12 +119,18 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
     Ok(events)
 }
 
-fn prepare_renderer<B: Backend>(adapter: Adapter<B>, surface: impl Surface<B>) -> Result<(), RenderError> {
+fn prepare_renderer<B: Backend>(
+    adapter: Adapter<B>,
+    surface: impl Surface<B>,
+) -> Result<(), RenderError> {
     let mut adapter = adapter;
     let (device, mut queue_group) = adapter
         .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
         .map_err(|why| {
-            error!("Getting graphics queue failed, {}, returning NoGraphics", why);
+            error!(
+                "Getting graphics queue failed, {}, returning NoGraphics",
+                why
+            );
             RenderError::NoGraphics
         })?;
     let mut command_pool = device.create_command_pool_typed(
