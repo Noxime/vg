@@ -5,7 +5,7 @@ extern crate kea;
 use kea::entity::*;
 use kea::scene::*;
 use kea::vectors::*;
-use kea::component::Component;
+use kea::components::*;
 use kea::*;
 
 enum SceneName {
@@ -18,7 +18,7 @@ fn main() {
 
 fn scene_loader(scene: SceneName) -> Scene {
     match scene {
-        SceneName::Main => Scene::empty().with_entity(Entity::empty().with_component(Box::new(TestComponent))),
+        SceneName::Main => Scene::empty().with_entity(Entity::empty().with_component(Box::new(TestComponent)).with_component(Box::new(SpriteRenderer::new()))),
     }
 }
 

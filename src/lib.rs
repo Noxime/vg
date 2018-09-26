@@ -9,7 +9,8 @@ pub mod graphics;
 pub mod scene;
 pub mod entity;
 pub mod vectors;
-pub mod component;
+pub mod components;
+use components::Component;
 use vectors::*;
 
 use winit::*;
@@ -32,8 +33,13 @@ pub fn run<T>(size: Vec2<usize>, title: String, scene_loader: &mut FnMut(T) -> s
         }
     };
 
+    debug!("Loading start scene");
     let mut scene = scene_loader(start_scene);
 
+    debug!("Creating rendering");
+    scene.prepare_render();
+
+    debug!("Entering main loop");
     'main: loop {
         let mut close = false;
         events.poll_events(|event| {
@@ -50,7 +56,11 @@ pub fn run<T>(size: Vec2<usize>, title: String, scene_loader: &mut FnMut(T) -> s
         if close {
             break 'main;
         }
+
+        graphics::render(&mut scene);
     }
+
+    scene.destroy_render();
 
     info!("Kea initialized");
 }
