@@ -1,0 +1,16 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+os:
+  - linux
+  - osx
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
+script:
+  - cargo build --no-default-features --features=backend-gl
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cargo build --no-default-features --features=backend-gl --features=backend-mt
