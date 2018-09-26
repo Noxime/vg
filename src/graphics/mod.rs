@@ -47,7 +47,7 @@ enum APIData {
     #[cfg(feature = "backend-vk")]
     VK(Data<VKBack>),
     #[cfg(feature = "backend-mt")]
-    VK(Data<MTBack>),
+    MT(Data<MTBack>),
     #[cfg(feature = "backend-dx")]
     DX(Data<DXBack>),
 }
@@ -135,7 +135,7 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             let mut adapter = pick_adapter(instance.enumerate_adapters())?;
             let (swapchain, frame_semaphore) = prepare_renderer(size, adapter, &mut surface)?;
             let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::GL(Data {
+            *data = Some(APIData::VK(Data {
                 swapchain,
                 frame_semaphore,
             }));
@@ -148,7 +148,7 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             let mut adapter = pick_adapter(instance.enumerate_adapters())?;
             let (swapchain, frame_semaphore) = prepare_renderer(size, adapter, &mut surface)?;
             let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::GL(Data {
+            *data = Some(APIData::MT(Data {
                 swapchain,
                 frame_semaphore,
             }));
@@ -161,7 +161,7 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             let mut adapter = pick_adapter(instance.enumerate_adapters())?;
             let (swapchain, frame_semaphore) = prepare_renderer(size, adapter, &mut surface)?;
             let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::GL(Data {
+            *data = Some(APIData::DX(Data {
                 swapchain,
                 frame_semaphore,
             }));
