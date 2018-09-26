@@ -7,7 +7,7 @@ publish = false
 
 [[bin]]
 name = "game"
-path = "src/testing_main.rs"
+path = "src/test_game.rs"
 
 # TODO: Figure out what is the best way to do backend support... somethin wrong
 # here

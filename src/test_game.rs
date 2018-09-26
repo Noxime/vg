@@ -18,7 +18,7 @@ fn main() {
 
 fn scene_loader(scene: SceneName) -> Scene {
     match scene {
-        SceneName::Main => Scene::empty().with_entity(Entity::empty()),
+        SceneName::Main => Scene::empty().with_entity(Entity::empty().with_component(Box::new(TestComponent))),
     }
 }
 
