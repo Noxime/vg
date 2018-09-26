@@ -1,3 +1,4 @@
+sudo: true
 language: rust
 rust:
   - stable
@@ -11,6 +12,8 @@ matrix:
     - rust: nightly
   fast_finish: true
 
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt install -y libx11-dev libvulkan-dev libxcb1-dev xorg-dev; fi
 script:
   - cargo build --no-default-features --features=backend-gl
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cargo build --no-default-features --features=backend-gl --features=backend-mt
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cargo build --no-default-features --features=backend-gl --features=backend-mt; fi
