@@ -14,13 +14,8 @@ impl SpriteRenderer {
 }
 
 impl Component for SpriteRenderer {
-    fn prepare_render(&mut self) {
-        debug!("Creating SpriteRenderer graphics");
-    }
-    fn render(&mut self) {
+    fn render(&mut self) -> Option<DrawCall> {
         debug!("Rendering SpriteRenderer");
-    }
-    fn destroy_render(&mut self) {
-        debug!("Destroying SpriteRenderer graphics");
+        Some(DrawCall::empty())
     }
 }

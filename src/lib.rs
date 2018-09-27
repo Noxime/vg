@@ -36,9 +36,6 @@ pub fn run<T>(size: Vec2<usize>, title: String, scene_loader: &mut FnMut(T) -> s
     debug!("Loading start scene");
     let mut scene = scene_loader(start_scene);
 
-    debug!("Creating rendering");
-    scene.prepare_render();
-
     debug!("Entering main loop");
     'main: loop {
         let mut close = false;
@@ -59,8 +56,6 @@ pub fn run<T>(size: Vec2<usize>, title: String, scene_loader: &mut FnMut(T) -> s
 
         graphics::render(&mut scene);
     }
-
-    scene.destroy_render();
 
     info!("Kea initialized");
 }

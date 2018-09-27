@@ -1,5 +1,6 @@
 use vectors::*;
 use components::Component;
+use graphics::*;
 
 pub struct Entity {
     pub position: Vec2<f32>,
@@ -19,22 +20,13 @@ impl Entity {
         }
     }
 
-    pub fn prepare_render(&mut self) {
-        for mut component in self.components.iter_mut() {
-            component.prepare_render();
-        }
-    }
-
-    pub fn render(&mut self) {
-        for mut component in self.components.iter_mut() {
-            component.render();
-        }
-    }
-
-    pub fn destroy_render(&mut self) {
-        for mut component in self.components.iter_mut() {
-            component.destroy_render();
-        }
+    pub fn render(&mut self) -> Vec<DrawCall> {
+        self.components
+            .iter_mut()
+            .map(|c| c.render())
+            .filter(|v| v.is_some())
+            .map(|v| v.unwrap())
+            .collect()
     }
 
     pub fn add_component(&mut self, component: Box<Component>) {
