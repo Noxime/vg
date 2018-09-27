@@ -12,6 +12,7 @@ mod draw_call;
 mod mesh;
 mod shader;
 mod texture;
+mod vertex;
 
 use scene::*;
 use vectors::*;
@@ -34,6 +35,7 @@ pub use self::{
     mesh::*,
     shader::*,
     texture::*,
+    vertex::*,
 };
 
 use std::sync::{Arc, Mutex};
@@ -52,6 +54,10 @@ pub type VKBack = gfx_backend_vulkan::Backend;
 pub type MTBack = gfx_backend_metal::Backend;
 #[cfg(feature = "backend-dx")]
 pub type DXBack = gfx_backend_dx12::Backend;
+
+// struct APIMesh<B: Backend> {
+
+// }
 
 struct Data<B: Backend> {
     size: Vec2<usize>,                               // window size
@@ -200,6 +206,40 @@ pub fn create(
     Ok(events)
 }
 
+pub fn create_mesh(verticies: Vec<Vertex>) -> Mesh {
+    if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
+        match api_data {
+            #[cfg(feature = "backend-gl")]
+            APIData::GL(ref mut d) => _create_mesh(verticies, d),
+            #[cfg(feature = "backend-vk")]
+            APIData::VK(ref mut d) => _create_mesh(verticies, d),
+            #[cfg(feature = "backend-mt")]
+            APIData::MT(ref mut d) => _create_mesh(verticies, d),
+            #[cfg(feature = "backend-dx")]
+            APIData::DX(ref mut d) => _create_mesh(verticies, d),
+        }
+    } else {
+        error!("No API_DATA in create_mesh()! (Create was not called?)");
+        panic!()
+    }
+}
+
+fn _create_mesh<B: Backend>(
+    verticies: Vec<Vertex>,
+    data: &mut Data<B>,
+) -> Mesh {
+    use std::mem::size_of;
+    let vertex_stride = size_of::<Vertex>() as u64;
+    let buffer_len = verticies.len() as u64 * vertex_stride;
+
+    let buffer_unbound = data
+        .device
+        .create_buffer(buffer_len, buffer::Usage::VERTEX)
+        .unwrap();
+
+    unimplemented!()
+}
+
 pub fn render(scene: &mut Scene) {
     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
         match api_data {
@@ -263,17 +303,9 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
                 &data.render_pass,
                 &data.framebuffers[frame_index as usize],
                 viewport.rect,
-                &[ClearValue::Color(ClearColor::Float([0.0, 0.0, 0.0, 1.0]))],
+                &[ClearValue::Color(ClearColor::Float([1.0, 0.0, 1.0, 1.0]))],
             );
 
-            // Draw some geometry! In this case 0..3 means that we're drawing
-            // the range of vertices from 0 to 3. We have no vertex buffer so
-            // this really just tells our shader to draw one triangle. The
-            // specific vertices to draw are encoded in the vertex shader which
-            // you can see in `source_assets/shaders/part00.vert`.
-            //
-            // The 0..1 is the range of instances to draw. It's not relevant
-            // unless you're using instanced rendering.
             encoder.draw(0..3, 0..1);
         }
 
@@ -319,6 +351,13 @@ fn prepare_renderer<B: Backend>(
             );
             RenderError::NoGraphics
         })?;
+
+    // let memory_types = adapter.physical_device.memory_properties().memory_types;
+    debug!(
+        "Memory types: {:#?}",
+        adapter.physical_device.memory_properties()
+    );
+    debug!("Device limits: {:#?}", adapter.physical_device.limits());
 
     let command_pool = device.create_command_pool_typed(
         &queue_group,

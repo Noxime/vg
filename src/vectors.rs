@@ -22,3 +22,7 @@ pub struct Vec4<T> {
 impl<T> Vec2<T> {
     pub fn new(x: T, y: T) -> Vec2<T> { Vec2 { x, y } }
 }
+
+impl<T> Vec3<T> {
+    pub fn new(x: T, y: T, z: T) -> Vec3<T> { Vec3 { x, y, z } }
+}
