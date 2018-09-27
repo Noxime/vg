@@ -9,7 +9,7 @@ impl DrawCall {
         DrawCall {}
     }
 
-    pub fn with_mesh(mut self, mesh: Mesh) -> Self {
+    pub fn with_mesh(self, _mesh: Mesh) -> Self {
         self
     }
 }

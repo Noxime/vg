@@ -13,19 +13,21 @@ mod mesh;
 mod shader;
 mod texture;
 
-use vectors::*;
 use scene::*;
+use vectors::*;
 
 use winit::*;
 
-use self::gfx_hal::*;
-use self::gfx_hal::format::*;
+pub use self::draw_call::*;
 use self::gfx_hal::adapter::*;
+use self::gfx_hal::command::*;
+use self::gfx_hal::format::*;
+use self::gfx_hal::image::*;
+use self::gfx_hal::pass::*;
 use self::gfx_hal::pso::*;
 use self::gfx_hal::window::*;
-use self::gfx_hal::command::*;
 pub use self::gfx_hal::Backend;
-pub use self::draw_call::*;
+use self::gfx_hal::*;
 pub use self::mesh::*;
 pub use self::shader::*;
 pub use self::texture::*;
@@ -35,7 +37,7 @@ use std::sync::{Arc, Mutex};
 const MAX_BUFFERS: usize = 16;
 
 lazy_static! {
-    static ref API_DATA: Mutex<Option<APIData>> = Mutex::new(None); 
+    static ref API_DATA: Mutex<Option<APIData>> = Mutex::new(None);
 }
 
 #[cfg(feature = "backend-gl")]
@@ -48,10 +50,23 @@ pub type MTBack = gfx_backend_metal::Backend;
 pub type DXBack = gfx_backend_dx12::Backend;
 
 struct Data<B: Backend> {
-    swapchain: <B as Backend>::Swapchain,
-    frame_semaphore: <B as Backend>::Semaphore,
-    size: Vec2<usize>,
+    size: Vec2<usize>,                               // window size
+    window: Option<Window>,                          // winit window
+    queue_group: QueueGroup<B, Graphics>,            // queue group
+    command_pool: CommandPool<B, Graphics>,          // command pool
+    surface: <B as Backend>::Surface,                // window surface
+    adapter: Adapter<B>,                             // physical device
+    device: <B as Backend>::Device,                  // logical device
+    swapchain: <B as Backend>::Swapchain,            // swapchain
+    frame_views: Vec<<B as Backend>::ImageView>,     // frame views
+    framebuffers: Vec<<B as Backend>::Framebuffer>,  // framebuffers
+    frame_semaphore: <B as Backend>::Semaphore,      // frame semaphore
+    frame_fence: <B as Backend>::Fence,              // frame fence
+    render_pass: <B as Backend>::RenderPass,         // default render pass
+    pipeline_layout: <B as Backend>::PipelineLayout, // pipeline layout
+    pipeline: <B as Backend>::GraphicsPipeline,      // pipeline
 }
+
 enum APIData {
     #[cfg(feature = "backend-gl")]
     GL(Data<GLBack>),
@@ -106,7 +121,7 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
         size.y
     );
 
-    let mut events = EventsLoop::new();
+    let events = EventsLoop::new();
 
     let window_builder = WindowBuilder::new()
         .with_dimensions(dpi::LogicalSize::new(size.x as _, size.y as _))
@@ -125,16 +140,8 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             };
             let mut surface = gfx_backend_gl::Surface::from_window(window);
             let mut adapter = pick_adapter(surface.enumerate_adapters())?;
-            let (
-                swapchain, 
-                frame_semaphore, 
-            ) = prepare_renderer(&size, adapter, &mut surface)?;
-            let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::GL(Data {
-                swapchain,
-                frame_semaphore,
-                size,
-            }));
+            *API_DATA.lock().unwrap() =
+                Some(APIData::GL(prepare_renderer(size, None, adapter, surface)?));
         }
         #[cfg(feature = "backend-vk")]
         API::VK => {
@@ -142,16 +149,12 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             let instance = gfx_backend_vulkan::Instance::create("kea", 1);
             let mut surface = instance.create_surface(&window);
             let mut adapter = pick_adapter(instance.enumerate_adapters())?;
-            let (
-                swapchain, 
-                frame_semaphore, 
-            ) = prepare_renderer(&size, adapter, &mut surface)?;
-            let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::VK(Data {
-                swapchain,
-                frame_semaphore,
+            *API_DATA.lock().unwrap() = Some(APIData::VK(prepare_renderer(
                 size,
-            }));
+                Some(window),
+                adapter,
+                surface,
+            )?));
         }
         #[cfg(feature = "backend-mt")]
         API::MT => {
@@ -159,16 +162,12 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             let instance = gfx_backend_metal::Instance::create("kea", 1);
             let mut surface = instance.create_surface(&window);
             let mut adapter = pick_adapter(instance.enumerate_adapters())?;
-            let (
-                swapchain, 
-                frame_semaphore, 
-            ) = prepare_renderer(&size, adapter, &mut surface)?;
-            let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::MT(Data {
-                swapchain,
-                frame_semaphore,
+            *API_DATA.lock().unwrap() = Some(APIData::MT(prepare_renderer(
                 size,
-            }));
+                Some(window),
+                adapter,
+                surface,
+            )?));
         }
         #[cfg(feature = "backend-dx")]
         API::DX => {
@@ -176,16 +175,12 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
             let instance = gfx_backend_dx12::Instance::create("kea", 1);
             let mut surface = instance.create_surface(&window);
             let mut adapter = pick_adapter(instance.enumerate_adapters())?;
-            let (
-                swapchain, 
-                frame_semaphore, 
-            ) = prepare_renderer(&size, adapter, &mut surface)?;
-            let mut data = API_DATA.lock().unwrap();
-            *data = Some(APIData::DX(Data {
-                swapchain,
-                frame_semaphore,
+            *API_DATA.lock().unwrap() = Some(APIData::DX(prepare_renderer(
                 size,
-            }));
+                Some(window),
+                adapter,
+                surface,
+            )?));
         }
     }
 
@@ -211,22 +206,96 @@ pub fn render(scene: &mut Scene) {
 }
 
 fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
-    let frame_index = data.swapchain.acquire_image(0, FrameSync::Semaphore(&data.frame_semaphore)).unwrap();
+    data.device.reset_fence(&data.frame_fence);
+    data.command_pool.reset();
+
+    let frame_index = data
+        .swapchain
+        .acquire_image(!0, FrameSync::Semaphore(&data.frame_semaphore))
+        .unwrap();
 
     let calls = scene.render();
-    trace!("Rendering frame idx {} with {} drawcalls per frame", frame_index, calls.len());
+    trace!(
+        "Rendering frame idx {} with {} drawcalls per frame",
+        frame_index,
+        calls.len()
+    );
+
+    // change every frame, then we do.
+    let finished_command_buffer = {
+        let mut command_buffer = data.command_pool.acquire_command_buffer(false);
+
+        // Define a rectangle on screen to draw into.
+        // In this case, the whole screen.
+        let viewport = Viewport {
+            rect: Rect {
+                x: 0,
+                y: 0,
+                w: data.size.x as i16,
+                h: data.size.y as i16,
+            },
+            depth: 0.0..1.0,
+        };
+
+        command_buffer.set_viewports(0, &[viewport.clone()]);
+        command_buffer.set_scissors(0, &[viewport.rect]);
+
+        // Choose a pipeline to use.
+        command_buffer.bind_graphics_pipeline(&data.pipeline);
+
+        {
+            // Clear the screen and begin the render pass.
+            let mut encoder = command_buffer.begin_render_pass_inline(
+                &data.render_pass,
+                &data.framebuffers[frame_index as usize],
+                viewport.rect,
+                &[ClearValue::Color(ClearColor::Float([0.0, 0.0, 0.0, 1.0]))],
+            );
+
+            // Draw some geometry! In this case 0..3 means that we're drawing
+            // the range of vertices from 0 to 3. We have no vertex buffer so
+            // this really just tells our shader to draw one triangle. The
+            // specific vertices to draw are encoded in the vertex shader which
+            // you can see in `source_assets/shaders/part00.vert`.
+            //
+            // The 0..1 is the range of instances to draw. It's not relevant
+            // unless you're using instanced rendering.
+            encoder.draw(0..3, 0..1);
+        }
+
+        // Finish building the command buffer - it's now ready to send to the
+        // GPU.
+        command_buffer.finish()
+    };
+
+    // This is what we submit to the command queue. We wait until frame_semaphore
+    // is signalled, at which point we know our chosen image is available to draw
+    // on.
+    let submission = Submission::new()
+        .wait_on(&[(&data.frame_semaphore, PipelineStage::BOTTOM_OF_PIPE)])
+        .submit(vec![finished_command_buffer]);
+
+    // We submit the submission to one of our command queues, which will signal
+    // frame_fence once rendering is completed.
+    data.queue_group.queues[0].submit(submission, Some(&data.frame_fence));
+
+    // We first wait for the rendering to complete...
+    data.device.wait_for_fence(&data.frame_fence, !0);
+
+    // ...and then present the image on screen!
+    data.swapchain
+        .present(&mut data.queue_group.queues[0], frame_index, &[])
+        .expect("Present failed");
 }
 
 fn prepare_renderer<B: Backend>(
-    size: &Vec2<usize>,
+    size: Vec2<usize>,
+    window: Option<Window>,
     adapter: Adapter<B>,
-    surface: &mut <B as Backend>::Surface,
-) -> Result<(
-    <B as Backend>::Swapchain, 
-    <B as Backend>::Semaphore,
-), RenderError> {
+    mut surface: <B as Backend>::Surface,
+) -> Result<Data<B>, RenderError> {
     let mut adapter = adapter;
-    let (device, mut queue_group) = adapter
+    let (device, queue_group) = adapter
         .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
         .map_err(|why| {
             error!(
@@ -235,27 +304,168 @@ fn prepare_renderer<B: Backend>(
             );
             RenderError::NoGraphics
         })?;
-    let mut command_pool = device.create_command_pool_typed(
+
+    let command_pool = device.create_command_pool_typed(
         &queue_group,
         pool::CommandPoolCreateFlags::empty(),
         MAX_BUFFERS,
     );
-    let (mut swapchain, backbuffer) = create_swapchain(size, &device, surface);
+
     let frame_semaphore = device.create_semaphore();
     let frame_fence = device.create_fence(false);
-    Ok((swapchain, frame_semaphore))
+    let render_pass = {
+        let color_attachment = Attachment {
+            format: Some(Rgba8Srgb::SELF),
+            samples: 1,
+            ops: AttachmentOps::new(AttachmentLoadOp::Clear, AttachmentStoreOp::Store),
+            stencil_ops: AttachmentOps::DONT_CARE,
+            layouts: Layout::Undefined..Layout::Present,
+        };
+
+        // A render pass could have multiple subpasses - but we're using one for now.
+        let subpass = SubpassDesc {
+            colors: &[(0, Layout::ColorAttachmentOptimal)],
+            depth_stencil: None,
+            inputs: &[],
+            resolves: &[],
+            preserves: &[],
+        };
+
+        // This expresses the dependencies between subpasses. Again, we only have
+        // one subpass for now. Future tutorials may go into more detail.
+        let dependency = SubpassDependency {
+            passes: SubpassRef::External..SubpassRef::Pass(0),
+            stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
+            accesses: Access::empty()
+                ..(Access::COLOR_ATTACHMENT_READ | Access::COLOR_ATTACHMENT_WRITE),
+        };
+
+        device.create_render_pass(&[color_attachment], &[subpass], &[dependency])
+    };
+
+    let pipeline_layout = device.create_pipeline_layout(&[], &[]);
+
+    let vertex_shader_module = {
+        let spirv = include_bytes!("../../built_assets/shaders/default.vs.spv");
+        device.create_shader_module(spirv).unwrap()
+    };
+
+    let fragment_shader_module = {
+        let spirv = include_bytes!("../../built_assets/shaders/default.fs.spv");
+        device.create_shader_module(spirv).unwrap()
+    };
+
+    let pipeline = {
+        let vs_entry = EntryPoint::<B> {
+            entry: "main",
+            module: &vertex_shader_module,
+            specialization: Default::default(),
+        };
+
+        let fs_entry = EntryPoint::<B> {
+            entry: "main",
+            module: &fragment_shader_module,
+            specialization: Default::default(),
+        };
+
+        let shader_entries = GraphicsShaderSet {
+            vertex: vs_entry,
+            hull: None,
+            domain: None,
+            geometry: None,
+            fragment: Some(fs_entry),
+        };
+
+        let subpass = pass::Subpass {
+            index: 0,
+            main_pass: &render_pass,
+        };
+
+        let mut pipeline_desc = GraphicsPipelineDesc::new(
+            shader_entries,
+            Primitive::TriangleList,
+            Rasterizer::FILL,
+            &pipeline_layout,
+            subpass,
+        );
+
+        pipeline_desc
+            .blender
+            .targets
+            .push(ColorBlendDesc(ColorMask::ALL, BlendState::ALPHA));
+
+        device
+            .create_graphics_pipeline(&pipeline_desc, None)
+            .unwrap()
+    };
+
+    let ((swapchain, backbuffer), extent) = create_swapchain(&size, &device, &mut surface);
+
+    let (frame_views, framebuffers) = match backbuffer {
+        Backbuffer::Images(images) => {
+            let color_range = SubresourceRange {
+                aspects: Aspects::COLOR,
+                levels: 0..1,
+                layers: 0..1,
+            };
+
+            let image_views = images
+                .iter()
+                .map(|image| {
+                    device
+                        .create_image_view(
+                            image,
+                            ViewKind::D2,
+                            Rgba8Srgb::SELF,
+                            Swizzle::NO,
+                            color_range.clone(),
+                        ).unwrap()
+                }).collect::<Vec<_>>();
+
+            let fbos = image_views
+                .iter()
+                .map(|image_view| {
+                    device
+                        .create_framebuffer(&render_pass, vec![image_view], extent)
+                        .unwrap()
+                }).collect();
+
+            (image_views, fbos)
+        }
+
+        // This arm of the branch is currently only used by the OpenGL backend,
+        // which supplies an opaque framebuffer for you instead of giving you control
+        // over individual images.
+        Backbuffer::Framebuffer(fbo) => (vec![], vec![fbo]),
+    };
+
+    Ok(Data {
+        size,
+        window,
+        queue_group,
+        surface,
+        adapter,
+        device,
+        command_pool,
+        swapchain,
+        frame_views,
+        framebuffers,
+        frame_semaphore,
+        frame_fence,
+        render_pass,
+        pipeline_layout,
+        pipeline,
+    })
 }
 
 fn create_swapchain<B: Backend>(
-    size: &Vec2<usize>, 
-    device: &impl Device<B>, 
+    size: &Vec2<usize>,
+    device: &impl Device<B>,
     surface: &mut <B as Backend>::Surface,
-) -> (
-    <B as Backend>::Swapchain, 
-    Backbuffer<B>,
-) {
+) -> ((<B as Backend>::Swapchain, Backbuffer<B>), Extent) {
     let swap_config = SwapchainConfig::new(size.x as u32, size.y as u32, Rgba8Srgb::SELF, 2);
-    device.create_swapchain(surface, swap_config, None)
+    let extent = swap_config.extent.to_extent();
+    (device.create_swapchain(surface, swap_config, None), extent)
 }
 
 fn pick_adapter<B: Backend>(adapters: Vec<Adapter<B>>) -> Result<Adapter<B>, RenderError> {
@@ -280,4 +490,46 @@ fn pick_adapter<B: Backend>(adapters: Vec<Adapter<B>>) -> Result<Adapter<B>, Ren
         );
     }
     Ok(adapters.remove(0))
+}
+
+pub fn destory() {
+    if let Some(api_data) = API_DATA.lock().unwrap().take() {
+        match api_data {
+            #[cfg(feature = "backend-gl")]
+            APIData::GL(mut d) => _destroy(d),
+            #[cfg(feature = "backend-vk")]
+            APIData::VK(mut d) => _destroy(d),
+            #[cfg(feature = "backend-mt")]
+            APIData::MT(mut d) => _destroy(d),
+            #[cfg(feature = "backend-dx")]
+            APIData::DX(mut d) => _destroy(d),
+        }
+    } else {
+        warn!("No api data bound, so nothing to destory (ignored)");
+    }
+}
+
+fn _destroy<B: Backend>(data: Data<B>) {
+    data.device.destroy_graphics_pipeline(data.pipeline);
+    data.device.destroy_pipeline_layout(data.pipeline_layout);
+
+    for framebuffer in data.framebuffers {
+        data.device.destroy_framebuffer(framebuffer);
+    }
+
+    for image_view in data.frame_views {
+        data.device.destroy_image_view(image_view);
+    }
+
+    data.device.destroy_render_pass(data.render_pass);
+    data.device.destroy_fence(data.frame_fence);
+    data.device.destroy_semaphore(data.frame_semaphore);
+    data.device.destroy_swapchain(data.swapchain);
+
+    data.device
+        .destroy_command_pool(data.command_pool.into_raw());
+
+    if let Some(w) = data.window {
+        drop(w);
+    }
 }

@@ -46,16 +46,16 @@ pub fn run<T>(size: Vec2<usize>, title: String, scene_loader: &mut FnMut(T) -> s
                     WindowEvent::CloseRequested => close = true,
                     _ => (),
                 }
-            } else if let Event::DeviceEvent { event, .. } = event {
+            } else if let Event::DeviceEvent { event: _, .. } = event {
                 // device events
             }
         });
         if close {
             break 'main;
         }
-
+        // debug!("PRECRASH");
         graphics::render(&mut scene);
     }
 
-    info!("Kea initialized");
+    info!("Kea shutdown");
 }
