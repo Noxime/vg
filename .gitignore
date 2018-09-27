@@ -1,3 +1,4 @@
 .vscode
 target/
+built_assets/
 Cargo.lock
