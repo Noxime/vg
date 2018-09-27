@@ -1,5 +1,7 @@
 image: "rust:latest"
 build:cargo:
+  before_script:
+  - apt-get install -y cmake
   script:
   - rustc --version && cargo --version
   - cargo build --verbose
