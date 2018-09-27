@@ -1,0 +1,6 @@
+fn_single_line = true
+imports_layout = "HorizontalVertical"
+merge_imports = true
+max_width = 80
+report_todo = "Always"
+report_fixme = "Always"

@@ -1,16 +1,10 @@
 use components::Component;
 use graphics::*;
 
-pub struct SpriteRenderer {
-
-}
+pub struct SpriteRenderer {}
 
 impl SpriteRenderer {
-    pub fn new() -> SpriteRenderer {
-        SpriteRenderer {
-
-        }
-    }
+    pub fn new() -> SpriteRenderer { SpriteRenderer {} }
 }
 
 impl Component for SpriteRenderer {

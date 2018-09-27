@@ -18,19 +18,23 @@ use vectors::*;
 
 use winit::*;
 
-pub use self::draw_call::*;
-use self::gfx_hal::adapter::*;
-use self::gfx_hal::command::*;
-use self::gfx_hal::format::*;
-use self::gfx_hal::image::*;
-use self::gfx_hal::pass::*;
-use self::gfx_hal::pso::*;
-use self::gfx_hal::window::*;
-pub use self::gfx_hal::Backend;
-use self::gfx_hal::*;
-pub use self::mesh::*;
-pub use self::shader::*;
-pub use self::texture::*;
+use self::gfx_hal::{
+    adapter::*,
+    command::*,
+    format::*,
+    image::*,
+    pass::*,
+    pso::*,
+    window::*,
+    *,
+};
+pub use self::{
+    draw_call::*,
+    gfx_hal::Backend,
+    mesh::*,
+    shader::*,
+    texture::*,
+};
 
 use std::sync::{Arc, Mutex};
 
@@ -113,7 +117,11 @@ pub fn supported() -> Vec<(API, bool)> {
     ]
 }
 
-pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop, RenderError> {
+pub fn create(
+    size: Vec2<usize>,
+    title: String,
+    api: &API,
+) -> Result<EventsLoop, RenderError> {
     trace!(
         "Creating {:?} based window with size {}x{}",
         api,
@@ -136,12 +144,17 @@ pub fn create(size: Vec2<usize>, title: String, api: &API) -> Result<EventsLoop,
                     Rgba8Srgb::SELF,
                     None,
                 ).with_vsync(true);
-                gfx_backend_gl::glutin::GlWindow::new(window_builder, builder, &events).unwrap()
+                gfx_backend_gl::glutin::GlWindow::new(
+                    window_builder,
+                    builder,
+                    &events,
+                ).unwrap()
             };
             let mut surface = gfx_backend_gl::Surface::from_window(window);
             let mut adapter = pick_adapter(surface.enumerate_adapters())?;
-            *API_DATA.lock().unwrap() =
-                Some(APIData::GL(prepare_renderer(size, None, adapter, surface)?));
+            *API_DATA.lock().unwrap() = Some(APIData::GL(prepare_renderer(
+                size, None, adapter, surface,
+            )?));
         }
         #[cfg(feature = "backend-vk")]
         API::VK => {
@@ -223,7 +236,8 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
 
     // change every frame, then we do.
     let finished_command_buffer = {
-        let mut command_buffer = data.command_pool.acquire_command_buffer(false);
+        let mut command_buffer =
+            data.command_pool.acquire_command_buffer(false);
 
         // Define a rectangle on screen to draw into.
         // In this case, the whole screen.
@@ -296,8 +310,9 @@ fn prepare_renderer<B: Backend>(
 ) -> Result<Data<B>, RenderError> {
     let mut adapter = adapter;
     let (device, queue_group) = adapter
-        .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
-        .map_err(|why| {
+        .open_with::<_, Graphics>(1, |family| {
+            surface.supports_queue_family(family)
+        }).map_err(|why| {
             error!(
                 "Getting graphics queue failed, {}, returning NoGraphics",
                 why
@@ -317,7 +332,10 @@ fn prepare_renderer<B: Backend>(
         let color_attachment = Attachment {
             format: Some(Rgba8Srgb::SELF),
             samples: 1,
-            ops: AttachmentOps::new(AttachmentLoadOp::Clear, AttachmentStoreOp::Store),
+            ops: AttachmentOps::new(
+                AttachmentLoadOp::Clear,
+                AttachmentStoreOp::Store,
+            ),
             stencil_ops: AttachmentOps::DONT_CARE,
             layouts: Layout::Undefined..Layout::Present,
         };
@@ -335,12 +353,18 @@ fn prepare_renderer<B: Backend>(
         // one subpass for now. Future tutorials may go into more detail.
         let dependency = SubpassDependency {
             passes: SubpassRef::External..SubpassRef::Pass(0),
-            stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
+            stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT
+                ..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
             accesses: Access::empty()
-                ..(Access::COLOR_ATTACHMENT_READ | Access::COLOR_ATTACHMENT_WRITE),
+                ..(Access::COLOR_ATTACHMENT_READ
+                    | Access::COLOR_ATTACHMENT_WRITE),
         };
 
-        device.create_render_pass(&[color_attachment], &[subpass], &[dependency])
+        device.create_render_pass(
+            &[color_attachment],
+            &[subpass],
+            &[dependency],
+        )
     };
 
     let pipeline_layout = device.create_pipeline_layout(&[], &[]);
@@ -399,7 +423,8 @@ fn prepare_renderer<B: Backend>(
             .unwrap()
     };
 
-    let ((swapchain, backbuffer), extent) = create_swapchain(&size, &device, &mut surface);
+    let ((swapchain, backbuffer), extent) =
+        create_swapchain(&size, &device, &mut surface);
 
     let (frame_views, framebuffers) = match backbuffer {
         Backbuffer::Images(images) => {
@@ -426,8 +451,11 @@ fn prepare_renderer<B: Backend>(
                 .iter()
                 .map(|image_view| {
                     device
-                        .create_framebuffer(&render_pass, vec![image_view], extent)
-                        .unwrap()
+                        .create_framebuffer(
+                            &render_pass,
+                            vec![image_view],
+                            extent,
+                        ).unwrap()
                 }).collect();
 
             (image_views, fbos)
@@ -463,12 +491,15 @@ fn create_swapchain<B: Backend>(
     device: &impl Device<B>,
     surface: &mut <B as Backend>::Surface,
 ) -> ((<B as Backend>::Swapchain, Backbuffer<B>), Extent) {
-    let swap_config = SwapchainConfig::new(size.x as u32, size.y as u32, Rgba8Srgb::SELF, 2);
+    let swap_config =
+        SwapchainConfig::new(size.x as u32, size.y as u32, Rgba8Srgb::SELF, 2);
     let extent = swap_config.extent.to_extent();
     (device.create_swapchain(surface, swap_config, None), extent)
 }
 
-fn pick_adapter<B: Backend>(adapters: Vec<Adapter<B>>) -> Result<Adapter<B>, RenderError> {
+fn pick_adapter<B: Backend>(
+    adapters: Vec<Adapter<B>>,
+) -> Result<Adapter<B>, RenderError> {
     if adapters.len() == 0 {
         return Err(RenderError::NoAdapter);
     }

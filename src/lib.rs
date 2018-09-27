@@ -5,11 +5,11 @@ extern crate lazy_static;
 extern crate pretty_env_logger;
 extern crate winit;
 
+pub mod components;
+pub mod entity;
 pub mod graphics;
 pub mod scene;
-pub mod entity;
 pub mod vectors;
-pub mod components;
 use components::Component;
 use vectors::*;
 
@@ -17,7 +17,12 @@ use winit::*;
 
 /// initialize static parts of kea.
 /// This should be the first function you call
-pub fn run<T>(size: Vec2<usize>, title: String, scene_loader: &mut FnMut(T) -> scene::Scene, start_scene: T) {
+pub fn run<T>(
+    size: Vec2<usize>,
+    title: String,
+    scene_loader: &mut FnMut(T) -> scene::Scene,
+    start_scene: T,
+) {
     pretty_env_logger::init();
 
     let apis = graphics::supported();

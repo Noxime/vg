@@ -1,12 +1,12 @@
-use vectors::*;
 use components::Component;
 use graphics::*;
+use vectors::*;
 
 pub struct Entity {
     pub position: Vec2<f32>,
     pub rotation: Vec2<f32>,
     pub scale: Vec2<f32>,
-    components: Vec<Box<Component>>
+    components: Vec<Box<Component>>,
 }
 
 impl Entity {
@@ -33,7 +33,7 @@ impl Entity {
         debug!("added component to entity");
         self.components.push(component);
     }
-    
+
     pub fn with_component(mut self, component: Box<Component>) -> Self {
         self.add_component(component);
         self

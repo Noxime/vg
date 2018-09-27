@@ -8,18 +8,14 @@ pub struct Scene {
 impl Scene {
     pub fn empty() -> Scene {
         debug!("new empty scene");
-        Scene {
-            entities: vec![]
-        }
+        Scene { entities: vec![] }
     }
 
-    pub fn render(&mut self) -> Vec<DrawCall>{
-        self.entities
-            .iter_mut()
-            .fold(vec![], |mut s, v| { 
-                s.append(&mut v.render());
-                s
-            })
+    pub fn render(&mut self) -> Vec<DrawCall> {
+        self.entities.iter_mut().fold(vec![], |mut s, v| {
+            s.append(&mut v.render());
+            s
+        })
     }
 
     pub fn add_entity(&mut self, entity: Entity) {

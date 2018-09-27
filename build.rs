@@ -18,20 +18,20 @@ fn main() -> Result<(), Box<Error>> {
             let in_path = entry.path();
 
             // Support only vertex and fragment shaders currently
-            let shader_type =
-                in_path
-                    .extension()
-                    .and_then(|ext| match ext.to_string_lossy().as_ref() {
-                        "vs" => Some(ShaderType::Vertex),
-                        "fs" => Some(ShaderType::Fragment),
-                        _ => None,
-                    });
+            let shader_type = in_path.extension().and_then(|ext| {
+                match ext.to_string_lossy().as_ref() {
+                    "vs" => Some(ShaderType::Vertex),
+                    "fs" => Some(ShaderType::Fragment),
+                    _ => None,
+                }
+            });
 
             if let Some(shader_type) = shader_type {
                 use std::io::Read;
 
                 let source = std::fs::read_to_string(&in_path)?;
-                let mut compiled_file = glsl_to_spirv::compile(&source, shader_type)?;
+                let mut compiled_file =
+                    glsl_to_spirv::compile(&source, shader_type)?;
 
                 let mut compiled_bytes = Vec::new();
                 compiled_file.read_to_end(&mut compiled_bytes)?;
