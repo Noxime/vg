@@ -1,3 +1,6 @@
+// FIXME: This whole fucking file holy shit what the fuck lmfao someone pls PR 
+// the fuck out of this shitty fucker what the fucking hell holy fuck shit
+
 #[cfg(feature = "backend-dx")]
 extern crate gfx_backend_dx12;
 #[cfg(feature = "backend-gl")]
@@ -24,6 +27,7 @@ use self::gfx_hal::{
     command::*,
     format::*,
     image::*,
+    memory::*,
     pass::*,
     pso::*,
     window::*,
@@ -38,7 +42,12 @@ pub use self::{
     vertex::*,
 };
 
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    marker::PhantomData,
+    mem::size_of,
+    sync::Mutex,
+};
 
 const MAX_BUFFERS: usize = 16;
 
@@ -54,10 +63,6 @@ pub type VKBack = gfx_backend_vulkan::Backend;
 pub type MTBack = gfx_backend_metal::Backend;
 #[cfg(feature = "backend-dx")]
 pub type DXBack = gfx_backend_dx12::Backend;
-
-// struct APIMesh<B: Backend> {
-
-// }
 
 struct Data<B: Backend> {
     size: Vec2<usize>,                               // window size
@@ -75,6 +80,7 @@ struct Data<B: Backend> {
     render_pass: <B as Backend>::RenderPass,         // default render pass
     pipeline_layout: <B as Backend>::PipelineLayout, // pipeline layout
     pipeline: <B as Backend>::GraphicsPipeline,      // pipeline
+    meshes: HashMap<usize, <B as Backend>::Buffer>,  // vertex buffer cache
 }
 
 enum APIData {
@@ -206,38 +212,73 @@ pub fn create(
     Ok(events)
 }
 
-pub fn create_mesh(verticies: Vec<Vertex>) -> Mesh {
+pub fn upload_mesh(id: usize, vertices: &Vec<Vertex>) {
     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
         match api_data {
             #[cfg(feature = "backend-gl")]
-            APIData::GL(ref mut d) => _create_mesh(verticies, d),
+            APIData::GL(ref mut d) => _upload_mesh(id, vertices, d),
             #[cfg(feature = "backend-vk")]
-            APIData::VK(ref mut d) => _create_mesh(verticies, d),
+            APIData::VK(ref mut d) => _upload_mesh(id, vertices, d),
             #[cfg(feature = "backend-mt")]
-            APIData::MT(ref mut d) => _create_mesh(verticies, d),
+            APIData::MT(ref mut d) => _upload_mesh(id, vertices, d),
             #[cfg(feature = "backend-dx")]
-            APIData::DX(ref mut d) => _create_mesh(verticies, d),
+            APIData::DX(ref mut d) => _upload_mesh(id, vertices, d),
         }
     } else {
-        error!("No API_DATA in create_mesh()! (Create was not called?)");
+        error!("No API_DATA in render()! (Create was not called?)");
         panic!()
     }
 }
 
-fn _create_mesh<B: Backend>(
-    verticies: Vec<Vertex>,
+fn _upload_mesh<B: Backend>(
+    id: usize,
+    list_vertices: &Vec<Vertex>,
     data: &mut Data<B>,
-) -> Mesh {
-    use std::mem::size_of;
+) {
     let vertex_stride = size_of::<Vertex>() as u64;
-    let buffer_len = verticies.len() as u64 * vertex_stride;
+    let buffer_len = list_vertices.len() as u64 * vertex_stride;
 
     let buffer_unbound = data
         .device
         .create_buffer(buffer_len, buffer::Usage::VERTEX)
         .unwrap();
+    let buffer_req = data.device.get_buffer_requirements(&buffer_unbound);
+    let upload_type = data
+        .adapter
+        .physical_device
+        .memory_properties()
+        .memory_types
+        .iter()
+        .enumerate()
+        .position(|(id, mem_type)| {
+            buffer_req.type_mask & (1 << id) != 0 && mem_type
+                .properties
+                .contains(memory::Properties::CPU_VISIBLE)
+        }).unwrap()
+        .into();
 
-    unimplemented!()
+    let buffer_memory = data
+        .device
+        .allocate_memory(upload_type, buffer_req.size)
+        .unwrap();
+    let vertex_buffer = data
+        .device
+        .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
+        .unwrap();
+
+    // TODO: check transitions: read/write mapping and vertex buffer read
+    {
+        let mut vertices = data
+            .device
+            .acquire_mapping_writer::<Vertex>(
+                &buffer_memory,
+                0..buffer_req.size,
+            ).unwrap();
+        vertices[0..list_vertices.len()].copy_from_slice(&list_vertices);
+        data.device.release_mapping_writer(vertices);
+    }
+
+    data.meshes.insert(id, vertex_buffer);
 }
 
 pub fn render(scene: &mut Scene) {
@@ -268,6 +309,7 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
         .unwrap();
 
     let calls = scene.render();
+
     trace!(
         "Rendering frame idx {} with {} drawcalls per frame",
         frame_index,
@@ -293,9 +335,27 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
 
         command_buffer.set_viewports(0, &[viewport.clone()]);
         command_buffer.set_scissors(0, &[viewport.rect]);
-
-        // Choose a pipeline to use.
         command_buffer.bind_graphics_pipeline(&data.pipeline);
+
+        {
+            let meshes = calls
+                .iter()
+                .filter(|c| c.mesh.is_some())
+                .map(|c| c.mesh.unwrap());
+            for m in meshes {
+                if let Some(buf) = data.meshes.get(&m.id) {
+                    command_buffer.bind_vertex_buffers(0, Some((buf, 0)));
+                }
+            }
+        }
+
+        // command_buffer.bind_vertex_buffers(0, Some((&vertex_buffer, 0)));
+        // command_buffer.bind_graphics_descriptor_sets(
+        //     &data.pipeline_layout,
+        //     0,
+        //     Some(&desciptor_set),
+        //     &[],
+        // ); //TODO
 
         {
             // Clear the screen and begin the render pass.
@@ -306,7 +366,7 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
                 &[ClearValue::Color(ClearColor::Float([1.0, 0.0, 1.0, 1.0]))],
             );
 
-            encoder.draw(0..3, 0..1);
+            encoder.draw(0..12, 0..1);
         }
 
         // Finish building the command buffer - it's now ready to send to the
@@ -457,6 +517,29 @@ fn prepare_renderer<B: Backend>(
             .targets
             .push(ColorBlendDesc(ColorMask::ALL, BlendState::ALPHA));
 
+        pipeline_desc.vertex_buffers.push(VertexBufferDesc {
+            binding: 0,
+            stride: size_of::<Vertex>() as u32,
+            rate: 0,
+        });
+
+        pipeline_desc.attributes.push(pso::AttributeDesc {
+            location: 0,
+            binding: 0,
+            element: pso::Element {
+                format: Format::Rg32Float,
+                offset: 0,
+            },
+        });
+        pipeline_desc.attributes.push(pso::AttributeDesc {
+            location: 1,
+            binding: 0,
+            element: pso::Element {
+                format: Format::Rg32Float,
+                offset: size_of::<Vec3<f32>>() as u32,
+            },
+        });
+
         device
             .create_graphics_pipeline(&pipeline_desc, None)
             .unwrap()
@@ -522,6 +605,7 @@ fn prepare_renderer<B: Backend>(
         render_pass,
         pipeline_layout,
         pipeline,
+        meshes: HashMap::new(),
     })
 }
 
@@ -580,6 +664,9 @@ pub fn destory() {
 }
 
 fn _destroy<B: Backend>(data: Data<B>) {
+
+    // data.device.destroy_buffer()
+
     data.device.destroy_graphics_pipeline(data.pipeline);
     data.device.destroy_pipeline_layout(data.pipeline_layout);
 
@@ -596,8 +683,8 @@ fn _destroy<B: Backend>(data: Data<B>) {
     data.device.destroy_semaphore(data.frame_semaphore);
     data.device.destroy_swapchain(data.swapchain);
 
-    data.device
-        .destroy_command_pool(data.command_pool.into_raw());
+
+    data.device.destroy_command_pool(data.command_pool.into_raw());
 
     if let Some(w) = data.window {
         drop(w);
