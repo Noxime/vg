@@ -51,6 +51,12 @@ pub type MTBack = gfx_backend_metal::Backend;
 #[cfg(feature = "backend-dx")]
 pub type DXBack = gfx_backend_dx12::Backend;
 
+#[derive(Copy, Clone)]
+pub struct Vertex {
+    pub pos: [f32; 2],
+    pub tex: [f32; 2],
+}
+
 pub struct Data<B: Backend> {
     pub size: Vec2<usize>,                      // window size
     pub window: Option<Window>,                 // winit window
@@ -561,28 +567,28 @@ fn prepare_renderer<B: Backend>(
             .targets
             .push(ColorBlendDesc(ColorMask::ALL, BlendState::ALPHA));
 
-        // pipeline_desc.vertex_buffers.push(VertexBufferDesc {
-        //     binding: 0,
-        //     stride: size_of::<Vertex>() as u32,
-        //     rate: 0,
-        // });
+        pipeline_desc.vertex_buffers.push(VertexBufferDesc {
+            binding: 0,
+            stride: size_of::<Vertex>() as u32,
+            rate: 0,
+        });
 
-        // pipeline_desc.attributes.push(pso::AttributeDesc {
-        //     location: 0,
-        //     binding: 0,
-        //     element: pso::Element {
-        //         format: Format::Rg32Float,
-        //         offset: 0,
-        //     },
-        // });
-        // pipeline_desc.attributes.push(pso::AttributeDesc {
-        //     location: 1,
-        //     binding: 0,
-        //     element: pso::Element {
-        //         format: Format::Rg32Float,
-        //         offset: size_of::<Vec3<f32>>() as u32,
-        //     },
-        // });
+        pipeline_desc.attributes.push(pso::AttributeDesc {
+            location: 0,
+            binding: 0,
+            element: pso::Element {
+                format: Format::Rg32Float,
+                offset: 0,
+            },
+        });
+        pipeline_desc.attributes.push(pso::AttributeDesc {
+            location: 1,
+            binding: 0,
+            element: pso::Element {
+                format: Format::Rg32Float,
+                offset: size_of::<f32>() as u32 * 2,
+            },
+        });
 
         device
             .create_graphics_pipeline(&pipeline_desc, None)

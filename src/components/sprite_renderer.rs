@@ -4,12 +4,6 @@ use vectors::*;
 
 use std::mem::size_of;
 
-#[derive(Copy, Clone)]
-struct Vertex {
-    pos: [f32; 2],
-    tex: [f32; 2],
-}
-
 enum MyData {
     #[cfg(feature = "backend-gl")]
     GL(<GLBack as Backend>::Buffer),
@@ -24,11 +18,11 @@ enum MyData {
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const QUAD: [Vertex; 6] = [
     Vertex { pos: [0.0, 0.0], tex: [1.0, 0.0] },
-    Vertex { pos: [1.0, 0.0], tex: [1.0, 0.0] },
+    Vertex { pos: [1.0, 0.0], tex: [0.0, 1.0] },
     Vertex { pos: [0.0, 1.0], tex: [1.0, 0.0] },
-    Vertex { pos: [1.0, 1.0], tex: [1.0, 0.0] },
+    Vertex { pos: [1.0, 1.0], tex: [0.0, 1.0] },
     Vertex { pos: [0.0, 1.0], tex: [1.0, 0.0] },
-    Vertex { pos: [1.0, 0.0], tex: [1.0, 0.0] },
+    Vertex { pos: [1.0, 0.0], tex: [0.0, 1.0] },
 ];
 
 pub struct SpriteRenderer {
@@ -87,10 +81,7 @@ impl SpriteRenderer {
 
         vertex_buffer
     }
-    fn _render<B: Backend>(
-        vbuf: &<B as Backend>::Buffer,
-        data: &mut Data<B>,
-    ) {
+    fn _render<B: Backend>(vbuf: &<B as Backend>::Buffer, data: &mut Data<B>) {
         trace!("draw");
 
         data.command_buffers.push({
@@ -108,9 +99,15 @@ impl SpriteRenderer {
 
             command_buffer.set_viewports(0, &[viewport.clone()]);
             command_buffer.set_scissors(0, &[viewport.rect]);
+            command_buffer.bind_graphics_pipeline(&data.pipeline);
             // if let Some(vertex_buffer) = self.data {
             command_buffer.bind_vertex_buffers(0, Some((vbuf, 0)));
-            // }
+            // command_buffer.bind_graphics_descriptor_sets(
+            //     &data.pipeline_layout,
+            //     0,
+            //     Some(&desciptor_set),
+            //     &[],
+            // ); //TODO
 
             {
                 let mut encoder = command_buffer.begin_render_pass_inline(
