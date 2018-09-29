@@ -40,6 +40,7 @@ pub fn run<T>(
 
     debug!("Loading start scene");
     let mut scene = scene_loader(start_scene);
+    graphics::render_init(&mut scene);
 
     debug!("Entering main loop");
     'main: loop {
@@ -59,8 +60,12 @@ pub fn run<T>(
             break 'main;
         }
         // debug!("PRECRASH");
+        graphics::pre_render();
         graphics::render(&mut scene);
+        graphics::post_render();
     }
+
+    graphics::render_destroy(&mut scene);
 
     info!("Kea shutdown");
 }

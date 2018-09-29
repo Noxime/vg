@@ -2,14 +2,7 @@
 extern crate log;
 extern crate kea;
 
-use kea::{
-    components::*,
-    entity::*,
-    graphics::Vertex,
-    scene::*,
-    vectors::*,
-    *,
-};
+use kea::{components::*, entity::*, scene::*, vectors::*, *};
 
 enum SceneName {
     Main,

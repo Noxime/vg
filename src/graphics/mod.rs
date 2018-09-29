@@ -1,4 +1,4 @@
-// FIXME: This whole fucking file holy shit what the fuck lmfao someone pls PR 
+// FIXME: This whole fucking file holy shit what the fuck lmfao someone pls PR
 // the fuck out of this shitty fucker what the fucking hell holy fuck shit
 
 #[cfg(feature = "backend-dx")]
@@ -11,18 +11,13 @@ extern crate gfx_backend_metal;
 extern crate gfx_backend_vulkan;
 extern crate gfx_hal;
 
-mod draw_call;
-mod mesh;
-mod shader;
-mod texture;
-mod vertex;
-
 use scene::*;
 use vectors::*;
 
 use winit::*;
 
-use self::gfx_hal::{
+// pub use self::gfx_hal::command::Buffer;
+pub use self::gfx_hal::{
     adapter::*,
     command::*,
     format::*,
@@ -32,14 +27,6 @@ use self::gfx_hal::{
     pso::*,
     window::*,
     *,
-};
-pub use self::{
-    draw_call::*,
-    gfx_hal::Backend,
-    mesh::*,
-    shader::*,
-    texture::*,
-    vertex::*,
 };
 
 use std::{
@@ -64,26 +51,27 @@ pub type MTBack = gfx_backend_metal::Backend;
 #[cfg(feature = "backend-dx")]
 pub type DXBack = gfx_backend_dx12::Backend;
 
-struct Data<B: Backend> {
-    size: Vec2<usize>,                               // window size
-    window: Option<Window>,                          // winit window
-    queue_group: QueueGroup<B, Graphics>,            // queue group
-    command_pool: CommandPool<B, Graphics>,          // command pool
-    surface: <B as Backend>::Surface,                // window surface
-    adapter: Adapter<B>,                             // physical device
-    device: <B as Backend>::Device,                  // logical device
-    swapchain: <B as Backend>::Swapchain,            // swapchain
-    frame_views: Vec<<B as Backend>::ImageView>,     // frame views
-    framebuffers: Vec<<B as Backend>::Framebuffer>,  // framebuffers
-    frame_semaphore: <B as Backend>::Semaphore,      // frame semaphore
-    frame_fence: <B as Backend>::Fence,              // frame fence
-    render_pass: <B as Backend>::RenderPass,         // default render pass
-    pipeline_layout: <B as Backend>::PipelineLayout, // pipeline layout
-    pipeline: <B as Backend>::GraphicsPipeline,      // pipeline
-    meshes: HashMap<usize, <B as Backend>::Buffer>,  // vertex buffer cache
+pub struct Data<B: Backend> {
+    pub size: Vec2<usize>,                      // window size
+    pub window: Option<Window>,                 // winit window
+    pub queue_group: QueueGroup<B, Graphics>,   // queue group
+    pub command_pool: CommandPool<B, Graphics>, // command pool
+    pub surface: <B as Backend>::Surface,       // window surface
+    pub adapter: Adapter<B>,                    // physical device
+    pub device: <B as Backend>::Device,         // logical device
+    pub swapchain: <B as Backend>::Swapchain,   // swapchain
+    pub frame_views: Vec<<B as Backend>::ImageView>, // frame views
+    pub framebuffers: Vec<<B as Backend>::Framebuffer>, // framebuffers
+    pub frame_semaphore: <B as Backend>::Semaphore, // frame semaphore
+    pub frame_fence: <B as Backend>::Fence,     // frame fence
+    pub render_pass: <B as Backend>::RenderPass, // default render pass
+    pub pipeline_layout: <B as Backend>::PipelineLayout, // pipeline layout
+    pub pipeline: <B as Backend>::GraphicsPipeline, // pipeline
+    pub frame_index: u32,                       // frame index
+    pub command_buffers: Vec<Submit<B, Graphics, OneShot, Primary>>, // command buffers
 }
 
-enum APIData {
+pub enum APIData {
     #[cfg(feature = "backend-gl")]
     GL(Data<GLBack>),
     #[cfg(feature = "backend-vk")]
@@ -212,94 +200,139 @@ pub fn create(
     Ok(events)
 }
 
-pub fn upload_mesh(id: usize, vertices: &Vec<Vertex>) {
+// pub fn upload_mesh(id: usize, vertices: &Vec<Vertex>) {
+//     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
+//         match api_data {
+//             #[cfg(feature = "backend-gl")]
+//             APIData::GL(ref mut d) => _upload_mesh(id, vertices, d),
+//             #[cfg(feature = "backend-vk")]
+//             APIData::VK(ref mut d) => _upload_mesh(id, vertices, d),
+//             #[cfg(feature = "backend-mt")]
+//             APIData::MT(ref mut d) => _upload_mesh(id, vertices, d),
+//             #[cfg(feature = "backend-dx")]
+//             APIData::DX(ref mut d) => _upload_mesh(id, vertices, d),
+//         }
+//     } else {
+//         error!("No API_DATA in render()! (Create was not called?)");
+//         panic!()
+//     }
+// }
+
+// fn _upload_mesh<B: Backend>(
+//     id: usize,
+//     list_vertices: &Vec<Vertex>,
+//     data: &mut Data<B>,
+// ) {
+//     let vertex_stride = size_of::<Vertex>() as u64;
+//     let buffer_len = list_vertices.len() as u64 * vertex_stride;
+
+//     let buffer_unbound = data
+//         .device
+//         .create_buffer(buffer_len, buffer::Usage::VERTEX)
+//         .unwrap();
+//     let buffer_req = data.device.get_buffer_requirements(&buffer_unbound);
+//     let upload_type = data
+//         .adapter
+//         .physical_device
+//         .memory_properties()
+//         .memory_types
+//         .iter()
+//         .enumerate()
+//         .position(|(id, mem_type)| {
+//             buffer_req.type_mask & (1 << id) != 0 && mem_type
+//                 .properties
+//                 .contains(memory::Properties::CPU_VISIBLE)
+//         }).unwrap()
+//         .into();
+
+//     let buffer_memory = data
+//         .device
+//         .allocate_memory(upload_type, buffer_req.size)
+//         .unwrap();
+//     let vertex_buffer = data
+//         .device
+//         .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
+//         .unwrap();
+
+//     // TODO: check transitions: read/write mapping and vertex buffer read
+//     {
+//         let mut vertices = data
+//             .device
+//             .acquire_mapping_writer::<Vertex>(
+//                 &buffer_memory,
+//                 0..buffer_req.size,
+//             ).unwrap();
+//         vertices[0..list_vertices.len()].copy_from_slice(&list_vertices);
+//         data.device.release_mapping_writer(vertices);
+//     }
+
+//     // data.meshes.insert(id, vertex_buffer);
+// }
+
+pub fn pre_render() {
     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
         match api_data {
             #[cfg(feature = "backend-gl")]
-            APIData::GL(ref mut d) => _upload_mesh(id, vertices, d),
+            APIData::GL(ref mut d) => _pre_render(d),
             #[cfg(feature = "backend-vk")]
-            APIData::VK(ref mut d) => _upload_mesh(id, vertices, d),
+            APIData::VK(ref mut d) => _pre_render(d),
             #[cfg(feature = "backend-mt")]
-            APIData::MT(ref mut d) => _upload_mesh(id, vertices, d),
+            APIData::MT(ref mut d) => _pre_render(d),
             #[cfg(feature = "backend-dx")]
-            APIData::DX(ref mut d) => _upload_mesh(id, vertices, d),
+            APIData::DX(ref mut d) => _pre_render(d),
         }
     } else {
-        error!("No API_DATA in render()! (Create was not called?)");
+        error!("No API_DATA in pre_render()! (Create was not called?)");
         panic!()
     }
 }
 
-fn _upload_mesh<B: Backend>(
-    id: usize,
-    list_vertices: &Vec<Vertex>,
-    data: &mut Data<B>,
-) {
-    let vertex_stride = size_of::<Vertex>() as u64;
-    let buffer_len = list_vertices.len() as u64 * vertex_stride;
-
-    let buffer_unbound = data
-        .device
-        .create_buffer(buffer_len, buffer::Usage::VERTEX)
-        .unwrap();
-    let buffer_req = data.device.get_buffer_requirements(&buffer_unbound);
-    let upload_type = data
-        .adapter
-        .physical_device
-        .memory_properties()
-        .memory_types
-        .iter()
-        .enumerate()
-        .position(|(id, mem_type)| {
-            buffer_req.type_mask & (1 << id) != 0 && mem_type
-                .properties
-                .contains(memory::Properties::CPU_VISIBLE)
-        }).unwrap()
-        .into();
-
-    let buffer_memory = data
-        .device
-        .allocate_memory(upload_type, buffer_req.size)
-        .unwrap();
-    let vertex_buffer = data
-        .device
-        .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
-        .unwrap();
-
-    // TODO: check transitions: read/write mapping and vertex buffer read
-    {
-        let mut vertices = data
-            .device
-            .acquire_mapping_writer::<Vertex>(
-                &buffer_memory,
-                0..buffer_req.size,
-            ).unwrap();
-        vertices[0..list_vertices.len()].copy_from_slice(&list_vertices);
-        data.device.release_mapping_writer(vertices);
+pub fn post_render() {
+    if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
+        match api_data {
+            #[cfg(feature = "backend-gl")]
+            APIData::GL(ref mut d) => _post_render(d),
+            #[cfg(feature = "backend-vk")]
+            APIData::VK(ref mut d) => _post_render(d),
+            #[cfg(feature = "backend-mt")]
+            APIData::MT(ref mut d) => _post_render(d),
+            #[cfg(feature = "backend-dx")]
+            APIData::DX(ref mut d) => _post_render(d),
+        }
+    } else {
+        error!("No API_DATA in post_render()! (Create was not called?)");
+        panic!()
     }
+}
 
-    data.meshes.insert(id, vertex_buffer);
+pub fn render_init(scene: &mut Scene) {
+    if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
+        scene.render_init(api_data);
+    } else {
+        error!("No API_DATA in render_init()! (Create was not called?)");
+        panic!()
+    }
 }
 
 pub fn render(scene: &mut Scene) {
     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
-        match api_data {
-            #[cfg(feature = "backend-gl")]
-            APIData::GL(ref mut d) => _render(scene, d),
-            #[cfg(feature = "backend-vk")]
-            APIData::VK(ref mut d) => _render(scene, d),
-            #[cfg(feature = "backend-mt")]
-            APIData::MT(ref mut d) => _render(scene, d),
-            #[cfg(feature = "backend-dx")]
-            APIData::DX(ref mut d) => _render(scene, d),
-        }
+        scene.render(api_data);
     } else {
         error!("No API_DATA in render()! (Create was not called?)");
         panic!()
     }
 }
 
-fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
+pub fn render_destroy(scene: &mut Scene) {
+    if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
+        scene.render_destroy(api_data);
+    } else {
+        error!("No API_DATA in render_destroy()! (Create was not called?)");
+        panic!()
+    }
+}
+
+fn _pre_render<B: Backend>(data: &mut Data<B>) {
     data.device.reset_fence(&data.frame_fence);
     data.command_pool.reset();
 
@@ -308,81 +341,23 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
         .acquire_image(!0, FrameSync::Semaphore(&data.frame_semaphore))
         .unwrap();
 
-    let calls = scene.render();
-
-    trace!(
-        "Rendering frame idx {} with {} drawcalls per frame",
-        frame_index,
-        calls.len()
-    );
-
-    // change every frame, then we do.
-    let finished_command_buffer = {
-        let mut command_buffer =
-            data.command_pool.acquire_command_buffer(false);
-
-        // Define a rectangle on screen to draw into.
-        // In this case, the whole screen.
-        let viewport = Viewport {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: data.size.x as i16,
-                h: data.size.y as i16,
-            },
-            depth: 0.0..1.0,
-        };
-
-        command_buffer.set_viewports(0, &[viewport.clone()]);
-        command_buffer.set_scissors(0, &[viewport.rect]);
-        command_buffer.bind_graphics_pipeline(&data.pipeline);
-
-        {
-            let meshes = calls
-                .iter()
-                .filter(|c| c.mesh.is_some())
-                .map(|c| c.mesh.unwrap());
-            for m in meshes {
-                if let Some(buf) = data.meshes.get(&m.id) {
-                    command_buffer.bind_vertex_buffers(0, Some((buf, 0)));
-                }
-            }
-        }
-
-        // command_buffer.bind_vertex_buffers(0, Some((&vertex_buffer, 0)));
-        // command_buffer.bind_graphics_descriptor_sets(
-        //     &data.pipeline_layout,
-        //     0,
-        //     Some(&desciptor_set),
-        //     &[],
-        // ); //TODO
-
-        {
-            // Clear the screen and begin the render pass.
-            let mut encoder = command_buffer.begin_render_pass_inline(
-                &data.render_pass,
-                &data.framebuffers[frame_index as usize],
-                viewport.rect,
-                &[ClearValue::Color(ClearColor::Float([1.0, 0.0, 1.0, 1.0]))],
-            );
-
-            encoder.draw(0..12, 0..1);
-        }
-
-        // Finish building the command buffer - it's now ready to send to the
-        // GPU.
-        command_buffer.finish()
-    };
-
+    data.frame_index = frame_index;
+    // trace!("Rendering frame idx {}", frame_index,);
+}
+fn _post_render<B: Backend>(data: &mut Data<B>) {
     // This is what we submit to the command queue. We wait until frame_semaphore
     // is signalled, at which point we know our chosen image is available to draw
     // on.
+
+    let buffers = data.command_buffers.split_off(0);
+
+    trace!("{} command buffers", buffers.len());
     let submission = Submission::new()
         .wait_on(&[(&data.frame_semaphore, PipelineStage::BOTTOM_OF_PIPE)])
-        .submit(vec![finished_command_buffer]);
+        .submit(buffers);
 
-    // We submit the submission to one of our command queues, which will signal
-    // frame_fence once rendering is completed.
+    // // We submit the submission to one of our command queues, which will signal
+    // // frame_fence once rendering is completed.
     data.queue_group.queues[0].submit(submission, Some(&data.frame_fence));
 
     // We first wait for the rendering to complete...
@@ -390,9 +365,78 @@ fn _render<B: Backend>(scene: &mut Scene, data: &mut Data<B>) {
 
     // ...and then present the image on screen!
     data.swapchain
-        .present(&mut data.queue_group.queues[0], frame_index, &[])
+        .present(&mut data.queue_group.queues[0], data.frame_index, &[])
         .expect("Present failed");
 }
+
+// // change every frame, then we do.
+// let finished_co”mmand_buffer = {
+//     let mut command_buffer =
+//         data.command_pool.acquire_command_buffer(false);
+
+//     // Define a rectangle on screen to draw into.
+//     // In this case, the whole screen.
+//     let viewport = Viewport {
+//         rect: Rect {
+//             x: 0,
+//             y: 0,
+//             w: data.size.x as i16,
+//             h: data.size.y as i16,
+//         },
+//         depth: 0.0..1.0,
+//     };
+
+//     command_buffer.set_viewports(0, &[viewport.clone()]);
+//     command_buffer.set_scissors(0, &[viewport.rect]);
+//     command_buffer.bind_graphics_pipeline(&data.pipeline);
+
+//     {
+//         let meshes = calls
+//             .iter()
+//             .filter(|c| c.mesh.is_some())
+//             .map(|c| c.mesh.unwrap());
+//         for m in meshes {
+//             if let Some(buf) = data.meshes.get(&m.id) {
+//                 command_buffer.bind_vertex_buffers(0, Some((buf, 0)));
+//             }
+//         }
+//     }
+
+//     // command_buffer.bind_vertex_buffers(0, Some((&vertex_buffer, 0)));
+//     // command_buffer.bind_graphics_descriptor_sets(
+//     //     &data.pipeline_layout,
+//     //     0,
+//     //     Some(&desciptor_set),
+//     //     &[],
+//     // ); //TODO
+
+//     {
+//         // Clear the screen and begin the render pass.
+//         let mut encoder = command_buffer.begin_render_pass_inline(
+//             &data.render_pass,
+//             &data.framebuffers[frame_index as usize],
+//             viewport.rect,
+//             &[ClearValue::Color(ClearColor::Float([1.0, 0.0, 1.0, 1.0]))],
+//         );
+
+//         encoder.draw(0..12, 0..1);
+//     }
+
+//     // Finish building the command buffer - it's now ready to send to the
+//     // GPU.
+//     command_buffer.finish()
+// };
+
+// // This is what we submit to the command queue. We wait until frame_semaphore
+// // is signalled, at which point we know our chosen image is available to draw
+// // on.
+// let submission = Submission::new()
+//     .wait_on(&[(&data.frame_semaphore, PipelineStage::BOTTOM_OF_PIPE)])
+//     .submit(vec![finished_command_buffer]);
+
+// // We submit the submission to one of our command queues, which will signal
+// // frame_fence once rendering is completed.
+// data.queue_group.queues[0].submit(submission, Some(&data.frame_fence));
 
 fn prepare_renderer<B: Backend>(
     size: Vec2<usize>,
@@ -517,28 +561,28 @@ fn prepare_renderer<B: Backend>(
             .targets
             .push(ColorBlendDesc(ColorMask::ALL, BlendState::ALPHA));
 
-        pipeline_desc.vertex_buffers.push(VertexBufferDesc {
-            binding: 0,
-            stride: size_of::<Vertex>() as u32,
-            rate: 0,
-        });
+        // pipeline_desc.vertex_buffers.push(VertexBufferDesc {
+        //     binding: 0,
+        //     stride: size_of::<Vertex>() as u32,
+        //     rate: 0,
+        // });
 
-        pipeline_desc.attributes.push(pso::AttributeDesc {
-            location: 0,
-            binding: 0,
-            element: pso::Element {
-                format: Format::Rg32Float,
-                offset: 0,
-            },
-        });
-        pipeline_desc.attributes.push(pso::AttributeDesc {
-            location: 1,
-            binding: 0,
-            element: pso::Element {
-                format: Format::Rg32Float,
-                offset: size_of::<Vec3<f32>>() as u32,
-            },
-        });
+        // pipeline_desc.attributes.push(pso::AttributeDesc {
+        //     location: 0,
+        //     binding: 0,
+        //     element: pso::Element {
+        //         format: Format::Rg32Float,
+        //         offset: 0,
+        //     },
+        // });
+        // pipeline_desc.attributes.push(pso::AttributeDesc {
+        //     location: 1,
+        //     binding: 0,
+        //     element: pso::Element {
+        //         format: Format::Rg32Float,
+        //         offset: size_of::<Vec3<f32>>() as u32,
+        //     },
+        // });
 
         device
             .create_graphics_pipeline(&pipeline_desc, None)
@@ -605,7 +649,8 @@ fn prepare_renderer<B: Backend>(
         render_pass,
         pipeline_layout,
         pipeline,
-        meshes: HashMap::new(),
+        frame_index: 0,
+        command_buffers: vec![],
     })
 }
 
@@ -664,7 +709,6 @@ pub fn destory() {
 }
 
 fn _destroy<B: Backend>(data: Data<B>) {
-
     // data.device.destroy_buffer()
 
     data.device.destroy_graphics_pipeline(data.pipeline);
@@ -683,8 +727,8 @@ fn _destroy<B: Backend>(data: Data<B>) {
     data.device.destroy_semaphore(data.frame_semaphore);
     data.device.destroy_swapchain(data.swapchain);
 
-
-    data.device.destroy_command_pool(data.command_pool.into_raw());
+    data.device
+        .destroy_command_pool(data.command_pool.into_raw());
 
     if let Some(w) = data.window {
         drop(w);

@@ -11,11 +11,16 @@ impl Scene {
         Scene { entities: vec![] }
     }
 
-    pub fn render(&mut self) -> Vec<DrawCall> {
-        self.entities.iter_mut().fold(vec![], |mut s, v| {
-            s.append(&mut v.render());
-            s
-        })
+    pub fn render_init(&mut self, data: &mut APIData) {
+        for e in self.entities.iter_mut() { e.render_init(data); }
+    }
+
+    pub fn render(&mut self, data: &mut APIData) {
+        for e in self.entities.iter_mut() { e.render(data); }
+    }
+
+    pub fn render_destroy(&mut self, data: &mut APIData) {
+        for e in self.entities.iter_mut() { e.render_destroy(data); }
     }
 
     pub fn add_entity(&mut self, entity: Entity) {

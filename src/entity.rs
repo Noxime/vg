@@ -20,13 +20,16 @@ impl Entity {
         }
     }
 
-    pub fn render(&mut self) -> Vec<DrawCall> {
-        self.components
-            .iter_mut()
-            .map(|c| c.render())
-            .filter(|v| v.is_some())
-            .map(|v| v.unwrap())
-            .collect()
+    pub fn render_init(&mut self, data: &mut APIData) {
+        for c in self.components.iter_mut() { c.render_init(data) }
+    }
+
+    pub fn render(&mut self, data: &mut APIData) {
+        for c in self.components.iter_mut() { c.render(data) }
+    }
+
+    pub fn render_destroy(&mut self, data: &mut APIData) {
+        for c in self.components.iter_mut() { c.render_destroy(data) }
     }
 
     pub fn add_component(&mut self, component: Box<Component>) {
