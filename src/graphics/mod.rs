@@ -14,6 +14,8 @@ extern crate gfx_hal;
 use scene::*;
 use vectors::*;
 
+#[cfg(feature = "backend-gl")]
+use graphics::gfx_backend_gl::glutin::GlContext;
 use winit::*;
 
 // pub use self::gfx_hal::command::Buffer;
@@ -65,7 +67,7 @@ pub struct Data<B: Backend> {
     pub surface: <B as Backend>::Surface,       // window surface
     pub adapter: Adapter<B>,                    // physical device
     pub device: <B as Backend>::Device,         // logical device
-    pub swapchain: <B as Backend>::Swapchain,   // swapchain
+    pub swapchain: Option<<B as Backend>::Swapchain>, // swapchain
     pub frame_views: Vec<<B as Backend>::ImageView>, // frame views
     pub framebuffers: Vec<<B as Backend>::Framebuffer>, // framebuffers
     pub frame_semaphore: <B as Backend>::Semaphore, // frame semaphore
@@ -75,6 +77,7 @@ pub struct Data<B: Backend> {
     pub pipeline: <B as Backend>::GraphicsPipeline, // pipeline
     pub frame_index: u32,                       // frame index
     pub command_buffers: Vec<Submit<B, Graphics, OneShot, Primary>>, // command buffers
+    pub format: Format, // framebuffer format
 }
 
 pub enum APIData {
@@ -206,74 +209,106 @@ pub fn create(
     Ok(events)
 }
 
-// pub fn upload_mesh(id: usize, vertices: &Vec<Vertex>) {
-//     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
-//         match api_data {
-//             #[cfg(feature = "backend-gl")]
-//             APIData::GL(ref mut d) => _upload_mesh(id, vertices, d),
-//             #[cfg(feature = "backend-vk")]
-//             APIData::VK(ref mut d) => _upload_mesh(id, vertices, d),
-//             #[cfg(feature = "backend-mt")]
-//             APIData::MT(ref mut d) => _upload_mesh(id, vertices, d),
-//             #[cfg(feature = "backend-dx")]
-//             APIData::DX(ref mut d) => _upload_mesh(id, vertices, d),
-//         }
-//     } else {
-//         error!("No API_DATA in render()! (Create was not called?)");
-//         panic!()
-//     }
-// }
+pub fn resize(size: Vec2<usize>) {
+    if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
+        match api_data {
+            #[cfg(feature = "backend-gl")]
+            APIData::GL(ref mut d) => {
+                d.surface.get_window().resize(dpi::PhysicalSize::new(
+                    size.x as f64,
+                    size.y as f64,
+                ));
+                _resize(size, d)
+            }
+            #[cfg(feature = "backend-vk")]
+            APIData::VK(ref mut d) => _resize(size, d),
+            #[cfg(feature = "backend-mt")]
+            APIData::MT(ref mut d) => _resize(size, d),
+            #[cfg(feature = "backend-dx")]
+            APIData::DX(ref mut d) => _resize(size, d),
+        }
+    } else {
+        error!("No API_DATA in pre_render()! (Create was not called?)");
+        panic!()
+    }
+    // surface
+    //     .get_window()
+    //     .resize(dims.to_physical(surface.get_window().get_hidpi_factor()));
+}
 
-// fn _upload_mesh<B: Backend>(
-//     id: usize,
-//     list_vertices: &Vec<Vertex>,
-//     data: &mut Data<B>,
-// ) {
-//     let vertex_stride = size_of::<Vertex>() as u64;
-//     let buffer_len = list_vertices.len() as u64 * vertex_stride;
+fn _resize<B: Backend>(size: Vec2<usize>, data: &mut Data<B>) {
+    debug!("Resizing");
+    data.device.wait_idle().unwrap();
 
-//     let buffer_unbound = data
-//         .device
-//         .create_buffer(buffer_len, buffer::Usage::VERTEX)
-//         .unwrap();
-//     let buffer_req = data.device.get_buffer_requirements(&buffer_unbound);
-//     let upload_type = data
-//         .adapter
-//         .physical_device
-//         .memory_properties()
-//         .memory_types
-//         .iter()
-//         .enumerate()
-//         .position(|(id, mem_type)| {
-//             buffer_req.type_mask & (1 << id) != 0 && mem_type
-//                 .properties
-//                 .contains(memory::Properties::CPU_VISIBLE)
-//         }).unwrap()
-//         .into();
+    let (caps, formats, _present_modes) = data
+        .surface
+        .compatibility(&mut data.adapter.physical_device);
+    // Verify that previous format still exists so we may resuse it.
+    assert!(formats.iter().any(|fs| fs.contains(&data.format)));
 
-//     let buffer_memory = data
-//         .device
-//         .allocate_memory(upload_type, buffer_req.size)
-//         .unwrap();
-//     let vertex_buffer = data
-//         .device
-//         .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
-//         .unwrap();
+    let swap_config = SwapchainConfig::from_caps(&caps, data.format);
+    println!("{:?}", swap_config);
+    let extent = swap_config.extent.to_extent();
 
-//     // TODO: check transitions: read/write mapping and vertex buffer read
-//     {
-//         let mut vertices = data
-//             .device
-//             .acquire_mapping_writer::<Vertex>(
-//                 &buffer_memory,
-//                 0..buffer_req.size,
-//             ).unwrap();
-//         vertices[0..list_vertices.len()].copy_from_slice(&list_vertices);
-//         data.device.release_mapping_writer(vertices);
-//     }
+    // Clean up the old framebuffers, images and swapchain
+    for framebuffer in data.framebuffers.split_off(0) {
+        data.device.destroy_framebuffer(framebuffer);
+    }
+    // for (_, rtv) in data.frame_images {
+    // data.device.destroy_image_view(rtv);
+    // }
 
-//     // data.meshes.insert(id, vertex_buffer);
-// }
+    data.device
+        .destroy_swapchain(data.swapchain.take().unwrap());
+
+    let (new_swapchain, new_backbuffer) =
+        data.device
+            .create_swapchain(&mut data.surface, swap_config, None);
+
+    data.swapchain = Some(new_swapchain);
+
+    let color_range = SubresourceRange {
+        aspects: Aspects::COLOR,
+        levels: 0..1,
+        layers: 0..1,
+    };
+
+    let (new_frame_images, new_framebuffers) = match new_backbuffer {
+        Backbuffer::Images(images) => {
+            let pairs = images
+                .into_iter()
+                .map(|image| {
+                    let rtv = data
+                        .device
+                        .create_image_view(
+                            &image,
+                            image::ViewKind::D2,
+                            data.format,
+                            Swizzle::NO,
+                            color_range.clone(),
+                        ).unwrap();
+                    (image, rtv)
+                }).collect::<Vec<_>>();
+            let fbos = pairs
+                .iter()
+                .map(|&(_, ref rtv)| {
+                    data.device
+                        .create_framebuffer(
+                            &data.render_pass,
+                            Some(rtv),
+                            extent,
+                        ).unwrap()
+                }).collect();
+            (pairs, fbos)
+        }
+        Backbuffer::Framebuffer(fbo) => (Vec::new(), vec![fbo]),
+    };
+
+    data.framebuffers = new_framebuffers;
+    // data.frame_images = new_frame_images;
+    // viewport.rect.w = extent.width as _;
+    // viewport.rect.h = extent.height as _;
+}
 
 pub fn pre_render() {
     if let Some(ref mut api_data) = *API_DATA.lock().unwrap() {
@@ -342,12 +377,13 @@ fn _pre_render<B: Backend>(data: &mut Data<B>) {
     data.device.reset_fence(&data.frame_fence);
     data.command_pool.reset();
 
-    let frame_index = data
-        .swapchain
-        .acquire_image(!0, FrameSync::Semaphore(&data.frame_semaphore))
-        .unwrap();
+    if let Some(ref mut v) = data.swapchain {
+        let frame_index = v
+            .acquire_image(!0, FrameSync::Semaphore(&data.frame_semaphore))
+            .unwrap();
 
-    data.frame_index = frame_index;
+        data.frame_index = frame_index;
+    }
     // trace!("Rendering frame idx {}", frame_index,);
 }
 fn _post_render<B: Backend>(data: &mut Data<B>) {
@@ -370,79 +406,11 @@ fn _post_render<B: Backend>(data: &mut Data<B>) {
     data.device.wait_for_fence(&data.frame_fence, !0);
 
     // ...and then present the image on screen!
-    data.swapchain
-        .present(&mut data.queue_group.queues[0], data.frame_index, &[])
-        .expect("Present failed");
+    if let Some(ref v) = data.swapchain {
+        v.present(&mut data.queue_group.queues[0], data.frame_index, &[])
+            .expect("Present failed");
+    }
 }
-
-// // change every frame, then we do.
-// let finished_co”mmand_buffer = {
-//     let mut command_buffer =
-//         data.command_pool.acquire_command_buffer(false);
-
-//     // Define a rectangle on screen to draw into.
-//     // In this case, the whole screen.
-//     let viewport = Viewport {
-//         rect: Rect {
-//             x: 0,
-//             y: 0,
-//             w: data.size.x as i16,
-//             h: data.size.y as i16,
-//         },
-//         depth: 0.0..1.0,
-//     };
-
-//     command_buffer.set_viewports(0, &[viewport.clone()]);
-//     command_buffer.set_scissors(0, &[viewport.rect]);
-//     command_buffer.bind_graphics_pipeline(&data.pipeline);
-
-//     {
-//         let meshes = calls
-//             .iter()
-//             .filter(|c| c.mesh.is_some())
-//             .map(|c| c.mesh.unwrap());
-//         for m in meshes {
-//             if let Some(buf) = data.meshes.get(&m.id) {
-//                 command_buffer.bind_vertex_buffers(0, Some((buf, 0)));
-//             }
-//         }
-//     }
-
-//     // command_buffer.bind_vertex_buffers(0, Some((&vertex_buffer, 0)));
-//     // command_buffer.bind_graphics_descriptor_sets(
-//     //     &data.pipeline_layout,
-//     //     0,
-//     //     Some(&desciptor_set),
-//     //     &[],
-//     // ); //TODO
-
-//     {
-//         // Clear the screen and begin the render pass.
-//         let mut encoder = command_buffer.begin_render_pass_inline(
-//             &data.render_pass,
-//             &data.framebuffers[frame_index as usize],
-//             viewport.rect,
-//             &[ClearValue::Color(ClearColor::Float([1.0, 0.0, 1.0, 1.0]))],
-//         );
-
-//         encoder.draw(0..12, 0..1);
-//     }
-
-//     // Finish building the command buffer - it's now ready to send to the
-//     // GPU.
-//     command_buffer.finish()
-// };
-
-// // This is what we submit to the command queue. We wait until frame_semaphore
-// // is signalled, at which point we know our chosen image is available to draw
-// // on.
-// let submission = Submission::new()
-//     .wait_on(&[(&data.frame_semaphore, PipelineStage::BOTTOM_OF_PIPE)])
-//     .submit(vec![finished_command_buffer]);
-
-// // We submit the submission to one of our command queues, which will signal
-// // frame_fence once rendering is completed.
-// data.queue_group.queues[0].submit(submission, Some(&data.frame_fence));
 
 fn prepare_renderer<B: Backend>(
     size: Vec2<usize>,
@@ -475,11 +443,28 @@ fn prepare_renderer<B: Backend>(
         MAX_BUFFERS,
     );
 
+    let (caps, formats, _present_modes) =
+        surface.compatibility(&mut adapter.physical_device);
+    debug!("Surface Formats: {:?}", formats);
+    let format = formats.map_or(Format::Rgba8Srgb, |formats| {
+        formats
+            .iter()
+            .find(|format| format.base_format().1 == ChannelType::Srgb)
+            .map(|format| *format)
+            .unwrap_or(formats[0])
+    });
+
+    let swap_config = SwapchainConfig::from_caps(&caps, format);
+    debug!("Swap config: {:#?}", swap_config);
+    let extent = swap_config.extent.to_extent();
+    let (swapchain, backbuffer) =
+        device.create_swapchain(&mut surface, swap_config, None);
+
     let frame_semaphore = device.create_semaphore();
     let frame_fence = device.create_fence(false);
     let render_pass = {
         let color_attachment = Attachment {
-            format: Some(Rgba8Srgb::SELF),
+            format: Some(format),
             samples: 1,
             ops: AttachmentOps::new(
                 AttachmentLoadOp::Clear,
@@ -595,9 +580,6 @@ fn prepare_renderer<B: Backend>(
             .unwrap()
     };
 
-    let ((swapchain, backbuffer), extent) =
-        create_swapchain(&size, &device, &mut surface);
-
     let (frame_views, framebuffers) = match backbuffer {
         Backbuffer::Images(images) => {
             let color_range = SubresourceRange {
@@ -613,7 +595,7 @@ fn prepare_renderer<B: Backend>(
                         .create_image_view(
                             image,
                             ViewKind::D2,
-                            Rgba8Srgb::SELF,
+                            format,
                             Swizzle::NO,
                             color_range.clone(),
                         ).unwrap()
@@ -647,7 +629,7 @@ fn prepare_renderer<B: Backend>(
         adapter,
         device,
         command_pool,
-        swapchain,
+        swapchain: Some(swapchain),
         frame_views,
         framebuffers,
         frame_semaphore,
@@ -657,18 +639,8 @@ fn prepare_renderer<B: Backend>(
         pipeline,
         frame_index: 0,
         command_buffers: vec![],
+        format,
     })
-}
-
-fn create_swapchain<B: Backend>(
-    size: &Vec2<usize>,
-    device: &impl Device<B>,
-    surface: &mut <B as Backend>::Surface,
-) -> ((<B as Backend>::Swapchain, Backbuffer<B>), Extent) {
-    let swap_config =
-        SwapchainConfig::new(size.x as u32, size.y as u32, Rgba8Srgb::SELF, 2);
-    let extent = swap_config.extent.to_extent();
-    (device.create_swapchain(surface, swap_config, None), extent)
 }
 
 fn pick_adapter<B: Backend>(
@@ -731,7 +703,7 @@ fn _destroy<B: Backend>(data: Data<B>) {
     data.device.destroy_render_pass(data.render_pass);
     data.device.destroy_fence(data.frame_fence);
     data.device.destroy_semaphore(data.frame_semaphore);
-    data.device.destroy_swapchain(data.swapchain);
+    data.device.destroy_swapchain(data.swapchain.unwrap());
 
     data.device
         .destroy_command_pool(data.command_pool.into_raw());

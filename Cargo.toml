@@ -24,6 +24,7 @@ pretty_env_logger = "0.2.4"
 lazy_static = "1.1.0"
 anymap = "0.12.1"
 winit = "0.17.2"
+image = "0.20.0"
 gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
 gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
 gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }

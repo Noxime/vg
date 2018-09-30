@@ -6,4 +6,5 @@ layout(location = 0) out vec4 _out_color;
 
 void main() {
     _out_color = _debug;
+    _out_color = vec4(0.2, 0.5, 0.7, 1.0);
 }

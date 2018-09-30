@@ -1,41 +1,56 @@
+extern crate image as image_crate;
+
 use components::Component;
 use graphics::*;
+use std::io::{Cursor, Read};
 use vectors::*;
 
 use std::mem::size_of;
 
 enum MyData {
     #[cfg(feature = "backend-gl")]
-    GL(<GLBack as Backend>::Buffer),
+    GL((<GLBack as Backend>::Buffer, <GLBack as Backend>::Memory)),
     #[cfg(feature = "backend-vk")]
-    VK(<VKBack as Backend>::Buffer),
+    VK((<VKBack as Backend>::Buffer, <VKBack as Backend>::Memory)),
     #[cfg(feature = "backend-mt")]
-    MT(<MTBack as Backend>::Buffer),
+    MT((<MTBack as Backend>::Buffer, <MTBack as Backend>::Memory)),
     #[cfg(feature = "backend-dx")]
-    DX(<DXBack as Backend>::Buffer),
+    DX((<DXBack as Backend>::Buffer, <DXBack as Backend>::Memory)),
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const QUAD: [Vertex; 6] = [
-    Vertex { pos: [0.0, 0.0], tex: [1.0, 0.0] },
-    Vertex { pos: [1.0, 0.0], tex: [0.0, 1.0] },
-    Vertex { pos: [0.0, 1.0], tex: [1.0, 0.0] },
-    Vertex { pos: [1.0, 1.0], tex: [0.0, 1.0] },
-    Vertex { pos: [0.0, 1.0], tex: [1.0, 0.0] },
-    Vertex { pos: [1.0, 0.0], tex: [0.0, 1.0] },
+    Vertex { pos: [0.0, 0.0], tex: [0.0, 0.0] },
+    Vertex { pos: [1.0, 0.0], tex: [0.0, 0.0] },
+    Vertex { pos: [0.0, 1.0], tex: [0.0, 0.0] },
+    Vertex { pos: [1.0, 1.0], tex: [0.0, 0.0] },
+    Vertex { pos: [0.0, 1.0], tex: [0.0, 0.0] },
+    Vertex { pos: [1.0, 0.0], tex: [0.0, 0.0] },
 ];
 
 pub struct SpriteRenderer {
+    image: image_crate::RgbaImage,
     data: Option<MyData>,
 }
 
 impl SpriteRenderer {
-    pub fn new() -> SpriteRenderer { SpriteRenderer { data: None } }
+    pub fn new(image_data: &[u8]) -> SpriteRenderer {
+        SpriteRenderer {
+            image: image_crate::load(
+                Cursor::new(&image_data[..]),
+                image_crate::PNG,
+            ).unwrap()
+            .to_rgba(),
+            data: None,
+        }
+    }
     fn _render_init<B: Backend>(
         &mut self,
         data: &mut Data<B>,
-    ) -> <B as Backend>::Buffer {
+    ) -> (<B as Backend>::Buffer, <B as Backend>::Memory) {
         trace!("gfx init");
+
+        // vertex buffer
         let stride = size_of::<Vertex>() as u64;
         let size = QUAD.len() as u64 * stride;
 
@@ -69,17 +84,20 @@ impl SpriteRenderer {
             .device
             .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
             .unwrap();
+        {
+            let mut vertices = data
+                .device
+                .acquire_mapping_writer::<Vertex>(
+                    &buffer_memory,
+                    0..buffer_req.size,
+                ).unwrap();
+            vertices[0..QUAD.len()].copy_from_slice(&QUAD);
+            data.device.release_mapping_writer(vertices);
+        }
 
-        let mut vertices = data
-            .device
-            .acquire_mapping_writer::<Vertex>(
-                &buffer_memory,
-                0..buffer_req.size,
-            ).unwrap();
-        vertices[0..QUAD.len()].copy_from_slice(&QUAD);
-        data.device.release_mapping_writer(vertices);
+        // TODO: Texture upload
 
-        vertex_buffer
+        (vertex_buffer, buffer_memory)
     }
     fn _render<B: Backend>(vbuf: &<B as Backend>::Buffer, data: &mut Data<B>) {
         trace!("draw");
@@ -124,14 +142,6 @@ impl SpriteRenderer {
             command_buffer.finish()
         });
     }
-    fn _render_destroy<B: Backend>(&mut self, data: &mut Data<B>) {
-        if let Some(x) = self.data.take() {
-
-        } else {
-            error!("render_destroy was called but we do not have data")
-        }
-        trace!("gfx destroy")
-    }
 }
 
 impl Component for SpriteRenderer {
@@ -153,22 +163,22 @@ impl Component for SpriteRenderer {
             match api_data {
                 #[cfg(feature = "backend-gl")]
                 APIData::GL(ref mut d) => match data {
-                    MyData::GL(v) => Self::_render(v, d),
+                    MyData::GL(v) => Self::_render(&v.0, d),
                     _ => warn!("wrong self data type"),
                 },
                 #[cfg(feature = "backend-vk")]
                 APIData::VK(ref mut d) => match data {
-                    MyData::VK(v) => Self::_render(v, d),
+                    MyData::VK(v) => Self::_render(&v.0, d),
                     _ => warn!("wrong self data type"),
                 },
                 #[cfg(feature = "backend-mt")]
                 APIData::MT(ref mut d) => match data {
-                    MyData::MT(v) => Self::_render(v, d),
+                    MyData::MT(v) => Self::_render(&v.0, d),
                     _ => warn!("wrong self data type"),
                 },
                 #[cfg(feature = "backend-dx")]
                 APIData::DX(ref mut d) => match data {
-                    MyData::DX(v) => Self::_render(v, d),
+                    MyData::DX(v) => Self::_render(&v.0, d),
                     _ => warn!("wrong self data type"),
                 },
             }
@@ -176,15 +186,41 @@ impl Component for SpriteRenderer {
     }
 
     fn render_destroy(&mut self, api_data: &mut APIData) {
-        match api_data {
-            #[cfg(feature = "backend-gl")]
-            APIData::GL(ref mut d) => self._render_destroy(d),
-            #[cfg(feature = "backend-vk")]
-            APIData::VK(ref mut d) => self._render_destroy(d),
-            #[cfg(feature = "backend-mt")]
-            APIData::MT(ref mut d) => self._render_destroy(d),
-            #[cfg(feature = "backend-dx")]
-            APIData::DX(ref mut d) => self._render_destroy(d),
+        if let Some(x) = self.data.take() {
+            match api_data {
+                #[cfg(feature = "backend-gl")]
+                APIData::GL(ref mut d) => match x {
+                    MyData::GL((buf, mem)) => {
+                        d.device.destroy_buffer(buf);
+                        d.device.free_memory(mem);
+                    }
+                    _ => warn!("wrong self data type"),
+                },
+                #[cfg(feature = "backend-vk")]
+                APIData::VK(ref mut d) => match x {
+                    MyData::VK((buf, mem)) => {
+                        d.device.destroy_buffer(buf);
+                        d.device.free_memory(mem);
+                    }
+                    _ => warn!("wrong self data type"),
+                },
+                #[cfg(feature = "backend-mt")]
+                APIData::MT(ref mut d) => match x {
+                    MyData::MT((buf, mem)) => {
+                        d.device.destroy_buffer(buf);
+                        d.device.free_memory(mem);
+                    }
+                    _ => warn!("wrong self data type"),
+                },
+                #[cfg(feature = "backend-dx")]
+                APIData::DX(ref mut d) => match x {
+                    MyData::DX((buf, mem)) => {
+                        d.device.destroy_buffer(buf);
+                        d.device.free_memory(mem);
+                    }
+                    _ => warn!("wrong self data type"),
+                },
+            }
         }
     }
 }

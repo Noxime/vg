@@ -21,15 +21,21 @@ impl Entity {
     }
 
     pub fn render_init(&mut self, data: &mut APIData) {
-        for c in self.components.iter_mut() { c.render_init(data) }
+        for c in self.components.iter_mut() {
+            c.render_init(data)
+        }
     }
 
     pub fn render(&mut self, data: &mut APIData) {
-        for c in self.components.iter_mut() { c.render(data) }
+        for c in self.components.iter_mut() {
+            c.render(data)
+        }
     }
 
     pub fn render_destroy(&mut self, data: &mut APIData) {
-        for c in self.components.iter_mut() { c.render_destroy(data) }
+        for c in self.components.iter_mut() {
+            c.render_destroy(data)
+        }
     }
 
     pub fn add_component(&mut self, component: Box<Component>) {

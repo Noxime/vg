@@ -7,6 +7,6 @@ layout(location = 0) out vec4 _debug;
 
 
 void main() {
-    _debug = vec4(_texcoord, 1.0, 1.0);
+    _debug = vec4(_texcoord, 0.0, 1.0);
     gl_Position = vec4(_position, 0.0, 1.0);
 }
