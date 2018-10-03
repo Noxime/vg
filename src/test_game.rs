@@ -22,7 +22,9 @@ fn scene_loader(scene: SceneName) -> Scene {
         SceneName::Main => Scene::empty().with_entity(
             Entity::empty()
                 .with_component(Box::new(TestComponent))
-                .with_component(Box::new(SpriteRenderer::new(include_bytes!("../assets/textures/test.png")))),
+                .with_component(Box::new(SpriteRenderer::new(include_bytes!(
+                    "../assets/textures/test.png"
+                )))),
         ),
     }
 }

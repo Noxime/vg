@@ -408,7 +408,9 @@ fn _post_render<B: Backend>(data: &mut Data<B>) {
 
     // ...and then present the image on screen!
     if let Some(ref v) = data.swapchain {
-        if let Err(why) = v.present(&mut data.queue_group.queues[0], data.frame_index, &[]) {
+        if let Err(why) =
+            v.present(&mut data.queue_group.queues[0], data.frame_index, &[])
+        {
             error!("Present failed: {:#?}", why);
         }
     }
@@ -464,6 +466,7 @@ fn prepare_renderer<B: Backend>(
 
     let frame_semaphore = device.create_semaphore();
     let frame_fence = device.create_fence(false);
+
     let render_pass = {
         let color_attachment = Attachment {
             format: Some(format),
@@ -503,7 +506,28 @@ fn prepare_renderer<B: Backend>(
         )
     };
 
-    let pipeline_layout = device.create_pipeline_layout(&[], &[]);
+    // TODO: Move the whole pipeline stuff out of here
+    let set_layout = device.create_descriptor_set_layout(
+        &[
+            pso::DescriptorSetLayoutBinding {
+                binding: 0,
+                ty: pso::DescriptorType::SampledImage,
+                count: 1,
+                stage_flags: ShaderStageFlags::FRAGMENT,
+                immutable_samplers: false,
+            },
+            pso::DescriptorSetLayoutBinding {
+                binding: 1,
+                ty: pso::DescriptorType::Sampler,
+                count: 1,
+                stage_flags: ShaderStageFlags::FRAGMENT,
+                immutable_samplers: false,
+            },
+        ],
+        &[],
+    );
+
+    let pipeline_layout = device.create_pipeline_layout(&Some(set_layout), &[]);
 
     let vertex_shader_module = {
         let spirv = include_bytes!("../../built_assets/shaders/default.vs.spv");
@@ -577,10 +601,12 @@ fn prepare_renderer<B: Backend>(
             },
         });
 
+        debug!("help");
         device
             .create_graphics_pipeline(&pipeline_desc, None)
             .unwrap()
     };
+    debug!("help");
 
     let (frame_views, framebuffers) = match backbuffer {
         Backbuffer::Images(images) => {
