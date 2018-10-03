@@ -247,7 +247,7 @@ fn _resize<B: Backend>(size: Vec2<usize>, data: &mut Data<B>) {
     assert!(formats.iter().any(|fs| fs.contains(&data.format)));
 
     let swap_config = SwapchainConfig::from_caps(&caps, data.format);
-    println!("{:?}", swap_config);
+    debug!("{:?}", swap_config);
     let extent = swap_config.extent.to_extent();
 
     // Clean up the old framebuffers, images and swapchain
@@ -305,6 +305,7 @@ fn _resize<B: Backend>(size: Vec2<usize>, data: &mut Data<B>) {
     };
 
     data.framebuffers = new_framebuffers;
+    data.size = size;
     // data.frame_images = new_frame_images;
     // viewport.rect.w = extent.width as _;
     // viewport.rect.h = extent.height as _;
@@ -407,8 +408,9 @@ fn _post_render<B: Backend>(data: &mut Data<B>) {
 
     // ...and then present the image on screen!
     if let Some(ref v) = data.swapchain {
-        v.present(&mut data.queue_group.queues[0], data.frame_index, &[])
-            .expect("Present failed");
+        if let Err(why) = v.present(&mut data.queue_group.queues[0], data.frame_index, &[]) {
+            error!("Present failed: {:#?}", why);
+        }
     }
 }
 

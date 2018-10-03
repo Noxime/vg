@@ -51,7 +51,7 @@ pub fn run<T>(
                 match event {
                     WindowEvent::CloseRequested => close = true,
                     winit::WindowEvent::Resized(dims) => {
-                        println!("resized to {:?}", dims);
+                        debug!("resized to {:?}", dims);
                         graphics::resize(Vec2::new(
                             dims.width as usize,
                             dims.height as usize,
