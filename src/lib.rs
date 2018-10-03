@@ -8,6 +8,7 @@ extern crate winit;
 pub mod components;
 pub mod entity;
 pub mod graphics;
+pub mod audio;
 pub mod scene;
 pub mod vectors;
 use components::Component;
@@ -24,6 +25,7 @@ pub fn run<T>(
     start_scene: T,
 ) {
     pretty_env_logger::init();
+    audio::init();
 
     let apis = graphics::supported();
     debug!("APIs supported: {}", apis.len());

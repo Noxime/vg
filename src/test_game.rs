@@ -24,17 +24,12 @@ fn scene_loader(scene: SceneName) -> Scene {
                 .with_component(Box::new(TestComponent))
                 .with_component(Box::new(SpriteRenderer::new(include_bytes!(
                     "../assets/textures/test.png"
-                )))),
+                )))).with_component(Box::new(SoundPlayer::new(
+                    "/home/noxim/Music/fuck.wav",
+                ))),
         ),
     }
 }
 
 struct TestComponent;
-impl Component for TestComponent {
-    fn initialize(&mut self) {
-        info!("Called initialize on component");
-    }
-    fn destroy(&mut self) {
-        info!("Called destory on component");
-    }
-}
+impl Component for TestComponent {}

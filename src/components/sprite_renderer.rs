@@ -59,8 +59,6 @@ pub struct SpriteRenderer {
 
 impl SpriteRenderer {
     pub fn new(image_data: &[u8]) -> SpriteRenderer {
-        debug!("help9");
-
         SpriteRenderer {
             image: image_crate::load(
                 Cursor::new(&image_data[..]),
@@ -126,7 +124,6 @@ impl SpriteRenderer {
         }
 
         // TODO: Texture upload
-        debug!("help8");
 
         let (width, height) = self.image.dimensions();
         let kind =
@@ -156,7 +153,6 @@ impl SpriteRenderer {
             .device
             .bind_buffer_memory(&image_upload_memory, 0, image_buffer_unbound)
             .unwrap();
-        debug!("help7");
 
         // copy image data into staging buffer
         {
@@ -176,7 +172,6 @@ impl SpriteRenderer {
             }
             data.device.release_mapping_writer(_data);
         }
-        debug!("help6");
 
         let image_unbound = data
             .device
@@ -203,7 +198,6 @@ impl SpriteRenderer {
                     .contains(memory::Properties::DEVICE_LOCAL)
             }).unwrap()
             .into();
-        debug!("help5");
 
         let image_memory = data
             .device
@@ -233,7 +227,6 @@ impl SpriteRenderer {
             image::Filter::Nearest,
             image::WrapMode::Tile,
         ));
-        debug!("help4");
 
         let mut desc_pool = data.device.create_descriptor_pool(
             1, // sets
@@ -332,7 +325,6 @@ impl SpriteRenderer {
                         },
                     }],
                 );
-                debug!("help3");
 
                 let image_barrier = memory::Barrier::Image {
                     states: (
@@ -361,8 +353,6 @@ impl SpriteRenderer {
 
             data.device.wait_for_fence(&data.frame_fence, !0);
         }
-
-        debug!("help2");
 
         debug!("Init done");
         (vertex_buffer, buffer_memory, desc_set)
