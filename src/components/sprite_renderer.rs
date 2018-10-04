@@ -363,7 +363,7 @@ impl SpriteRenderer {
         desc_set: &<B as Backend>::DescriptorSet,
         data: &mut Data<B>,
     ) {
-        trace!("draw");
+        // trace!("draw");
 
         data.command_buffers.push({
             let mut command_buffer =

@@ -394,7 +394,7 @@ fn _post_render<B: Backend>(data: &mut Data<B>) {
 
     let buffers = data.command_buffers.split_off(0);
 
-    trace!("{} command buffers", buffers.len());
+    // trace!("{} command buffers", buffers.len());
     let submission = Submission::new()
         .wait_on(&[(&data.frame_semaphore, PipelineStage::BOTTOM_OF_PIPE)])
         .submit(buffers);
@@ -601,12 +601,10 @@ fn prepare_renderer<B: Backend>(
             },
         });
 
-        debug!("help");
         device
             .create_graphics_pipeline(&pipeline_desc, None)
             .unwrap()
     };
-    debug!("help");
 
     let (frame_views, framebuffers) = match backbuffer {
         Backbuffer::Images(images) => {

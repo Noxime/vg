@@ -9,6 +9,7 @@ pub mod components;
 pub mod entity;
 pub mod graphics;
 pub mod audio;
+pub mod input;
 pub mod scene;
 pub mod vectors;
 use components::Component;
@@ -26,6 +27,7 @@ pub fn run<T>(
 ) {
     pretty_env_logger::init();
     audio::init();
+    let mut i = input::init();
 
     let apis = graphics::supported();
     debug!("APIs supported: {}", apis.len());
@@ -68,6 +70,9 @@ pub fn run<T>(
         if close {
             break 'main;
         }
+
+        input::events(&mut i);
+
         // debug!("PRECRASH");
         graphics::pre_render();
         graphics::render(&mut scene);
