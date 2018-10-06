@@ -3,6 +3,7 @@ extern crate log;
 extern crate kea;
 
 use kea::{components::*, entity::*, scene::*, vectors::*, *};
+use std::any::Any;
 
 enum SceneName {
     Main,
@@ -21,15 +22,15 @@ fn scene_loader(scene: SceneName) -> Scene {
     match scene {
         SceneName::Main => Scene::empty().with_entity(
             Entity::empty()
-                .with_component(Box::new(TestComponent))
-                .with_component(Box::new(SpriteRenderer::new(include_bytes!(
+                .with(TestComponent)
+                .with(SpriteRenderer::new(include_bytes!(
                     "../assets/textures/test.png"
-                )))).with_component(Box::new(SoundPlayer::new(
-                    "/home/noxim/Music/fuck.wav",
-                ))),
+                ))).with(SoundPlayer::new("/home/noxim/Music/fuck.wav")),
         ),
     }
 }
 
 struct TestComponent;
-impl Component for TestComponent {}
+impl Component for TestComponent {
+    fn as_any(&self) -> &dyn Any { self as &Any }
+}

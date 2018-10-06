@@ -1,3 +1,5 @@
+#![feature(core_intrinsics)]
+
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -5,10 +7,10 @@ extern crate lazy_static;
 extern crate pretty_env_logger;
 extern crate winit;
 
+pub mod audio;
 pub mod components;
 pub mod entity;
 pub mod graphics;
-pub mod audio;
 pub mod input;
 pub mod scene;
 pub mod vectors;

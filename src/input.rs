@@ -53,35 +53,87 @@ pub fn events(g: &mut Gilrs) {
         match event {
             EventType::Connected => info!("Controller connected"),
             EventType::Disconnected => info!("Controller disconnected"),
-            EventType::ButtonPressed(ev::Button::North, _) => CONTROLLER.lock().unwrap().buttons.0 = true,
-            EventType::ButtonPressed(ev::Button::East, _) => CONTROLLER.lock().unwrap().buttons.1 = true,
-            EventType::ButtonPressed(ev::Button::South, _) => CONTROLLER.lock().unwrap().buttons.2 = true,
-            EventType::ButtonPressed(ev::Button::West, _) => CONTROLLER.lock().unwrap().buttons.3 = true,
-            EventType::ButtonPressed(ev::Button::LeftTrigger, _) => CONTROLLER.lock().unwrap().bumpers.0 = true,
-            EventType::ButtonPressed(ev::Button::RightTrigger, _) => CONTROLLER.lock().unwrap().bumpers.1 = true,
-            EventType::ButtonPressed(ev::Button::DPadUp, _) => CONTROLLER.lock().unwrap().dpad.0 = true,
-            EventType::ButtonPressed(ev::Button::DPadRight, _) => CONTROLLER.lock().unwrap().dpad.1 = true,
-            EventType::ButtonPressed(ev::Button::DPadDown, _) => CONTROLLER.lock().unwrap().dpad.2 = true,
-            EventType::ButtonPressed(ev::Button::DPadLeft, _) => CONTROLLER.lock().unwrap().dpad.3 = true,
+            EventType::ButtonPressed(ev::Button::North, _) => {
+                CONTROLLER.lock().unwrap().buttons.0 = true
+            }
+            EventType::ButtonPressed(ev::Button::East, _) => {
+                CONTROLLER.lock().unwrap().buttons.1 = true
+            }
+            EventType::ButtonPressed(ev::Button::South, _) => {
+                CONTROLLER.lock().unwrap().buttons.2 = true
+            }
+            EventType::ButtonPressed(ev::Button::West, _) => {
+                CONTROLLER.lock().unwrap().buttons.3 = true
+            }
+            EventType::ButtonPressed(ev::Button::LeftTrigger, _) => {
+                CONTROLLER.lock().unwrap().bumpers.0 = true
+            }
+            EventType::ButtonPressed(ev::Button::RightTrigger, _) => {
+                CONTROLLER.lock().unwrap().bumpers.1 = true
+            }
+            EventType::ButtonPressed(ev::Button::DPadUp, _) => {
+                CONTROLLER.lock().unwrap().dpad.0 = true
+            }
+            EventType::ButtonPressed(ev::Button::DPadRight, _) => {
+                CONTROLLER.lock().unwrap().dpad.1 = true
+            }
+            EventType::ButtonPressed(ev::Button::DPadDown, _) => {
+                CONTROLLER.lock().unwrap().dpad.2 = true
+            }
+            EventType::ButtonPressed(ev::Button::DPadLeft, _) => {
+                CONTROLLER.lock().unwrap().dpad.3 = true
+            }
 
-            EventType::ButtonReleased(ev::Button::North, _) => CONTROLLER.lock().unwrap().buttons.0 = false,
-            EventType::ButtonReleased(ev::Button::East, _) => CONTROLLER.lock().unwrap().buttons.1 = false,
-            EventType::ButtonReleased(ev::Button::South, _) => CONTROLLER.lock().unwrap().buttons.2 = false,
-            EventType::ButtonReleased(ev::Button::West, _) => CONTROLLER.lock().unwrap().buttons.3 = false,
-            EventType::ButtonReleased(ev::Button::LeftTrigger, _) => CONTROLLER.lock().unwrap().bumpers.0 = false,
-            EventType::ButtonReleased(ev::Button::RightTrigger, _) => CONTROLLER.lock().unwrap().bumpers.1 = false,
-            EventType::ButtonReleased(ev::Button::DPadUp, _) => CONTROLLER.lock().unwrap().dpad.0 = false,
-            EventType::ButtonReleased(ev::Button::DPadRight, _) => CONTROLLER.lock().unwrap().dpad.1 = false,
-            EventType::ButtonReleased(ev::Button::DPadDown, _) => CONTROLLER.lock().unwrap().dpad.2 = false,
-            EventType::ButtonReleased(ev::Button::DPadLeft, _) => CONTROLLER.lock().unwrap().dpad.3 = false,
+            EventType::ButtonReleased(ev::Button::North, _) => {
+                CONTROLLER.lock().unwrap().buttons.0 = false
+            }
+            EventType::ButtonReleased(ev::Button::East, _) => {
+                CONTROLLER.lock().unwrap().buttons.1 = false
+            }
+            EventType::ButtonReleased(ev::Button::South, _) => {
+                CONTROLLER.lock().unwrap().buttons.2 = false
+            }
+            EventType::ButtonReleased(ev::Button::West, _) => {
+                CONTROLLER.lock().unwrap().buttons.3 = false
+            }
+            EventType::ButtonReleased(ev::Button::LeftTrigger, _) => {
+                CONTROLLER.lock().unwrap().bumpers.0 = false
+            }
+            EventType::ButtonReleased(ev::Button::RightTrigger, _) => {
+                CONTROLLER.lock().unwrap().bumpers.1 = false
+            }
+            EventType::ButtonReleased(ev::Button::DPadUp, _) => {
+                CONTROLLER.lock().unwrap().dpad.0 = false
+            }
+            EventType::ButtonReleased(ev::Button::DPadRight, _) => {
+                CONTROLLER.lock().unwrap().dpad.1 = false
+            }
+            EventType::ButtonReleased(ev::Button::DPadDown, _) => {
+                CONTROLLER.lock().unwrap().dpad.2 = false
+            }
+            EventType::ButtonReleased(ev::Button::DPadLeft, _) => {
+                CONTROLLER.lock().unwrap().dpad.3 = false
+            }
 
-            EventType::AxisChanged(ev::Axis::LeftStickX, v, _) => CONTROLLER.lock().unwrap().left.0 = v,
-            EventType::AxisChanged(ev::Axis::LeftStickY, v, _) => CONTROLLER.lock().unwrap().left.1 = v,
-            EventType::AxisChanged(ev::Axis::RightStickX, v, _) => CONTROLLER.lock().unwrap().right.0 = v,
-            EventType::AxisChanged(ev::Axis::RightStickY, v, _) => CONTROLLER.lock().unwrap().right.1 = v,
+            EventType::AxisChanged(ev::Axis::LeftStickX, v, _) => {
+                CONTROLLER.lock().unwrap().left.0 = v
+            }
+            EventType::AxisChanged(ev::Axis::LeftStickY, v, _) => {
+                CONTROLLER.lock().unwrap().left.1 = v
+            }
+            EventType::AxisChanged(ev::Axis::RightStickX, v, _) => {
+                CONTROLLER.lock().unwrap().right.0 = v
+            }
+            EventType::AxisChanged(ev::Axis::RightStickY, v, _) => {
+                CONTROLLER.lock().unwrap().right.1 = v
+            }
 
-            EventType::ButtonChanged(ev::Button::LeftTrigger2, v, _) => CONTROLLER.lock().unwrap().triggers.0 = v,
-            EventType::ButtonChanged(ev::Button::RightTrigger2, v, _) => CONTROLLER.lock().unwrap().triggers.1 = v,
+            EventType::ButtonChanged(ev::Button::LeftTrigger2, v, _) => {
+                CONTROLLER.lock().unwrap().triggers.0 = v
+            }
+            EventType::ButtonChanged(ev::Button::RightTrigger2, v, _) => {
+                CONTROLLER.lock().unwrap().triggers.1 = v
+            }
 
             e => trace!("Ignored event: {:?}", e),
         }
@@ -148,7 +200,7 @@ pub fn get_button_down(button: &Button) -> bool {
     }
 }
 
-pub fn get_button_up(button: &Button) -> bool { 
+pub fn get_button_up(button: &Button) -> bool {
     match button {
         Button::North => {
             !CONTROLLER.lock().unwrap().buttons.0
@@ -191,7 +243,7 @@ pub fn get_button_up(button: &Button) -> bool {
                 && LAST_CONTROLLER.lock().unwrap().dpad.3
         }
     }
- }
+}
 
 pub fn get_axis(axis: &Axis) -> f32 {
     match axis {

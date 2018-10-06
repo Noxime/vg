@@ -4,8 +4,17 @@ mod sound_player;
 pub use self::sound_player::SoundPlayer;
 use graphics::*;
 
+use std::any::Any;
+
 pub trait Component {
-    fn render_init(&mut self, data: &mut APIData) {}
-    fn render(&mut self, data: &mut APIData) {}
-    fn render_destroy(&mut self, data: &mut APIData) {}
+    // Rust typesystem is so fucking cool, but also takes a while to wrap your
+    // head around. Also, this might not be optimal but its the best way I found
+    // so far.
+    // You most likely want to implement this as
+    // `fn as_any(&self) -> &dyn Any { self as &Any }`
+    fn as_any(&self) -> &dyn Any;
+
+    fn render_init(&mut self, _: &mut APIData) {}
+    fn render(&mut self, _: &mut APIData) {}
+    fn render_destroy(&mut self, _: &mut APIData) {}
 }

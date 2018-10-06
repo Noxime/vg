@@ -5,7 +5,7 @@ use graphics::*;
 use std::io::{Cursor, Read};
 use vectors::*;
 
-use std::mem::size_of;
+use std::{any::Any, mem::size_of};
 
 enum MyData {
     #[cfg(feature = "backend-gl")]
@@ -408,6 +408,8 @@ impl SpriteRenderer {
 }
 
 impl Component for SpriteRenderer {
+    fn as_any(&self) -> &dyn Any { self as &Any }
+
     fn render_init(&mut self, api_data: &mut APIData) {
         self.data = Some(match api_data {
             #[cfg(feature = "backend-gl")]
