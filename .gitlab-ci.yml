@@ -3,6 +3,7 @@ build:cargo:
   before_script:
   - apt-get update
   - apt-get install -y cmake
+  - apt-get install -y libopenal-dev libsndfile1-dev
   script:
   - rustc --version && cargo --version
   - cargo build --verbose
