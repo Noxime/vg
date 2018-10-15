@@ -1,6 +1,5 @@
 use audio::*;
 use components::Component;
-use graphics::*;
 
 use std::any::Any;
 

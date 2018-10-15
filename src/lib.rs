@@ -4,7 +4,7 @@
 extern crate log;
 #[macro_use]
 extern crate lazy_static;
-extern crate pretty_env_logger;
+extern crate emoji_logger;
 extern crate winit;
 
 pub mod audio;
@@ -14,7 +14,6 @@ pub mod graphics;
 pub mod input;
 pub mod scene;
 pub mod vectors;
-use components::Component;
 use vectors::*;
 
 use winit::*;
@@ -27,7 +26,7 @@ pub fn run<T>(
     scene_loader: &mut FnMut(T) -> scene::Scene,
     start_scene: T,
 ) {
-    pretty_env_logger::init();
+    emoji_logger::init();
     audio::init();
     let mut i = input::init();
 

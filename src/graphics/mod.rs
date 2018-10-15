@@ -32,8 +32,6 @@ pub use self::gfx_hal::{
 };
 
 use std::{
-    collections::HashMap,
-    marker::PhantomData,
     mem::size_of,
     sync::Mutex,
 };
@@ -54,9 +52,16 @@ pub type MTBack = gfx_backend_metal::Backend;
 pub type DXBack = gfx_backend_dx12::Backend;
 
 #[derive(Copy, Clone)]
+#[repr(C)]
 pub struct Vertex {
     pub pos: [f32; 2],
     pub tex: [f32; 2],
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct CameraUniformBlock {
+    pub projection: [[f32; 4]; 4],
 }
 
 pub struct Data<B: Backend> {
@@ -521,6 +526,13 @@ fn prepare_renderer<B: Backend>(
                 ty: pso::DescriptorType::Sampler,
                 count: 1,
                 stage_flags: ShaderStageFlags::FRAGMENT,
+                immutable_samplers: false,
+            },
+            pso::DescriptorSetLayoutBinding {
+                binding: 2,
+                ty: pso::DescriptorType::UniformBuffer,
+                count: 1,
+                stage_flags: ShaderStageFlags::VERTEX,
                 immutable_samplers: false,
             },
         ],

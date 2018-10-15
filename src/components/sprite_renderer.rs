@@ -2,8 +2,7 @@ extern crate image as image_crate;
 
 use components::Component;
 use graphics::*;
-use std::io::{Cursor, Read};
-use vectors::*;
+use std::io::Cursor;
 
 use std::{any::Any, mem::size_of};
 
@@ -14,6 +13,8 @@ enum MyData {
             <GLBack as Backend>::Buffer,
             <GLBack as Backend>::Memory,
             <GLBack as Backend>::DescriptorSet,
+            <GLBack as Backend>::Buffer,
+            <GLBack as Backend>::Memory,
         ),
     ),
     #[cfg(feature = "backend-vk")]
@@ -22,6 +23,8 @@ enum MyData {
             <VKBack as Backend>::Buffer,
             <VKBack as Backend>::Memory,
             <VKBack as Backend>::DescriptorSet,
+            <VKBack as Backend>::Buffer,
+            <VKBack as Backend>::Memory,
         ),
     ),
     #[cfg(feature = "backend-mt")]
@@ -30,6 +33,8 @@ enum MyData {
             <MTBack as Backend>::Buffer,
             <MTBack as Backend>::Memory,
             <MTBack as Backend>::DescriptorSet,
+            <MTBack as Backend>::Buffer,
+            <MTBack as Backend>::Memory,
         ),
     ),
     #[cfg(feature = "backend-dx")]
@@ -38,6 +43,8 @@ enum MyData {
             <DXBack as Backend>::Buffer,
             <DXBack as Backend>::Memory,
             <DXBack as Backend>::DescriptorSet,
+            <DXBack as Backend>::Buffer,
+            <DXBack as Backend>::Memory,
         ),
     ),
 }
@@ -75,6 +82,8 @@ impl SpriteRenderer {
         <B as Backend>::Buffer,
         <B as Backend>::Memory,
         <B as Backend>::DescriptorSet,
+        <B as Backend>::Buffer,
+        <B as Backend>::Memory,
     ) {
         trace!("gfx init");
 
@@ -123,7 +132,60 @@ impl SpriteRenderer {
             data.device.release_mapping_writer(vertices);
         }
 
-        // TODO: Texture upload
+        let (uniform_buffer, uniform_memory) = {
+            let buffer_unbound = data
+                .device
+                .create_buffer(
+                    size_of::<CameraUniformBlock>() as u64,
+                    buffer::Usage::VERTEX,
+                ).unwrap();
+
+            let buffer_req =
+                data.device.get_buffer_requirements(&buffer_unbound);
+
+            let upload_type = data
+                .adapter
+                .physical_device
+                .memory_properties()
+                .memory_types
+                .iter()
+                .enumerate()
+                .position(|(id, mem_type)| {
+                    buffer_req.type_mask & (1 << id) != 0 && mem_type
+                        .properties
+                        .contains(memory::Properties::CPU_VISIBLE)
+                }).unwrap()
+                .into();
+
+            let buffer_memory = data
+                .device
+                .allocate_memory(upload_type, buffer_req.size)
+                .unwrap();
+
+            let uniform_buffer = data
+                .device
+                .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
+                .unwrap();
+            {
+                let mut writer = data
+                    .device
+                    .acquire_mapping_writer::<CameraUniformBlock>(
+                        &buffer_memory,
+                        0..buffer_req.size,
+                    ).unwrap();
+                writer[0..1].copy_from_slice(&[CameraUniformBlock {
+                    projection: [
+                        [0.5, 0.0, 0.0, 0.0],
+                        [0.0, 1.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0, 0.0],
+                        [0.0, 0.0, 0.0, 1.0],
+                    ],
+                }]);
+                data.device.release_mapping_writer(writer);
+            }
+
+            (uniform_buffer, buffer_memory)
+        };
 
         let (width, height) = self.image.dimensions();
         let kind =
@@ -232,11 +294,18 @@ impl SpriteRenderer {
             1, // sets
             &[
                 pso::DescriptorRangeDesc {
+                    // texture
                     ty: pso::DescriptorType::SampledImage,
                     count: 1,
                 },
                 pso::DescriptorRangeDesc {
+                    // texture view
                     ty: pso::DescriptorType::Sampler,
+                    count: 1,
+                },
+                pso::DescriptorRangeDesc {
+                    // uniforms
+                    ty: pso::DescriptorType::UniformBuffer,
                     count: 1,
                 },
             ],
@@ -256,6 +325,13 @@ impl SpriteRenderer {
                     ty: pso::DescriptorType::Sampler,
                     count: 1,
                     stage_flags: ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+                pso::DescriptorSetLayoutBinding {
+                    binding: 2,
+                    ty: pso::DescriptorType::UniformBuffer,
+                    count: 1,
+                    stage_flags: ShaderStageFlags::VERTEX,
                     immutable_samplers: false,
                 },
             ],
@@ -280,6 +356,12 @@ impl SpriteRenderer {
                 array_offset: 0,
                 descriptors: Some(pso::Descriptor::Sampler(&sampler)),
             },
+            pso::DescriptorSetWrite {
+                set: &desc_set,
+                binding: 2,
+                array_offset: 0,
+                descriptors: Some(pso::Descriptor::Buffer(&uniform_buffer, None..None)),
+            }
         ]);
 
         // copy buffer to texture
@@ -355,7 +437,13 @@ impl SpriteRenderer {
         }
 
         debug!("Init done");
-        (vertex_buffer, buffer_memory, desc_set)
+        (
+            vertex_buffer,
+            buffer_memory,
+            desc_set,
+            uniform_buffer,
+            uniform_memory,
+        )
     }
 
     fn _render<B: Backend>(
@@ -455,33 +543,41 @@ impl Component for SpriteRenderer {
             match api_data {
                 #[cfg(feature = "backend-gl")]
                 APIData::GL(ref mut d) => match x {
-                    MyData::GL((buf, mem, desc_set)) => {
+                    MyData::GL((buf, mem, desc_set, u_buf, u_mem)) => {
                         d.device.destroy_buffer(buf);
                         d.device.free_memory(mem);
+                        d.device.destroy_buffer(u_buf);
+                        d.device.free_memory(u_mem);
                     }
                     _ => warn!("wrong self data type"),
                 },
                 #[cfg(feature = "backend-vk")]
                 APIData::VK(ref mut d) => match x {
-                    MyData::VK((buf, mem, desc_set)) => {
+                    MyData::VK((buf, mem, desc_set, u_buf, u_mem)) => {
                         d.device.destroy_buffer(buf);
                         d.device.free_memory(mem);
+                        d.device.destroy_buffer(u_buf);
+                        d.device.free_memory(u_mem);
                     }
                     _ => warn!("wrong self data type"),
                 },
                 #[cfg(feature = "backend-mt")]
                 APIData::MT(ref mut d) => match x {
-                    MyData::MT((buf, mem, desc_set)) => {
+                    MyData::MT((buf, mem, desc_set, u_buf, u_mem)) => {
                         d.device.destroy_buffer(buf);
                         d.device.free_memory(mem);
+                        d.device.destroy_buffer(u_buf);
+                        d.device.free_memory(u_mem);
                     }
                     _ => warn!("wrong self data type"),
                 },
                 #[cfg(feature = "backend-dx")]
                 APIData::DX(ref mut d) => match x {
-                    MyData::DX((buf, mem, desc_set)) => {
+                    MyData::DX((buf, mem, desc_set, u_buf, u_mem)) => {
                         d.device.destroy_buffer(buf);
                         d.device.free_memory(mem);
+                        d.device.destroy_buffer(u_buf);
+                        d.device.free_memory(u_mem);
                     }
                     _ => warn!("wrong self data type"),
                 },
