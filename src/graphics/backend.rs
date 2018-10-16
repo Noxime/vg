@@ -72,7 +72,7 @@ impl GfxBackend<VKBack> {
 
 #[cfg(feature = "backend-mt")]
 impl GfxBackend<MTBack> {
-    pub fn new_mt(window: &mut Window) -> Self {
+    pub fn new_mt(window: &mut Window) -> Result<Self, ()> {
         let window = window.wb.take().ok_or(())?
             .build(&window.events)
             .map_err(|_| ())?;
@@ -93,7 +93,7 @@ impl GfxBackend<MTBack> {
 
 #[cfg(feature = "backend-dx")]
 impl GfxBackend<DXBack> {
-    pub fn new_dx(window: &mut Window) -> Self {
+    pub fn new_dx(window: &mut Window) -> Result<Self, ()> {
         let window = window.wb.take().ok_or(())?
             .build(&window.events)
             .map_err(|_| ())?;
