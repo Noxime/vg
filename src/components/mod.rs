@@ -2,9 +2,9 @@ mod sprite_renderer;
 pub use self::sprite_renderer::SpriteRenderer;
 mod sound_player;
 pub use self::sound_player::SoundPlayer;
-use graphics::*;
 
 use std::any::Any;
+use graphics::Renderer;
 
 pub trait Component {
     // Rust typesystem is so fucking cool, but also takes a while to wrap your
@@ -14,7 +14,7 @@ pub trait Component {
     // `fn as_any(&self) -> &dyn Any { self as &Any }`
     fn as_any(&self) -> &dyn Any;
 
-    fn render_init(&mut self, _: &mut APIData) {}
-    fn render(&mut self, _: &mut APIData) {}
-    fn render_destroy(&mut self, _: &mut APIData) {}
+    fn render_init(&mut self, _: &mut Renderer) {}
+    fn render(&mut self, _: &mut Renderer) {}
+    fn render_destroy(&mut self, _: &mut Renderer) {}
 }

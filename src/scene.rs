@@ -11,21 +11,21 @@ impl Scene {
         Scene { entities: vec![] }
     }
 
-    pub fn render_init(&mut self, data: &mut APIData) {
+    pub fn render_init(&mut self, renderer: &mut Renderer) {
         for e in self.entities.iter_mut() {
-            e.render_init(data);
+            e.render_init(renderer);
         }
     }
 
-    pub fn render(&mut self, data: &mut APIData) {
+    pub fn render(&mut self, renderer: &mut Renderer) {
         for e in self.entities.iter_mut() {
-            e.render(data);
+            e.render(renderer);
         }
     }
 
-    pub fn render_destroy(&mut self, data: &mut APIData) {
+    pub fn render_destroy(&mut self, renderer: &mut Renderer) {
         for e in self.entities.iter_mut() {
-            e.render_destroy(data);
+            e.render_destroy(renderer);
         }
     }
 

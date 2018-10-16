@@ -22,21 +22,21 @@ impl Entity {
         }
     }
 
-    pub fn render_init(&mut self, data: &mut APIData) {
+    pub fn render_init(&mut self, renderer: &mut Renderer) {
         for (_, c) in self.components.iter_mut() {
-            c.render_init(data)
+            c.render_init(renderer)
         }
     }
 
-    pub fn render(&mut self, data: &mut APIData) {
+    pub fn render(&mut self, renderer: &mut Renderer) {
         for (_, c) in self.components.iter_mut() {
-            c.render(data)
+            c.render(renderer)
         }
     }
 
-    pub fn render_destroy(&mut self, data: &mut APIData) {
+    pub fn render_destroy(&mut self, renderer: &mut Renderer) {
         for (_, c) in self.components.iter_mut() {
-            c.render_destroy(data)
+            c.render_destroy(renderer)
         }
     }
 

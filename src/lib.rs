@@ -27,37 +27,29 @@ pub fn run<T>(
     start_scene: T,
 ) {
     emoji_logger::init();
+    info!("Running Kea, version {}", env!("CARGO_PKG_VERSION"));
     audio::init();
     let mut i = input::init();
 
-    let apis = graphics::supported();
-    debug!("APIs supported: {}", apis.len());
-    for (api, support) in &apis {
-        debug!("  {:?} = {}", api, support);
-    }
-    let mut events = match graphics::create(size, title, &apis[0].0) {
-        Ok(v) => v,
-        Err(why) => {
-            error!("Graphics pipeline creation failed: {:?}", why);
-            panic!()
-        }
-    };
+    let mut window = graphics::Window::new(size, &title);
+    let mut graphics = graphics::Renderer::from(&mut window);
+    info!("Initialization complete");
 
     debug!("Loading start scene");
     let mut scene = scene_loader(start_scene);
-    graphics::render_init(&mut scene);
+    scene.render_init(&mut graphics);
 
     debug!("Entering main loop");
     'main: loop {
         let mut close = false;
-        events.poll_events(|event| {
+        window.events.poll_events(|event| {
             if let Event::WindowEvent { event, .. } = event {
                 // window events
                 match event {
                     WindowEvent::CloseRequested => close = true,
                     winit::WindowEvent::Resized(dims) => {
                         debug!("resized to {:?}", dims);
-                        graphics::resize(Vec2::new(
+                        graphics.resize(Vec2::new(
                             dims.width as usize,
                             dims.height as usize,
                         ));
@@ -75,12 +67,10 @@ pub fn run<T>(
         input::events(&mut i);
 
         // debug!("PRECRASH");
-        graphics::pre_render();
-        graphics::render(&mut scene);
-        graphics::post_render();
+        scene.render(&mut graphics);
     }
 
-    graphics::render_destroy(&mut scene);
+    scene.render_destroy(&mut graphics);
 
     info!("Kea shutdown");
 }
