@@ -1,4 +1,5 @@
 use graphics::hal::{Adapter, Backend, Limits, MemoryType, PhysicalDevice};
+use graphics::GraphicsError;
 
 pub struct GfxAdapter<B: Backend> {
     adapter: Adapter<B>,
@@ -7,9 +8,9 @@ pub struct GfxAdapter<B: Backend> {
 }
 
 impl<B: Backend> GfxAdapter<B> {
-    pub fn new(adapters: &mut Vec<Adapter<B>>) -> Result<Self, ()> {
+    pub fn new(adapters: &mut Vec<Adapter<B>>) -> Result<Self, GraphicsError> {
         if adapters.is_empty() {
-            return Err(());
+            return Err(GraphicsError::NoAdapter);
         }
         debug!("Available adapters:");
 

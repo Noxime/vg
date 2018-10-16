@@ -11,6 +11,7 @@ extern crate gfx_hal as hal;
 use vectors::*;
 
 mod error;
+pub use self::error::GraphicsError;
 mod window;
 pub use self::window::*;
 mod backend;
@@ -64,10 +65,10 @@ impl Renderer {
 
         let mut backend = None;
         #[cfg_attr(rustfmt, rustfmt_skip)] {
-            #[cfg(feature = "backend-mt")] { backend = backend.or_else(|| GfxBackend::new_mt(win).ok().map(|b| { info!("Using backend MT: {}", b.info()); BackendEnum::MT(b) })); }
-            #[cfg(feature = "backend-dx")] { backend = backend.or_else(|| GfxBackend::new_dx(win).ok().map(|b| { info!("Using backend DX: {}", b.info()); BackendEnum::DX(b) })); }
-            #[cfg(feature = "backend-vk")] { backend = backend.or_else(|| GfxBackend::new_vk(win).ok().map(|b| { info!("Using backend VK: {}", b.info()); BackendEnum::VK(b) })); }
-            #[cfg(feature = "backend-gl")] { backend = backend.or_else(|| GfxBackend::new_gl(win).ok().map(|b| { info!("Using backend GL: {}", b.info()); BackendEnum::GL(b) })); }
+            #[cfg(feature = "backend-mt")] { backend = backend.or_else(|| GfxBackend::new_mt(win).map_err(|e| warn!("MT error: {:?}", e)).ok().map(|b| { info!("Using backend MT: {}", b.info()); BackendEnum::MT(b) })); }
+            #[cfg(feature = "backend-dx")] { backend = backend.or_else(|| GfxBackend::new_dx(win).map_err(|e| warn!("DX error: {:?}", e)).ok().map(|b| { info!("Using backend DX: {}", b.info()); BackendEnum::DX(b) })); }
+            #[cfg(feature = "backend-vk")] { backend = backend.or_else(|| GfxBackend::new_vk(win).map_err(|e| warn!("VK error: {:?}", e)).ok().map(|b| { info!("Using backend VK: {}", b.info()); BackendEnum::VK(b) })); }
+            #[cfg(feature = "backend-gl")] { backend = backend.or_else(|| GfxBackend::new_gl(win).map_err(|e| warn!("GL error: {:?}", e)).ok().map(|b| { info!("Using backend GL: {}", b.info()); BackendEnum::GL(b) })); }
         }
 
         let backend = match backend {

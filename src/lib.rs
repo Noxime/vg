@@ -29,7 +29,7 @@ pub fn run<T>(
     emoji_logger::init();
     info!("Running Kea, version {}", env!("CARGO_PKG_VERSION"));
     audio::init();
-    let mut i = input::init();
+    // let mut i = input::init();
 
     let mut window = graphics::Window::new(size, &title);
     let mut graphics = graphics::Renderer::from(&mut window);
@@ -64,7 +64,7 @@ pub fn run<T>(
             break 'main;
         }
 
-        input::events(&mut i);
+        // input::events(&mut i);
 
         // debug!("PRECRASH");
         scene.render(&mut graphics);

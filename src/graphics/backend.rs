@@ -19,7 +19,8 @@ pub struct GfxBackend<B: hal::Backend> {
 // OpenGL is a legacy asshat that uses different init scheme
 #[cfg(feature = "backend-gl")]
 impl GfxBackend<GLBack> {
-    pub fn new_gl(window: &mut Window) -> Result<Self, ()> {
+    pub fn new_gl(win: &mut Window) -> Result<Self, GraphicsError> {
+        let wb = win.wb.clone();
         let window = {
             let builder = gfx_backend_gl::config_context(
                 gfx_backend_gl::glutin::ContextBuilder::new(),
@@ -28,17 +29,18 @@ impl GfxBackend<GLBack> {
             )
             .with_vsync(true);
             gfx_backend_gl::glutin::GlWindow::new(
-                window.wb.take().ok_or(())?,
+                wb.ok_or(GraphicsError::NoWindowBuilder)?,
                 builder,
-                &window.events,
-            ).map_err(|_| ())?
+                &win.events,
+            ).map_err(|_| GraphicsError::WindowError)?
         };
 
         let surface = gfx_backend_gl::Surface::from_window(window);
         let mut adapters = surface.enumerate_adapters();
-
+        let adapter = GfxAdapter::new(&mut adapters)?;
+        win.wb = None;
         Ok(GfxBackend {
-            adapter: GfxAdapter::new(&mut adapters)?,
+            adapter,
             surface,
             instance: None,
         })
@@ -51,11 +53,11 @@ impl GfxBackend<GLBack> {
 
 #[cfg(feature = "backend-vk")]
 impl GfxBackend<VKBack> {
-    pub fn new_vk(win: &mut Window) -> Result<Self, ()> {
+    pub fn new_vk(win: &mut Window) -> Result<Self, GraphicsError> {
         let mut wb = win.wb.clone();
-        let window = wb.take().ok_or(())?
+        let window = wb.ok_or(GraphicsError::NoWindowBuilder)?
             .build(&win.events)
-            .map_err(|_| ())?;
+            .map_err(|_| GraphicsError::WindowError)?;
         let instance = gfx_backend_vulkan::Instance::create("kea vulkan", 1);
         let surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
@@ -75,17 +77,18 @@ impl GfxBackend<VKBack> {
 
 #[cfg(feature = "backend-mt")]
 impl GfxBackend<MTBack> {
-    pub fn new_mt(win: &mut Window) -> Result<Self, ()> {
+    pub fn new_mt(win: &mut Window) -> Result<Self, GraphicsError> {
         let mut wb = win.wb.clone();
-        let window = wb.take().ok_or(())?
+        let window = wb.ok_or(GraphicsError::NoWindowBuilder)?
             .build(&win.events)
-            .map_err(|_| ())?;
+            .map_err(|_| GraphicsError::WindowError)?;
         let instance = gfx_backend_metal::Instance::create("kea metal", 1);
         let surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
+        let adapter = GfxAdapter::new(&mut adapters)?;
         win.wb = None;
         Ok(GfxBackend {
-            adapter: GfxAdapter::new(&mut adapters)?,
+            adapter,
             surface,
             instance: Some(Box::new(instance)),
         })
@@ -98,17 +101,18 @@ impl GfxBackend<MTBack> {
 
 #[cfg(feature = "backend-dx")]
 impl GfxBackend<DXBack> {
-    pub fn new_dx(win: &mut Window) -> Result<Self, ()> {
+    pub fn new_dx(win: &mut Window) -> Result<Self, GraphicsError> {
         let mut wb = win.wb.clone();
-        let window = wb.take().ok_or(())?
+        let window = wb.ok_or(GraphicsError::NoWindowBuilder)?
             .build(&win.events)
-            .map_err(|_| ())?;
+            .map_err(|_| GraphicsError::WindowError)?;
         let instance = gfx_backend_dx12::Instance::create("kea dx12", 1);
         let surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
+        let adapter = GfxAdapter::new(&mut adapters)?;
         win.wb = None;
         Ok(GfxBackend {
-            adapter: GfxAdapter::new(&mut adapters)?,
+            adapter,
             surface,
             instance: Some(Box::new(instance)),
         })
