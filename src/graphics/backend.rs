@@ -51,15 +51,18 @@ impl GfxBackend<GLBack> {
 
 #[cfg(feature = "backend-vk")]
 impl GfxBackend<VKBack> {
-    pub fn new_vk(window: &mut Window) -> Result<Self, ()> {
-        let window = window.wb.take().ok_or(())?
-            .build(&window.events)
+    pub fn new_vk(win: &mut Window) -> Result<Self, ()> {
+        let mut wb = win.wb.clone();
+        let window = wb.take().ok_or(())?
+            .build(&win.events)
             .map_err(|_| ())?;
         let instance = gfx_backend_vulkan::Instance::create("kea vulkan", 1);
         let surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
+        let adapter = GfxAdapter::new(&mut adapters)?;
+        win.wb = None;
         Ok(GfxBackend {
-            adapter: GfxAdapter::new(&mut adapters)?,
+            adapter,
             surface,
             instance: Some(Box::new(instance)),
         })
@@ -72,13 +75,15 @@ impl GfxBackend<VKBack> {
 
 #[cfg(feature = "backend-mt")]
 impl GfxBackend<MTBack> {
-    pub fn new_mt(window: &mut Window) -> Result<Self, ()> {
-        let window = window.wb.take().ok_or(())?
-            .build(&window.events)
+    pub fn new_mt(win: &mut Window) -> Result<Self, ()> {
+        let mut wb = win.wb.clone();
+        let window = wb.take().ok_or(())?
+            .build(&win.events)
             .map_err(|_| ())?;
         let instance = gfx_backend_metal::Instance::create("kea metal", 1);
         let surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
+        win.wb = None;
         Ok(GfxBackend {
             adapter: GfxAdapter::new(&mut adapters)?,
             surface,
@@ -93,13 +98,15 @@ impl GfxBackend<MTBack> {
 
 #[cfg(feature = "backend-dx")]
 impl GfxBackend<DXBack> {
-    pub fn new_dx(window: &mut Window) -> Result<Self, ()> {
-        let window = window.wb.take().ok_or(())?
-            .build(&window.events)
+    pub fn new_dx(win: &mut Window) -> Result<Self, ()> {
+        let mut wb = win.wb.clone();
+        let window = wb.take().ok_or(())?
+            .build(&win.events)
             .map_err(|_| ())?;
         let instance = gfx_backend_dx12::Instance::create("kea dx12", 1);
         let surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
+        win.wb = None;
         Ok(GfxBackend {
             adapter: GfxAdapter::new(&mut adapters)?,
             surface,
