@@ -1,4 +1,4 @@
-image: "rust:latest"
+image: "rust:nightly"
 build:cargo:
   before_script:
   - apt-get update
