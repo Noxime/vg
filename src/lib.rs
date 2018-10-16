@@ -72,5 +72,7 @@ pub fn run<T>(
 
     scene.render_destroy(&mut graphics);
 
+    window.close();
+
     info!("Kea shutdown");
 }

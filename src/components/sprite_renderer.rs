@@ -16,7 +16,8 @@ impl SpriteRenderer {
             image: image_crate::load(
                 Cursor::new(&image_data[..]),
                 image_crate::PNG,
-            ).unwrap()
+            )
+            .unwrap()
             .to_rgba(),
         }
     }

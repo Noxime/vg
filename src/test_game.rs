@@ -1,5 +1,5 @@
-extern crate log;
 extern crate kea;
+extern crate log;
 
 use kea::{components::*, entity::*, scene::*, vectors::*, *};
 use std::any::Any;
@@ -24,7 +24,8 @@ fn scene_loader(scene: SceneName) -> Scene {
                 .with(TestComponent)
                 .with(SpriteRenderer::new(include_bytes!(
                     "../assets/textures/test.png"
-                ))).with(SoundPlayer::new("/home/noxim/Music/fuck.wav")),
+                )))
+                .with(SoundPlayer::new("/home/noxim/Music/fuck.wav")),
         ),
     }
 }

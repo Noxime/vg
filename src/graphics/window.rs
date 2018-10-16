@@ -1,5 +1,5 @@
-use winit::*;
 use vectors::*;
+use winit::*;
 
 pub struct Window {
     pub events: EventsLoop,
@@ -17,5 +17,9 @@ impl Window {
             events,
             wb: Some(wb),
         }
+    }
+
+    pub fn close(self) {
+        // TODO: clean
     }
 }

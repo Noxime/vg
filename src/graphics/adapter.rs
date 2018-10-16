@@ -1,10 +1,12 @@
-use graphics::hal::{Adapter, Backend, Limits, MemoryType, PhysicalDevice};
-use graphics::GraphicsError;
+use graphics::{
+    hal::{Adapter, Backend, Limits, MemoryType, PhysicalDevice},
+    GraphicsError,
+};
 
 pub struct GfxAdapter<B: Backend> {
-    adapter: Adapter<B>,
-    memory_types: Vec<MemoryType>,
-    limits: Limits,
+    pub adapter: Option<Adapter<B>>,
+    pub memory_types: Vec<MemoryType>,
+    pub limits: Limits,
 }
 
 impl<B: Backend> GfxAdapter<B> {
@@ -28,13 +30,14 @@ impl<B: Backend> GfxAdapter<B> {
         debug!("Using adapter: {}", adapter.info.name);
 
         GfxAdapter {
-            adapter: adapter,
+            adapter: Some(adapter),
             memory_types,
             limits,
         }
     }
 
-    pub fn info(&self) -> String {
-        format!("{}", self.adapter.info.name)
-    }
+    pub fn info(&self) -> String { format!("{}", match self.adapter {
+        None => "".into(),
+        Some(ref a) => a.info.name.clone()
+    }) }
 }

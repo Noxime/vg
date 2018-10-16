@@ -1,5 +1,4 @@
-use graphics::*;
-use ::graphics::hal::Instance;
+use graphics::{hal::Instance, *};
 
 #[cfg(feature = "backend-gl")]
 type GLBack = gfx_backend_gl::Backend;
@@ -11,8 +10,8 @@ type MTBack = gfx_backend_metal::Backend;
 type DXBack = gfx_backend_dx12::Backend;
 
 pub struct GfxBackend<B: hal::Backend> {
-    adapter: GfxAdapter<B>,
-    surface: B::Surface,
+    pub adapter: GfxAdapter<B>,
+    pub surface: B::Surface,
     instance: Option<Box<hal::Instance<Backend = B>>>,
 }
 
@@ -26,8 +25,7 @@ impl GfxBackend<GLBack> {
                 gfx_backend_gl::glutin::ContextBuilder::new(),
                 COLOR_FORMAT,
                 None,
-            )
-            .with_vsync(true);
+            ).with_vsync(true);
             gfx_backend_gl::glutin::GlWindow::new(
                 wb.ok_or(GraphicsError::NoWindowBuilder)?,
                 builder,
@@ -46,16 +44,15 @@ impl GfxBackend<GLBack> {
         })
     }
 
-    pub fn info(&self) -> String {
-        format!("OpenGL {}", self.adapter.info())
-    }
+    pub fn info(&self) -> String { format!("OpenGL {}", self.adapter.info()) }
 }
 
 #[cfg(feature = "backend-vk")]
 impl GfxBackend<VKBack> {
     pub fn new_vk(win: &mut Window) -> Result<Self, GraphicsError> {
         let mut wb = win.wb.clone();
-        let window = wb.ok_or(GraphicsError::NoWindowBuilder)?
+        let window = wb
+            .ok_or(GraphicsError::NoWindowBuilder)?
             .build(&win.events)
             .map_err(|_| GraphicsError::WindowError)?;
         let instance = gfx_backend_vulkan::Instance::create("kea vulkan", 1);
@@ -70,16 +67,15 @@ impl GfxBackend<VKBack> {
         })
     }
 
-    pub fn info(&self) -> String {
-        format!("Vulkan {}", self.adapter.info())
-    }
+    pub fn info(&self) -> String { format!("Vulkan {}", self.adapter.info()) }
 }
 
 #[cfg(feature = "backend-mt")]
 impl GfxBackend<MTBack> {
     pub fn new_mt(win: &mut Window) -> Result<Self, GraphicsError> {
         let mut wb = win.wb.clone();
-        let window = wb.ok_or(GraphicsError::NoWindowBuilder)?
+        let window = wb
+            .ok_or(GraphicsError::NoWindowBuilder)?
             .build(&win.events)
             .map_err(|_| GraphicsError::WindowError)?;
         let instance = gfx_backend_metal::Instance::create("kea metal", 1);
@@ -94,16 +90,15 @@ impl GfxBackend<MTBack> {
         })
     }
 
-    pub fn info(&self) -> String {
-        format!("Metal {}", self.adapter.info())
-    }
+    pub fn info(&self) -> String { format!("Metal {}", self.adapter.info()) }
 }
 
 #[cfg(feature = "backend-dx")]
 impl GfxBackend<DXBack> {
     pub fn new_dx(win: &mut Window) -> Result<Self, GraphicsError> {
         let mut wb = win.wb.clone();
-        let window = wb.ok_or(GraphicsError::NoWindowBuilder)?
+        let window = wb
+            .ok_or(GraphicsError::NoWindowBuilder)?
             .build(&win.events)
             .map_err(|_| GraphicsError::WindowError)?;
         let instance = gfx_backend_dx12::Instance::create("kea dx12", 1);
