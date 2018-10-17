@@ -48,7 +48,6 @@ pub fn run<T>(
                 match event {
                     WindowEvent::CloseRequested => close = true,
                     winit::WindowEvent::Resized(dims) => {
-                        debug!("resized to {:?}", dims);
                         graphics.resize(Vec2::new(
                             dims.width as usize,
                             dims.height as usize,
@@ -71,7 +70,6 @@ pub fn run<T>(
     }
 
     scene.render_destroy(&mut graphics);
-
     window.close();
 
     info!("Kea shutdown");

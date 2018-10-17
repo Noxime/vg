@@ -13,6 +13,7 @@ pub struct GfxBackend<B: hal::Backend> {
     pub adapter: GfxAdapter<B>,
     pub surface: B::Surface,
     instance: Option<Box<hal::Instance<Backend = B>>>,
+    window: Option<winit::Window>, // keep window alive on non-gl apis
 }
 
 // OpenGL is a legacy asshat that uses different init scheme
@@ -41,6 +42,7 @@ impl GfxBackend<GLBack> {
             adapter,
             surface,
             instance: None,
+            window: None,
         })
     }
 
@@ -64,6 +66,7 @@ impl GfxBackend<VKBack> {
             adapter,
             surface,
             instance: Some(Box::new(instance)),
+            window: Some(window),
         })
     }
 
@@ -87,6 +90,7 @@ impl GfxBackend<MTBack> {
             adapter,
             surface,
             instance: Some(Box::new(instance)),
+            window: Some(window),
         })
     }
 
@@ -110,6 +114,7 @@ impl GfxBackend<DXBack> {
             adapter,
             surface,
             instance: Some(Box::new(instance)),
+            window: Some(window),
         })
     }
 

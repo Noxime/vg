@@ -2,9 +2,9 @@ use graphics::*;
 use graphics::hal::Surface;
 
 pub struct GfxDevice<B: hal::Backend> {
-    device: B::Device,
-    physical: B::PhysicalDevice,
-    queues: hal::QueueGroup<B, hal::Graphics>,
+    pub device: B::Device,
+    pub physical: B::PhysicalDevice,
+    pub queues: hal::QueueGroup<B, hal::Graphics>,
 }
 
 impl<B: hal::Backend> GfxDevice<B> {
@@ -14,6 +14,7 @@ impl<B: hal::Backend> GfxDevice<B> {
                 surface.supports_queue_family(fam)
             })
             .expect("No graphics family");
+        trace!("Created a logical device");
         Self {
             device,
             physical: adapter.physical_device,
