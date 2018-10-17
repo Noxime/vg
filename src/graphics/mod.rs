@@ -22,11 +22,21 @@ mod device;
 pub use self::device::GfxDevice;
 mod swapchain;
 pub use self::swapchain::GfxSwapchain;
+mod renderpass;
+pub use self::renderpass::GfxRenderPass; // TODO: Rename to GfxRenderpass
+mod framebuffer;
+pub use self::framebuffer::GfxFramebuffer;
 
 use std::{cell::RefCell, rc::Rc};
 
-use graphics::hal::{format::AsFormat, Device};
+use graphics::hal::{format::AsFormat, Device, Swapchain};
 const COLOR_FORMAT: hal::format::Format = hal::format::Rgba8Srgb::SELF;
+const COLOR_RANGE: hal::image::SubresourceRange =
+    hal::image::SubresourceRange {
+        aspects: hal::format::Aspects::COLOR,
+        levels: 0..1,
+        layers: 0..1,
+    };
 
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -49,6 +59,9 @@ pub struct RenderData<B: hal::Backend> {
     backend: GfxBackend<B>,
     device: Rc<RefCell<GfxDevice<B>>>,
     swapchain: Option<GfxSwapchain<B>>,
+    renderpass: GfxRenderPass<B>,
+    framebuffer: GfxFramebuffer<B>,
+    viewport: hal::pso::Viewport,
 }
 
 pub struct Renderer {
@@ -56,8 +69,6 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn apis() -> Vec<API> { vec![] }
-
     pub fn from(win: &mut Window) -> Self {
         trace!("creating renderer from window");
 
@@ -125,12 +136,40 @@ impl Renderer {
         )));
 
         let mut swapchain =
-            Some(GfxSwapchain::new(&mut backend, Rc::clone(&device), None));
+            Some(GfxSwapchain::new(&mut backend, Rc::clone(&device)));
+
+        let renderpass =
+            GfxRenderPass::new(swapchain.as_ref().unwrap(), Rc::clone(&device));
+
+        let framebuffer = GfxFramebuffer::new(
+            &renderpass,
+            swapchain.as_mut().unwrap(),
+            Rc::clone(&device),
+        );
+
+        let viewport = Self::create_viewport(swapchain.as_ref().unwrap());
 
         RenderData {
             backend,
             device,
             swapchain,
+            renderpass,
+            framebuffer,
+            viewport,
+        }
+    }
+
+    fn create_viewport<B: hal::Backend>(
+        swap: &GfxSwapchain<B>,
+    ) -> hal::pso::Viewport {
+        hal::pso::Viewport {
+            rect: hal::pso::Rect {
+                x: 0,
+                y: 0,
+                w: swap.extent.width as _,
+                h: swap.extent.height as _,
+            },
+            depth: 0.0..1.0,
         }
     }
 
@@ -167,10 +206,127 @@ impl Renderer {
             .wait_idle()
             .expect("cant wait device idle");
 
+        // dispose old swapchain, Drop handles this
+        let _ = data.swapchain.take();
+
         data.swapchain = Some(GfxSwapchain::new(
             &mut data.backend,
             Rc::clone(&data.device),
-            data.swapchain.take(),
         ));
+
+        data.renderpass = GfxRenderPass::new(
+            data.swapchain.as_ref().unwrap(),
+            Rc::clone(&data.device),
+        );
+
+        data.framebuffer = GfxFramebuffer::new(
+            &data.renderpass,
+            data.swapchain.as_mut().unwrap(),
+            Rc::clone(&data.device),
+        );
+
+        data.viewport = Self::create_viewport(data.swapchain.as_ref().unwrap());
+    }
+
+    pub fn present(&mut self) {
+        match self.data {
+            #[cfg(feature = "backend-gl")]
+            RenderSwitch::GL(ref mut data) => Self::draw_and_present(data),
+            #[cfg(feature = "backend-mt")]
+            RenderSwitch::MT(ref mut data) => Self::draw_and_present(data),
+            #[cfg(feature = "backend-dx")]
+            RenderSwitch::DX(ref mut data) => Self::draw_and_present(data),
+            #[cfg(feature = "backend-vk")]
+            RenderSwitch::VK(ref mut data) => Self::draw_and_present(data),
+        }
+    }
+
+    fn draw_and_present<B: hal::Backend>(data: &mut RenderData<B>) {
+        let state = {
+            let sem_index = data.framebuffer.next_index();
+            trace!("Presenting with frame {}", sem_index);
+            let frame = {
+                let (acquire_semaphore, _) =
+                    data.framebuffer.get_data(None, Some(sem_index)).1.unwrap();
+                data.swapchain
+                    .as_mut()
+                    .unwrap()
+                    .swapchain
+                    .as_mut()
+                    .unwrap()
+                    .acquire_image(
+                        !0,
+                        hal::FrameSync::Semaphore(acquire_semaphore),
+                    )
+            };
+
+            let frame = match frame {
+                Ok(i) => i,
+                Err(why) => {
+                    error!("Could not acquire image, skipping present and recreating swapchain: {:?}", why);
+                    Self::recreate_swapchain(data);
+                    return;
+                }
+            };
+
+            let (fid, sid) = data
+                .framebuffer
+                .get_data(Some(frame as usize), Some(sem_index));
+
+            // TODO: Unwrap == BAD!
+            let (framebuffer_fence, framebuffer, command_pool) = fid.unwrap();
+            let (image_acquired, image_present) = sid.unwrap();
+
+            // FIXME: Freezes on 4th frame
+            data.device
+                .borrow()
+                .device
+                .wait_for_fence(framebuffer_fence, !0);
+            data.device.borrow().device.reset_fence(framebuffer_fence);
+            command_pool.reset();
+
+            let submission = hal::Submission::new()
+                .wait_on(&[(
+                    &*image_acquired,
+                    hal::pso::PipelineStage::BOTTOM_OF_PIPE,
+                )])
+                .signal(&[&*image_acquired])
+                .submit::<Vec<
+                    hal::command::Submit<
+                        B,
+                        hal::Graphics,
+                        hal::command::OneShot,
+                        hal::command::Primary,
+                    >,
+                >, _>(vec![]); // TODO: Gather calls here and get rid of shite
+
+            // submit call to device
+            data.device.borrow_mut().queues.queues[0]
+                .submit(submission, Some(framebuffer_fence));
+
+            data.swapchain
+                .as_ref()
+                .unwrap()
+                .swapchain
+                .as_ref()
+                .unwrap()
+                .present(
+                    &mut data.device.borrow_mut().queues.queues[0],
+                    frame,
+                    Some(&*image_present),
+                )
+        };
+        if let Err(why) = state {
+            error!("Presentation failed, recreating swapchain: {:?}", why);
+            Self::recreate_swapchain(data);
+        }
+    }
+}
+
+impl<B: hal::Backend> Drop for RenderData<B> {
+    fn drop(&mut self) {
+        trace!("Dropping renderdata");
+        self.device.borrow().device.wait_idle().unwrap();
+        let _ = self.swapchain.take(); // drop swapchain
     }
 }

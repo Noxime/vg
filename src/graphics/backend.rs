@@ -26,12 +26,14 @@ impl GfxBackend<GLBack> {
                 gfx_backend_gl::glutin::ContextBuilder::new(),
                 COLOR_FORMAT,
                 None,
-            ).with_vsync(true);
+            )
+            .with_vsync(true);
             gfx_backend_gl::glutin::GlWindow::new(
                 wb.ok_or(GraphicsError::NoWindowBuilder)?,
                 builder,
                 &win.events,
-            ).map_err(|_| GraphicsError::WindowError)?
+            )
+            .map_err(|_| GraphicsError::WindowError)?
         };
 
         let surface = gfx_backend_gl::Surface::from_window(window);

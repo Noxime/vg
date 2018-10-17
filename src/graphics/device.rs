@@ -1,5 +1,4 @@
-use graphics::*;
-use graphics::hal::Surface;
+use graphics::{hal::Surface, *};
 
 pub struct GfxDevice<B: hal::Backend> {
     pub device: B::Device,

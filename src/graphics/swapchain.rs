@@ -4,22 +4,20 @@ use graphics::{
 };
 
 pub struct GfxSwapchain<B: hal::Backend> {
-    swapchain: Option<B::Swapchain>,
-    backbuffer: Option<hal::Backbuffer<B>>,
+    pub swapchain: Option<B::Swapchain>,
+    pub backbuffer: Option<hal::Backbuffer<B>>,
     device: Rc<RefCell<GfxDevice<B>>>,
-    extent: hal::image::Extent,
-    format: hal::format::Format,
+    pub extent: hal::image::Extent,
+    pub format: hal::format::Format,
 }
 
 impl<B: hal::Backend> GfxSwapchain<B> {
     pub fn new(
         backend: &mut GfxBackend<B>,
         device: Rc<RefCell<GfxDevice<B>>>,
-        old_swapchain: Option<GfxSwapchain<B>>,
     ) -> Self {
         trace!("Creating swapchain");
-
-        // FIXME: This line crashes sometimes when recreating, figure out why
+    
         let (caps, formats, _present_modes) =
             backend.surface.compatibility(&device.borrow().physical);
 
@@ -38,10 +36,11 @@ impl<B: hal::Backend> GfxSwapchain<B> {
         debug!("Surface format: {:?}", format);
         let swap_config = hal::SwapchainConfig::from_caps(&caps, format);
         let extent = swap_config.extent.to_extent();
+
         let (swapchain, backbuffer) = device.borrow().device.create_swapchain(
             &mut backend.surface,
             swap_config,
-            old_swapchain.and_then(|s| s.swapchain),
+            None,
         );
 
         Self {
@@ -50,6 +49,17 @@ impl<B: hal::Backend> GfxSwapchain<B> {
             device,
             extent,
             format,
+        }
+    }
+}
+
+impl<B: hal::Backend> Drop for GfxSwapchain<B> {
+    fn drop(&mut self) {
+        if let Some(swap) = self.swapchain.take() {
+            trace!("Dropping swapchain");
+            self.device.borrow().device.destroy_swapchain(swap);
+        } else {
+            warn!("Swapchain drop failure: swapchain was None");
         }
     }
 }

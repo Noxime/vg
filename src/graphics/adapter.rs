@@ -36,8 +36,13 @@ impl<B: Backend> GfxAdapter<B> {
         }
     }
 
-    pub fn info(&self) -> String { format!("{}", match self.adapter {
-        None => "".into(),
-        Some(ref a) => a.info.name.clone()
-    }) }
+    pub fn info(&self) -> String {
+        format!(
+            "{}",
+            match self.adapter {
+                None => "".into(),
+                Some(ref a) => a.info.name.clone(),
+            }
+        )
+    }
 }

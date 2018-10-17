@@ -67,10 +67,12 @@ pub fn run<T>(
 
         // debug!("PRECRASH");
         scene.render(&mut graphics);
+        graphics.present();
     }
 
     scene.render_destroy(&mut graphics);
-    window.close();
 
     info!("Kea shutdown");
+
+    // FIXME: Something in the graphics backend segfaults here
 }

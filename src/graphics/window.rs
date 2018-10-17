@@ -18,8 +18,10 @@ impl Window {
             wb: Some(wb),
         }
     }
+}
 
-    pub fn close(self) {
-        // TODO: clean
+impl Drop for Window {
+    fn drop(&mut self) {
+        trace!("Dropping window");
     }
 }
