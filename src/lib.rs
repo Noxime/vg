@@ -7,11 +7,9 @@ extern crate lazy_static;
 extern crate emoji_logger;
 extern crate winit;
 
-pub mod audio;
 pub mod components;
 pub mod entity;
 pub mod graphics;
-pub mod input;
 pub mod scene;
 pub mod vectors;
 use vectors::*;
@@ -28,8 +26,6 @@ pub fn run<T>(
 ) {
     emoji_logger::init();
     info!("Running Kea, version {}", env!("CARGO_PKG_VERSION"));
-    audio::init();
-    // let mut i = input::init();
 
     let mut window = graphics::Window::new(size, &title);
     let mut graphics = graphics::Renderer::from(&mut window);
@@ -63,9 +59,7 @@ pub fn run<T>(
             break 'main;
         }
 
-        // input::events(&mut i);
 
-        // debug!("PRECRASH");
         scene.render(&mut graphics);
         graphics.present();
     }

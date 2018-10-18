@@ -242,6 +242,7 @@ impl Renderer {
     }
 
     fn draw_and_present<B: hal::Backend>(data: &mut RenderData<B>) {
+        data.framebuffer.debug_state();
         let state = {
             let sem_index = data.framebuffer.next_index();
             trace!("Presenting with frame {}", sem_index);
@@ -278,12 +279,16 @@ impl Renderer {
             let (image_acquired, image_present) = sid.unwrap();
 
             // FIXME: Freezes on 4th frame
+            trace!("1");
             data.device
                 .borrow()
                 .device
                 .wait_for_fence(framebuffer_fence, !0);
+                trace!("2");
             data.device.borrow().device.reset_fence(framebuffer_fence);
+            trace!("3");
             command_pool.reset();
+            trace!("4");
 
             let submission = hal::Submission::new()
                 .wait_on(&[(
@@ -291,18 +296,20 @@ impl Renderer {
                     hal::pso::PipelineStage::BOTTOM_OF_PIPE,
                 )])
                 .signal(&[&*image_acquired])
-                .submit::<Vec<
+                .submit::<Option<
                     hal::command::Submit<
                         B,
                         hal::Graphics,
                         hal::command::OneShot,
                         hal::command::Primary,
                     >,
-                >, _>(vec![]); // TODO: Gather calls here and get rid of shite
+                >, _>(None); // TODO: Gather calls here and get rid of shite
+            trace!("5");
 
             // submit call to device
             data.device.borrow_mut().queues.queues[0]
                 .submit(submission, Some(framebuffer_fence));
+            trace!("6");
 
             data.swapchain
                 .as_ref()
@@ -316,6 +323,7 @@ impl Renderer {
                     Some(&*image_present),
                 )
         };
+        trace!("7");
         if let Err(why) = state {
             error!("Presentation failed, recreating swapchain: {:?}", why);
             Self::recreate_swapchain(data);

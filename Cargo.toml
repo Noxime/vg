@@ -24,11 +24,9 @@ emoji-logger = "0.1.0"
 lazy_static = "1.1.0"
 winit = "0.17.2"
 image = "0.20.0"
-gilrs = "0.6.1"
 gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
 gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
 gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
-ears = "0.5.1"
 
 # metal available only on apple hardware
 [target.'cfg(any(target_os = "macos", all(target_os = "ios", target_arch = "aarch64")))'.dependencies.gfx-backend-metal]

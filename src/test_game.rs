@@ -25,7 +25,6 @@ fn scene_loader(scene: SceneName) -> Scene {
                 .with(SpriteRenderer::new(include_bytes!(
                     "../assets/textures/test.png"
                 )))
-                .with(SoundPlayer::new("/home/noxim/Music/fuck.wav")),
         ),
     }
 }
