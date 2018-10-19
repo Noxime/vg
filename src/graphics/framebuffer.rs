@@ -111,12 +111,6 @@ impl<B: hal::Backend> GfxFramebuffer<B> {
         ret
     }
 
-    pub fn debug_state(&mut self) {
-        // for (i, f) in self.framebuffer_fences.as_ref().unwrap().iter().enumerate() {
-        //     debug!("Fence {} is {}", i, self.device.borrow().device.get_fence_status(f));
-        // }
-    }
-
     pub fn get_data(
         &mut self,
         frame_id: Option<usize>,
