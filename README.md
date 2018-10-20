@@ -39,4 +39,9 @@ features = [ <your features> ]
 
 
 ### Building on android
+Android support is somewhat meh right now, but heres how you can try it:
+1. `docker run --rm -v "$(pwd):/root/src" -w /root/src tomaka/cargo-apk cargo apk build --no-default-features --features=backend-vk`
+2. `adb install target/android-artifacts/app/build/outputs/apk/app-debug.apk`
+
+For some reason `gfx-backend-gl` refuses to compile to android (spirv-cross can't find some c++ stdlib files) so if you want to test, use vulkan
 ### Building on iOS

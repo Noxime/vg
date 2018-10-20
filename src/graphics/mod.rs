@@ -62,6 +62,14 @@ pub struct RenderData<B: hal::Backend> {
     renderpass: GfxRenderPass<B>,
     framebuffer: GfxFramebuffer<B>,
     viewport: hal::pso::Viewport,
+    submit_queue: Vec<
+        hal::command::Submit<
+            B,
+            hal::Graphics,
+            hal::command::OneShot,
+            hal::command::Primary,
+        >,
+    >,
 }
 
 pub struct Renderer {
@@ -156,6 +164,7 @@ impl Renderer {
             renderpass,
             framebuffer,
             viewport,
+            submit_queue: vec![],
         }
     }
 
@@ -282,20 +291,14 @@ impl Renderer {
             data.device.borrow().device.reset_fence(framebuffer_fence);
             command_pool.reset();
 
+            trace!("Submitting {} drawcalls", data.submit_queue.len());
             let submission = hal::Submission::new()
                 .wait_on(&[(
                     &*image_acquired,
                     hal::pso::PipelineStage::BOTTOM_OF_PIPE,
                 )])
                 .signal(&[&*image_present])
-                .submit::<Option<
-                    hal::command::Submit<
-                        B,
-                        hal::Graphics,
-                        hal::command::OneShot,
-                        hal::command::Primary,
-                    >,
-                >, _>(None); // TODO: Gather calls here and get rid of shite
+                .submit(data.submit_queue.drain(..)); // TODO: Gather calls here and get rid of shite
 
             // submit call to device
             data.device.borrow_mut().queues.queues[0]

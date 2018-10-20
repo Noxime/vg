@@ -1,4 +1,7 @@
 #![feature(core_intrinsics)]
+#![feature(test)]
+extern crate test;
+use test::Bencher;
 
 #[macro_use]
 extern crate log;
@@ -59,7 +62,6 @@ pub fn run<T>(
             break 'main;
         }
 
-
         scene.render(&mut graphics);
         graphics.present();
     }
@@ -69,4 +71,54 @@ pub fn run<T>(
     info!("Kea shutdown");
 
     // FIXME: Something in the graphics backend segfaults here
+}
+
+#[bench]
+fn ecs_test(b: &mut Bencher) {
+    let mut scene = scene::Scene::empty();
+    #[derive(Default)]
+    struct Position {
+        x: f32,
+        y: f32,
+        z: f32,
+    }
+    use std::any::Any;
+    impl components::Component for Position {
+        fn as_any(&self) -> &dyn Any { self as &Any }
+        fn as_any_mut(&mut self) -> &mut dyn Any { self as &mut Any }
+    }
+    #[derive(Default)]
+    struct Velocity {
+        x: f32,
+        y: f32,
+        z: f32,
+    }
+    impl components::Component for Velocity {
+        fn as_any(&self) -> &dyn Any { self as &Any }
+        fn as_any_mut(&mut self) -> &mut dyn Any { self as &mut Any }
+
+        fn update(&mut self, parent: &mut entity::Entity) {
+            if let Some(ref mut pos) = parent.get_mut::<Position>() {
+                pos.x += self.x;
+                pos.y += self.y;
+                pos.z += self.z;
+            }
+        }
+    }
+
+    for _ in 0..1000 {
+        scene.add_entity(
+            entity::Entity::empty()
+                .with(Position::default())
+                .with(Velocity::default()),
+        );
+    }
+    for _ in 0..9000 {
+        scene.add_entity(
+            entity::Entity::empty()
+                .with(Position::default())
+        );
+    }
+
+    b.iter(|| scene.update());
 }

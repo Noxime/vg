@@ -11,6 +11,13 @@ impl Scene {
         Scene { entities: vec![] }
     }
 
+    pub fn update(&mut self) -> usize {
+        for e in self.entities.iter_mut() {
+            e.update();
+        }
+        0
+    }
+
     pub fn render_init(&mut self, renderer: &mut Renderer) {
         for e in self.entities.iter_mut() {
             e.render_init(renderer);

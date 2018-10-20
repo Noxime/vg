@@ -32,4 +32,5 @@ fn scene_loader(scene: SceneName) -> Scene {
 struct TestComponent;
 impl Component for TestComponent {
     fn as_any(&self) -> &dyn Any { self as &Any }
+    fn as_any_mut(&mut self) -> &mut dyn Any { self as &mut Any }
 }

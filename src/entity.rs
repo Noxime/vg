@@ -22,6 +22,14 @@ impl Entity {
         }
     }
 
+    pub fn update(&mut self) {
+        let mut x: HashMap<TypeId, Box<dyn Component>> = self.components.drain().collect();
+        for (_, c) in x.iter_mut() {
+            c.update(self);
+        }
+        self.components = x;
+    }
+
     pub fn render_init(&mut self, renderer: &mut Renderer) {
         for (_, c) in self.components.iter_mut() {
             c.render_init(renderer)
@@ -65,5 +73,11 @@ impl Entity {
         self.components
             .get(&TypeId::of::<T>())
             .and_then(|v| v.as_any().downcast_ref::<T>())
+    }
+
+    pub fn get_mut<T: 'static + Component>(&mut self) -> Option<&mut T> {
+        self.components
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|v| v.as_any_mut().downcast_mut::<T>())
     }
 }
