@@ -76,17 +76,17 @@ impl<B: hal::Backend> GfxFramebuffer<B> {
         let mut present_semaphores: Vec<B::Semaphore> = vec![];
 
         for _ in 0..iter_count {
-            fences.push(device.borrow().device.create_fence(true));
+            fences.push(device.borrow().device.create_fence(true).unwrap());
             command_pools.push(
                 device.borrow().device.create_command_pool_typed(
                     &device.borrow().queues,
                     hal::pool::CommandPoolCreateFlags::empty(),
                     16, // max buffers
-                ),
+                ).unwrap(),
             );
 
-            acquire_semaphores.push(device.borrow().device.create_semaphore());
-            present_semaphores.push(device.borrow().device.create_semaphore());
+            acquire_semaphores.push(device.borrow().device.create_semaphore().unwrap());
+            present_semaphores.push(device.borrow().device.create_semaphore().unwrap());
         }
 
         Self {

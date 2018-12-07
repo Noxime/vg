@@ -41,7 +41,7 @@ impl<B: hal::Backend> GfxSwapchain<B> {
             &mut backend.surface,
             swap_config,
             None,
-        );
+        ).unwrap();
 
         Self {
             swapchain: Some(swapchain),

@@ -43,7 +43,7 @@ impl<B: hal::Backend> GfxRenderPass<B> {
                 &[attachment],
                 &[subpass],
                 &[dependency],
-            )
+            ).unwrap()
         };
 
         Self {

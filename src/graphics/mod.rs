@@ -189,7 +189,7 @@ impl Renderer {
             RenderSwitch::GL(ref mut data) => {
                 use graphics::gfx_backend_gl::glutin::GlContext;
                 data.backend.surface.get_window().resize(
-                    winit::dpi::LogicalSize::new(size.x as _, size.y as _)
+                    gfx_backend_gl::glutin::dpi::LogicalSize::new(size.x as _, size.y as _)
                         .to_physical(
                             data.backend
                                 .surface

@@ -20,9 +20,9 @@ backend-dx = ["gfx-backend-dx12"]
 
 [dependencies]
 log = "0.4.5"
-emoji-logger = "0.1.0"
-lazy_static = "1.1.0"
-winit = "0.17.2"
+emoji-logger = "0.1"
+lazy_static = "1.1"
+winit = "0.18"
 gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
 gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
 gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
