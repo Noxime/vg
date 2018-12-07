@@ -34,7 +34,10 @@ impl<B: hal::Backend> GfxSwapchain<B> {
             });
 
         debug!("Surface format: {:?}", format);
-        let swap_config = hal::SwapchainConfig::from_caps(&caps, format);
+        let swap_config = hal::SwapchainConfig::from_caps(&caps, format, hal::window::Extent2D {
+            width: 1280,
+            height: 720,
+        });
         let extent = swap_config.extent.to_extent();
 
         let (swapchain, backbuffer) = device.borrow().device.create_swapchain(
