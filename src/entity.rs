@@ -23,11 +23,9 @@ impl Entity {
     }
 
     pub fn update(&mut self) {
-        let mut x: HashMap<TypeId, Box<dyn Component>> = self.components.drain().collect();
-        for (_, c) in x.iter_mut() {
-            c.update(self);
+        for (_, c) in self.components.iter_mut() {
+            // c.update(self);
         }
-        self.components = x;
     }
 
     pub fn render_init(&mut self, renderer: &mut Renderer) {
