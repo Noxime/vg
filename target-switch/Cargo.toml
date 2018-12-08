@@ -1,0 +1,29 @@
+[package]
+name = "target-switch"
+version = "0.0.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.dev]
+panic = "abort"
+lto = true
+debug = true
+
+[profile.test]
+lto = true
+debug = true
+
+[profile.release]
+panic = "abort"
+lto = true
+
+[dependencies]
+rlibc = "*"
+panic-abort = "0.3.1"
+# game = { path = "../game" }
+# kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
+
+[build-dependencies]
+bindgen = "0.37.0"

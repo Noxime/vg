@@ -1,4 +1,5 @@
 .vscode
 target/
+build/
+out/
 Cargo.lock
-Makefile

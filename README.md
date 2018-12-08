@@ -8,40 +8,47 @@ platforms or how to design a somewhat-functional engine in Rust.
 **Please note:** I am not a professional engine developer, so my code is 
 not the perfect.
 
-
 ## Supported platforms
-* Linux (`cargo build`)
-* Windows (`cargo build`)
-* MacOS (`cargo build`)
-* Android (see [**Building on android**](#building-on-android))
-* iOS (see [**Building on iOS**](#building-on-ios))
+* Linux
+* Windows
+* MacOS
+* Android (broken)
+* iOS (incomplete, no test hardware)
+* Nintendo Switch (incomplete, lack of stdlib)
 
 ## Supported apis
 * OpenGL (enabled default)
-* Vulkan (available on windows, linux and android)
-* Metal (available on apple)
+* Vulkan (available on windows, linux, android and switch)
+* Metal (available on macos and ios)
 * DirectX 12 (available on windows **10**)
 
-To configure what backends are available, see [**Build features**](#build-features)
-
-### Build features
-Disable default features with
-```toml
-[dependencies.kea]
-default-features = false
-features = [ <your features> ]
+# Get started
+Clone this repo and run
+```sh
+./configure <target>
 ```
 
-* `backend-gl` Enable OpenGL
-* `backend-vk` Enable Vulkan
-* `backend-mt` Enable Metal
-* `backend-dx` Enable DirectX 12
+Where target is one of `linux`, `macos`, `windows`, `android`, `ios` or `switch`. This will generate a makefile, after which you can
 
+```sh
+make
+# or `make build`, `make run`, `make clean` or `make release`
+```
 
-### Building on android
-Android support is somewhat meh right now, but heres how you can try it:
-1. `docker run --rm -v "$(pwd):/root/src" -w /root/src tomaka/cargo-apk cargo apk build --no-default-features --features=backend-vk`
-2. `adb install target/android-artifacts/app/build/outputs/apk/app-debug.apk`
+To work on your game, go to `game/` and to work on the engine, go to `engine/`.
 
-For some reason `gfx-backend-gl` refuses to compile to android (spirv-cross can't find some c++ stdlib files) so if you want to test, use vulkan
-### Building on iOS
+Peep into the `target-<target>` folders if you want to learn more about that specific target.
+
+# Dependencies
+## Win
+**TODO** (sorry)
+## Nix
+**TODO** (sorry)
+## OSX
+**TODO** (sorry)
+## And
+**TODO** (sorry)
+## iOS
+**TODO** (sorry)
+## nNX
+**TODO** (sorry)

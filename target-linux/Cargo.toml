@@ -1,0 +1,9 @@
+[package]
+name = "target-linux"
+version = "0.1.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+game = { path = "../game" }
+kea = { path = "../engine", features = ["backend-gl", "backend-vk"] }

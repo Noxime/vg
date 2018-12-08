@@ -1,0 +1,12 @@
+[package]
+name = "game"
+version = "0.0.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+
+[dependencies]
+log = "0.4.6"
+
+[dependencies.kea]
+path = "../engine"
+default-features = false
+features = []

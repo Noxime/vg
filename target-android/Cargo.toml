@@ -1,0 +1,14 @@
+[package]
+name = "target-android"
+version = "0.1.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+# edition = "2018"
+
+[dependencies]
+game = { path = "../game" }
+kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
+
+[package.metadata.android]
+package_name = "xyz.noxim.kea"
+label = "Kea"
+fullscreen = true

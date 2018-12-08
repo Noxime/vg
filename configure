@@ -1,0 +1,32 @@
+
+
+case $1 in
+    linux)
+        ;;
+    macos)
+        ;;
+    windows)
+        ;;
+    android)
+        ;;
+    ios)
+        ;;
+    switch)
+        ;;
+    *)
+        echo "ERROR: Please provide a valid build target (one of: 'linux', 'macos', 'windows', 'android', 'ios', 'switch')"
+        exit
+        ;;
+esac
+
+target=$1
+
+echo "# configure this makefile with ./configure <target>" > Makefile
+echo "build:" >> Makefile
+echo "	cd target-$target && make build" >> Makefile
+echo "run:" >> Makefile
+echo "	cd target-$target && make run" >> Makefile
+echo "clean:" >> Makefile
+echo "	cd target-$target && make clean" >> Makefile
+echo "release:" >> Makefile
+echo "	cd target-$target && make release" >> Makefile

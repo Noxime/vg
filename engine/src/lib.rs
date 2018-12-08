@@ -22,11 +22,12 @@ use winit::*;
 /// initialize static parts of kea.
 /// This should be the first function you call
 pub fn run<T>(
-    size: Vec2<usize>,
-    title: String,
     scene_loader: &mut FnMut(T) -> scene::Scene,
     start_scene: T,
 ) {
+    let size = Vec2::new(800, 600);
+    let title: String = "kea".into();
+
     emoji_logger::init();
     info!("Running Kea, version {}", env!("CARGO_PKG_VERSION"));
 

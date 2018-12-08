@@ -1,13 +1,9 @@
 [package]
 name = "kea"
 version = "0.0.0"
-authors = ["noxim <Noxim#6410>"]
+authors = ["noxim <aaro.peramaa@gmail.com>"]
 license = "MIT"
 publish = false
-
-[[bin]]
-name = "game"
-path = "src/test_game.rs"
 
 # TODO: Figure out what is the best way to do backend support... somethin wrong
 # here
@@ -38,5 +34,5 @@ git = "https://github.com/gfx-rs/gfx"
 optional = true
 
 
-[build-dependencies]
-glsl-to-spirv = "0.1.5"
+# [build-dependencies]
+# glsl-to-spirv = "0.1.5"
