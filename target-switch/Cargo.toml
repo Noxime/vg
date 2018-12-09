@@ -22,8 +22,8 @@ lto = true
 [dependencies]
 rlibc = "*"
 panic-abort = "0.3.1"
-# game = { path = "../game" }
-# kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
+kea = { path = "../engine" }
+game = { path = "../game" }
 
 [build-dependencies]
 bindgen = "0.37.0"

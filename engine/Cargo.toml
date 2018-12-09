@@ -4,35 +4,25 @@ version = "0.0.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 license = "MIT"
 publish = false
+edition = "2018"
 
 # TODO: Figure out what is the best way to do backend support... somethin wrong
 # here
 [features]
-default = [ "backend-gl" ]
-backend-gl = ["gfx-backend-gl"]
-backend-vk = ["gfx-backend-vulkan"]
-backend-mt = ["gfx-backend-metal"]
-backend-dx = ["gfx-backend-dx12"]
+default = []
+# backend-gl = ["gfx-backend-gl"]
+# backend-vk = ["gfx-backend-vulkan"]
+# backend-mt = ["gfx-backend-metal"]
+# backend-dx = ["gfx-backend-dx12"]
+backend-gl = []
+backend-vk = []
+backend-mt = []
+backend-dx = []
+
 
 [dependencies]
-log = "0.4.5"
-emoji-logger = "0.1"
-lazy_static = "1.1"
-winit = "0.18"
-gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
-gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
-gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
-
-# metal available only on apple hardware
-[target.'cfg(any(target_os = "macos", all(target_os = "ios", target_arch = "aarch64")))'.dependencies.gfx-backend-metal]
-git = "https://github.com/gfx-rs/gfx"
-optional = true
-
-# dx12 is only available on windows
-[target.'cfg(windows)'.dependencies.gfx-backend-dx12]
-git = "https://github.com/gfx-rs/gfx"
-optional = true
-
-
-# [build-dependencies]
-# glsl-to-spirv = "0.1.5"
+# gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
+# gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
+# gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
+# gfx-backend-metal = { git = "https://github.com/gfx-rs/gfx", optional = true }
+# gfx-backend-dx12 = { git = "https://github.com/gfx-rs/gfx", optional = true }

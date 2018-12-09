@@ -1,6 +1,13 @@
 extern crate kea;
 extern crate game;
 
-fn main() {
-    kea::run(&mut game::loader, game::INITIAL);
+struct Api;
+impl kea::PlatformApi for Api {
+    fn print(&self, s: &str) {
+        println!("{}", s);
+    }
+}
+
+fn main() {  
+    kea::run(Api, &game::game);
 }
