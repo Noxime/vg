@@ -9,4 +9,5 @@ build:cargo:
   - apt-get install -y libudev-dev pkg-config
   script:
   - rustc --version && cargo --version
+  - cd engine
   - cargo build --verbose
