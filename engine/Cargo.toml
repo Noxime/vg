@@ -4,7 +4,7 @@ version = "0.0.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 license = "MIT"
 publish = false
-edition = "2018"
+# edition = "2018"
 
 # TODO: Figure out what is the best way to do backend support... somethin wrong
 # here
@@ -22,6 +22,12 @@ backend-dx = []
 
 [dependencies]
 # gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
+bitflags = "1.0"
+
+# failure = "0.1"
+# smallvec = "0.6"
+# fxhash = "0.2.1"
+
 # gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
 # gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
 # gfx-backend-metal = { git = "https://github.com/gfx-rs/gfx", optional = true }
