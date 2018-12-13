@@ -7,10 +7,11 @@ pub struct EngineApi<Platform: PlatformApi, Renderer: renderer::Renderer> {
     pub renderer: Renderer,
 }
 
+#[derive(Clone)]
 pub struct Transform {
-    pos: (f32, f32),
-    sca: (f32, f32),
-    rot: f32,
+    pub pos: (f32, f32),
+    pub sca: (f32, f32),
+    pub rot: f32,
 }
 
 impl Default for Transform {
@@ -23,8 +24,10 @@ impl Default for Transform {
     }
 }
 
-pub struct Sprite {
-    trans: Transform,
+
+pub trait Sprite {
+    fn transform(&self) -> &Transform;
+    fn transform_mut(&mut self) -> &mut Transform;
 }
 
 pub fn run<Platform: PlatformApi, Renderer: renderer::Renderer>(

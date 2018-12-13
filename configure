@@ -29,6 +29,7 @@ echo "	cd target-$target && make run" >> Makefile
 echo "clean:" >> Makefile
 echo "	cd game && cargo clean" >> Makefile
 echo "	cd engine && cargo clean" >> Makefile
+echo "  cd util/kea-piston-renderer && cargo clean" >> Makefile
 echo "	cd target-$target && make clean" >> Makefile
 echo "release:" >> Makefile
 echo "	cd target-$target && make release" >> Makefile

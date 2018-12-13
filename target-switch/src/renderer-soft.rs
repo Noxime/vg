@@ -54,8 +54,8 @@ pub struct SwitchFrame {
 
 impl Frame for SwitchFrame {
     fn present(self, vsync: bool) {
-        for x in 0 .. self.size.0 {
-            for y in 0 .. self.size.1 {
+        for x in 0 .. 32 {
+            for y in 0 .. 32 {
                 unsafe {
                     *(self.fb.offset(y as isize * self.size.0 as isize + x as isize)) = [
                         (self.base[0] * 255.0) as u8,

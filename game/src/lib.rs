@@ -4,12 +4,20 @@ use kea::*;
 
 pub fn game(mut api: EngineApi<impl PlatformApi, impl renderer::Renderer>) {
     api.platform.print("Hello world");
-    let mut f: f32 = 0.0;
+    let mut b = false;
+    let tex = api.renderer.texture(&[
+        &[[0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0]],
+        &[[1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0]],
+        &[[0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0]],
+        &[[1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0]],
+    ]);
+
+    let sprite = api.renderer.sprite(Transform::default(), tex);
+
     loop {
-        f += 0.4;
+        b = !b;
         use kea::renderer::*;
-        api.renderer
-            .frame([f.sin().signum() * 0.5 + 0.5, f.cos().signum() * 0.5 + 0.5, 0.5, 1.0])
-            .present(true);
+        let foreground = api.renderer.layer(1.0, &[&sprite]);
+        api.renderer.render([0.0; 4], &[foreground]);
     }
 }
