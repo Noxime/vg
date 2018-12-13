@@ -71,7 +71,7 @@ impl Renderer for PistonRenderer {
 
     fn texture(&mut self, data: &[&[Color]]) -> Self::Texture {
         let factory = &mut self.window.factory;
-        let settings = TextureSettings::new();
+        let settings = TextureSettings::new().filter(Filter::Nearest);
 
         let mut converted = vec![];
         for col in data {
