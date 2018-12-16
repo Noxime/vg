@@ -6,3 +6,4 @@ authors = ["noxim <aaro.peramaa@gmail.com>"]
 [dependencies]
 piston_window = "0.85.0"
 kea = { path = "../../engine" }
+image = "0.20.1"

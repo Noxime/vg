@@ -1,14 +1,16 @@
+extern crate image;
 extern crate kea;
 extern crate piston_window;
 
 use kea::renderer::*;
-use kea::{Transform, Sprite};
+use kea::{Sprite, Transform};
 
+use image::*;
 
 use self::piston_window::*;
 
-use std::rc::Rc;
 use std::borrow::Borrow;
+use std::rc::Rc;
 
 pub struct PistonRenderer {
     window: PistonWindow,
@@ -22,11 +24,11 @@ impl PistonRenderer {
                 .samples(4)
                 .exit_on_esc(true) // TODO
                 .vsync(true)
-                .build().expect("Window creation failed")
+                .build()
+                .expect("Window creation failed"),
         }
     }
 }
-
 
 impl Renderer for PistonRenderer {
     const NAME: &'static str = "Piston (GL32)";
@@ -43,23 +45,38 @@ impl Renderer for PistonRenderer {
                 break;
             }
         }
-        
+
         let (w, h) = (args.width, args.height);
-        let (x, y) = (w / 2.0, h / 2.0);
 
-        self.window.draw_2d(&Event::Loop(Loop::Render(args)), |ctx, gfx| {
-            clear(base, gfx);
+        self.window
+            .draw_2d(&Event::Loop(Loop::Render(args)), |ctx, gfx| {
+                clear(base, gfx);
+                let ctx = ctx.reset();
+                let transform = ctx.transform;
+                let view = ctx.transform.scale(h / w, 1.0);
 
-            let transform = ctx.transform
-                .trans(x, y)
-                .zoom(h * 0.2);
-
-            for layer in layers {
-                for sprite in &layer.sprites {
-                    image(sprite.tex.0.borrow(), transform.trans((sprite.trans.pos.0 * layer.parallax)  as _, (sprite.trans.pos.1 * layer.parallax) as _), gfx);
+                for layer in layers {
+                    for sprite in &layer.sprites {
+                        let img: &G2dTexture = sprite.tex.0.borrow();
+                        image(
+                            img,
+                            transform
+                                // .zoom(h)
+                                .trans(
+                                    (sprite.trans.pos.0 * layer.parallax) as _,
+                                    (sprite.trans.pos.1 * layer.parallax) as _,
+                                )
+                                .scale(1.0 / img.get_width() as f64, 1.0 / img.get_height() as f64)
+                                .trans(
+                                    img.get_width() as f64 / -2.0,
+                                    img.get_height() as f64 / -2.0,
+                                )
+                                .prepend_transform(view),
+                            gfx,
+                        );
+                    }
                 }
-            }
-        });
+            });
     }
 
     fn layer(&mut self, parallax: f32, sprites: &[&Self::Sprite]) -> Self::Layer {
@@ -73,14 +90,16 @@ impl Renderer for PistonRenderer {
         let factory = &mut self.window.factory;
         let settings = TextureSettings::new().filter(Filter::Nearest);
 
-        let mut converted = vec![];
-        for col in data {
-            for pix in *col {
-                converted.push((pix[0] * 255.0) as u8);
-            }
-        }
+        let img = RgbaImage::from_fn(data.len() as _, data[0].len() as _, |x, y| {
+            Rgba([
+                (data[x as usize][y as usize][0] * 255.0) as u8,
+                (data[x as usize][y as usize][1] * 255.0) as u8,
+                (data[x as usize][y as usize][2] * 255.0) as u8,
+                (data[x as usize][y as usize][3] * 255.0) as u8,
+            ])
+        });
 
-        let tex = G2dTexture::from_memory_alpha(factory, &converted, 4, 4, &settings).expect("Texture create failed");
+        let tex = G2dTexture::from_image(factory, &img, &settings).expect("Texture create failed");
 
         PistonTexture(Rc::new(tex))
     }
