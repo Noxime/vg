@@ -1,16 +1,12 @@
 use kea::renderer::*;
-use kea::{Transform, Sprite};
 
 use libnx_rs::libnx;
 
 extern crate piston_window;
 extern crate libnx_rs_window;
 
-use self::piston_window::*;
+use self::piston_window::{OpenGL, PistonWindow, WindowSettings};
 use self::libnx_rs_window::NxGlWindow;
-
-use std::rc::Rc;
-use std::borrow::Borrow;
 
 pub struct SwitchRenderer {
     window: PistonWindow<NxGlWindow>,
@@ -32,85 +28,68 @@ impl SwitchRenderer {
 
 impl Renderer for SwitchRenderer {
     const NAME: &'static str = "Piston (GL32)";
-
     type Texture = SwitchTexture;
-    type Layer = SwitchLayer;
-    type Sprite = SwitchSprite;
+    type Surface = PistonWindow<NxGlWindow>;
 
-    fn render(&mut self, base: Color, layers: &[Self::Layer]) {
-        let event;
+    fn surface(&mut self) -> &mut Self::Surface {
+        &mut self.window
+    }
+}
+
+pub struct SwitchTexture();
+
+impl kea::renderer::Texture<SwitchRenderer> for SwitchTexture {
+    fn new(_size: &Size, _color: &Color) -> Self {
+        unimplemented!()
+    }
+    fn clone(&self) -> Self {
+        unimplemented!()
+    }
+    fn scale(&mut self, _size: &Size) {
+        unimplemented!()
+    }
+}
+
+impl kea::renderer::Target<SwitchRenderer> for SwitchTexture {
+    fn size(&self) -> Size {
+        unimplemented!()
+    }
+    fn set(&mut self, _color: &Color) {
+        unimplemented!()
+    }
+    fn draw(&mut self, _texture: SwitchTexture, _coords: Coordinate) {
+        unimplemented!()
+    }
+}
+
+impl kea::renderer::Surface<SwitchRenderer> for PistonWindow<NxGlWindow> {
+    fn capture(&self) -> SwitchTexture {
+        unimplemented!()
+    }
+}
+
+impl kea::renderer::Target<SwitchRenderer> for PistonWindow<NxGlWindow> {
+    fn size(&self) -> Size {
+        use self::piston_window::Window;
+        let s = self.window.size();
+        [s.width as _, s.height as _]
+    }
+
+    fn set(&mut self, color: &Color) {
+        use self::piston_window::{clear, Event, Loop};
+
+        // TODO: For some reason we need a render arg to draw, so wait for it
         loop {
-            if let Some(Event::Loop(Loop::Render(args))) = self.window.next() {
-                event = Event::Loop(Loop::Render(args));
-                break;
+            if let Some(Event::Loop(Loop::Render(args))) = self.next() {
+                self.draw_2d(&Event::Loop(Loop::Render(args)), |_ctx, gfx| {
+                    clear(*color, gfx);
+                });
+                return;
             }
         }
-
-        self.window.draw_2d(&event, |ctx, gfx| {
-            clear(base, gfx);
-            for layer in layers {
-                for sprite in &layer.sprites {
-                    image(sprite.tex.0.borrow(), ctx.transform, gfx)
-                }
-            }
-        });
     }
 
-    fn layer(&mut self, parallax: f32, sprites: &[&Self::Sprite]) -> Self::Layer {
-        SwitchLayer {
-            parallax,
-            sprites: sprites.iter().cloned().cloned().collect(),
-        }
-    }
-
-    fn texture(&mut self, data: &[&[Color]]) -> Self::Texture {
-        let factory = &mut self.window.factory;
-        let settings = TextureSettings::new();
-
-        let mut converted = vec![];
-        for col in data {
-            for pix in *col {
-                converted.push((pix[0] * 255.0) as u8);
-            }
-        }
-
-        let tex = G2dTexture::from_memory_alpha(factory, &converted, data.len() as _, data[0].len() as _, &settings).expect("Texture create failed");
-
-        SwitchTexture(Rc::new(tex))
-    }
-
-    fn sprite(&mut self, transform: Transform, texture: Self::Texture) -> Self::Sprite {
-        SwitchSprite {
-            trans: transform,
-            tex: texture,
-        }
-    }
-}
-
-pub struct SwitchTexture(Rc<G2dTexture>);
-impl Clone for SwitchTexture {
-    fn clone(&self) -> SwitchTexture {
-        SwitchTexture(Rc::clone(&self.0))
-    }
-}
-
-pub struct SwitchLayer {
-    parallax: f32,
-    sprites: Vec<SwitchSprite>,
-}
-
-#[derive(Clone)]
-pub struct SwitchSprite {
-    trans: Transform,
-    tex: SwitchTexture,
-}
-
-impl Sprite for SwitchSprite {
-    fn transform(&self) -> &Transform {
-        &self.trans
-    }
-
-    fn transform_mut(&mut self) -> &mut Transform {
-        &mut self.trans
+    fn draw(&mut self, _texture: SwitchTexture, _coords: Coordinate) {
+        unimplemented!()
     }
 }
