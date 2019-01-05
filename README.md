@@ -16,28 +16,24 @@ not the perfect.
 * iOS (incomplete, no test hardware)
 * Nintendo Switch (incomplete, lack of stdlib)
 
-## Supported apis
-* OpenGL (enabled default)
-* Vulkan (available on windows, linux, android and switch)
-* Metal (available on macos and ios)
-* DirectX 12 (available on windows **10**)
+## Api status
+|       |Software|OpenGL|Vulkan|DirectX 12|Metal|
+|-------|--------|------|------|----------|-----|
+|Linux  |No      |Yes   |Yes   |No        |No   |
+|MacOS  |No      |Yes   |No    |No        |Yes  |
+|Windows|No      |Yes   |Yes   |Yes       |No   |
+|Android|No      |Yes   |Yes   |No        |No   |
+|iOS    |No      |No    |No    |No        |Yes  |
+|Switch |Yes     |Yes   |Yes   |No        |No   |
+
 
 # Get started
-Clone this repo and run
-```sh
-./configure <target>
-```
+Clone this repo and `$ cd` into one of the preferred targets, most likely 
+`target-desktop` and run `cargo build`. If you use any other target, there is a
+makefile in each of the `target-*` folders, use `make build` or `make run`.
 
-Where target is one of `linux`, `macos`, `windows`, `android`, `ios` or `switch`. This will generate a makefile, after which you can
-
-```sh
-make
-# or `make build`, `make run`, `make clean` or `make release`
-```
-
-To work on your game, go to `game/` and to work on the engine, go to `engine/`.
-
-Peep into the `target-<target>` folders if you want to learn more about that specific target.
+All game development happens in `game/`, independent of any targets, and engine
+development happens in `engine/`. 
 
 # Dependencies
 ## Win

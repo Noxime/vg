@@ -1,8 +1,8 @@
 build:
-	cargo build
+	echo "iOS port is WIP"
 run:
-	cargo run
+	echo "iOS port is WIP"
 clean:
-	cargo clean
+	echo "iOS port is WIP"
 release:
-	cargo build --release
+	echo "iOS port is WIP"

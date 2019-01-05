@@ -1,4 +1,4 @@
-CMD=docker run --rm -v "$$(pwd):/root/src" -v "$$(pwd)/../engine/:/root/engine" -v "$$(pwd)/../game/:/root/game" -w /root/src tomaka/cargo-apk
+CMD=docker run --rm -v "$$(pwd):/root/src" -v "$$(pwd)/../engine/:/root/engine" -v "$$(pwd)/../game/:/root/game" -v "$$(pwd)/../util/:/root/util" -w /root/src tomaka/cargo-apk
 
 build:
 	$(CMD) cargo apk build
