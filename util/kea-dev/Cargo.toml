@@ -1,0 +1,9 @@
+[package]
+name = "kea-dev"
+version = "0.1.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+kea = { path = "../../engine" }
+glium = "0.22.0"

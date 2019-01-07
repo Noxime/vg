@@ -1,6 +1,6 @@
 extern crate game;
 extern crate kea;
-extern crate kea_piston_renderer;
+extern crate kea_dev;
 
 struct Api;
 impl kea::PlatformApi for Api {
@@ -10,5 +10,5 @@ impl kea::PlatformApi for Api {
 }
 
 fn main() {
-    kea::run(Api, kea_piston_renderer::PistonRenderer::new(), &game::game);
+    kea::run(Api, kea_dev::Renderer::new(), &game::game);
 }

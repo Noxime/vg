@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 game = { path = "../game" }
 kea = { path = "../engine", features = ["backend-gl", "backend-vk"] }
-kea-piston-renderer = { path = "../util/kea-piston-renderer" }
+kea-dev = { path = "../util/kea-dev" }

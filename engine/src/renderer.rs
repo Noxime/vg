@@ -1,6 +1,68 @@
 pub type Color = [f32; 4];
-pub type Coordinate = [isize; 2];
 pub type Size = [usize; 2];
+/// A matrix representing the transform of a texture
+#[derive(Clone, Copy, Debug)]
+pub struct Matrix([[f32; 3]; 3]);
+
+impl Matrix {
+    /// Create an identity matrix
+    /// 
+    /// ```
+    /// [1, 0, 0]
+    /// [0, 1, 0]
+    /// [0, 0, 1]
+    /// ```
+    pub fn identity() -> Self {
+        Matrix([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ])
+    }
+
+    pub fn from(raw: &[[f32; 3]; 3]) -> Self {
+        Matrix(*raw)
+    }
+
+    /// Scale this matrix around the origin
+    pub fn scale(&mut self, x: f32, y: f32) {
+        self.0[0][0] *= x;
+        self.0[1][1] *= y;
+    }
+
+    /// Translate this matrix by given units
+    pub fn translate(&mut self, x: f32, y: f32) {
+        self.0[0][2] += x;
+        self.0[1][2] += y;
+    }
+
+    /// Rotate this matrix around the origin by radian angle `a`
+    pub fn rotate(&mut self, a: f32) {
+        self.multiply(&Matrix::from(&[
+            [a.cos(), -a.sin(), 0.0],
+            [a.sin(), a.cos(), 0.0],
+            [0.0, 0.0, 1.0],
+        ]))
+    }
+
+    /// Multiply this matrix by a given matrix
+    pub fn multiply(&mut self, other: &Self) {
+        // Dot multiplication, not sure if correct, i think it is
+        let me = self.clone();
+        for x in 0 .. 2 {
+            for y in 0 .. 2 {
+                self.0[x][y] = 
+                    me.0[x][0] * other.0[0][y] + 
+                    me.0[x][1] * other.0[1][y] + 
+                    me.0[x][2] * other.0[2][y];
+            }
+        }
+    }
+
+    pub fn raw(&self) -> [[f32; 3]; 3] {
+        self.0
+    }
+}
 
 pub trait Renderer: Sized {
     /// A user friendly name of our rendering engine
@@ -10,22 +72,23 @@ pub trait Renderer: Sized {
     type Texture: Texture<Self>;
     /// The window on whatever platform you are
     type Surface: Surface<Self>;
-    /// Get the active window
+    /// Get the active window and perform the closure on it
     fn surface(&mut self) -> &mut Self::Surface;
 }
 
 pub trait Texture<R: Renderer>: Target<R> {
     /// Create a new texture from size and with given color
-    fn new(size: &Size, color: &Color) -> Self;
+    fn new(renderer: &mut R, size: &Size, color: &Color) -> Self;
     /// Clone the texture into a new object
     fn clone(&self) -> Self;
-    /// Scale the texture to the new dimensions
-    fn scale(&mut self, size: &Size);
 }
 
 pub trait Surface<R: Renderer>: Target<R> {
     /// Capture the window contents and return them as a new Texture
     fn capture(&self) -> R::Texture;
+    /// Flush the rendering queue and present the final image to the display,
+    /// possibly waiting for next vertical blank
+    fn present(&mut self, vsync: bool);
 }
 
 /// Common trait for both Texture and Surface, where you can draw to
@@ -34,7 +97,7 @@ pub trait Target<R: Renderer> {
     fn size(&self) -> Size;
     /// Set (clear) the target to some specific color
     fn set(&mut self, color: &Color);
-    /// Draw a texture into this target, (x, y) == (0, 0) being top left corner
-    /// of the target and texture anchor point being top left corner
-    fn draw(&mut self, texture: R::Texture, coords: Coordinate);
+    /// Draw a texture into this target, by transforming it with the provided
+    /// matrix. 
+    fn draw(&mut self, texture: &R::Texture, transform: &Matrix);
 }

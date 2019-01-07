@@ -4,6 +4,7 @@ version = "0.0.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 
 [dependencies]
+rand = "0.6.3"
 
 [dependencies.kea]
 path = "../engine"
