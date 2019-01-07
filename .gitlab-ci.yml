@@ -1,13 +1,30 @@
 image: "rust:latest"
-build:cargo:
+engine:
   before_script:
   - rustup update nightly
   - rustup default nightly
   - apt-get update
-  - apt-get install -y cmake
-  - apt-get install -y libopenal-dev libsndfile1-dev 
-  - apt-get install -y libudev-dev pkg-config
   script:
   - rustc --version && cargo --version
   - cd engine
+  - cargo build --verbose
+
+game:
+  before_script:
+  - rustup update nightly
+  - rustup default nightly
+  - apt-get update
+  script:
+  - rustc --version && cargo --version
+  - cd game
+  - cargo build --verbose
+
+desktop:
+  before_script:
+  - rustup update nightly
+  - rustup default nightly
+  - apt-get update
+  script:
+  - rustc --version && cargo --version
+  - cd target-desktop
   - cargo build --verbose
