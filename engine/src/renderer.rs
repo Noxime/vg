@@ -28,6 +28,10 @@ impl Matrix {
     pub fn scale(&mut self, x: f32, y: f32) {
         self.0[0][0] *= x;
         self.0[1][1] *= y;
+
+        // ..?
+        // self.0[0][2] *= x;
+        // self.0[1][2] *= x;
     }
 
     /// Translate this matrix by given units
@@ -72,13 +76,16 @@ pub trait Renderer: Sized {
     type Texture: Texture<Self>;
     /// The window on whatever platform you are
     type Surface: Surface<Self>;
-    /// Get the active window and perform the closure on it
+    /// Get the active surface (window)
     fn surface(&mut self) -> &mut Self::Surface;
 }
 
 pub trait Texture<R: Renderer>: Target<R> {
     /// Create a new texture from size and with given color
     fn new(renderer: &mut R, size: &Size, color: &Color) -> Self;
+    /// Create a new texture from size and the given data iterator. **The iterator
+    /// must return at least width * height items**
+    fn from_data(renderer: &mut R, size: &Size, data: &Vec<Color>) -> Self;
     /// Clone the texture into a new object
     fn clone(&self) -> Self;
 }
