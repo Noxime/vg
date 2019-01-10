@@ -1,9 +1,17 @@
 [package]
-name = "target-linux"
+name = "target-ios"
 version = "0.1.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
+[lib]
+name = "kea_ios"
+crate-type = ["staticlib", "cdylib"]
+
 [dependencies]
 game = { path = "../game" }
-kea = { path = "../engine", features = ["backend-gl", "backend-vk"] }
+kea = { path = "../engine" }
+kea-dev = { path = "../util/kea-dev" }
+
+[patch.crates-io]
+glutin = { git = "https://github.com/noxime/glutin", rev = "015b09e" }

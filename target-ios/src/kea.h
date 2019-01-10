@@ -1,0 +1,1 @@
+void ios_main();
