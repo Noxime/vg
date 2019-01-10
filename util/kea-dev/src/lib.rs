@@ -36,7 +36,8 @@ impl Renderer {
         let window = glutin::WindowBuilder::new()
             .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0))
             .with_title("Kea");
-        let context = glutin::ContextBuilder::new();
+        let context = glutin::ContextBuilder::new()
+            .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0)));
         let display = Rc::new(glium::Display::new(window, context, &events).unwrap());
 
         // upload a vertex quad for our rendering ops
@@ -161,11 +162,12 @@ impl kea::renderer::Target<Renderer> for Texture {
         let t = transform.raw();
 
         let uniforms = uniform! {
+            // transposed since GlES does not support `transpose`
             matrix: [
-                [t[0][0], t[0][1], 0.0, t[0][2]],
-                [t[1][0], t[1][1], 0.0, t[1][2]],
+                [t[0][0], t[1][0], 0.0, t[2][0]],
+                [t[0][1], t[1][1], 0.0, t[2][1]],
                 [0.0, 0.0, 1.0, 0.0],
-                [t[2][0], t[2][1], 0.0, t[2][2]],
+                [t[0][2], t[1][2], 0.0, t[2][2]],
             ],
             tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
@@ -216,10 +218,10 @@ impl kea::renderer::Target<Renderer> for Surface {
 
         let uniforms = uniform! {
             matrix: [
-                [t[0][0], t[0][1], 0.0, t[0][2]],
-                [t[1][0], t[1][1], 0.0, t[1][2]],
+                [t[0][0], t[1][0], 0.0, t[2][0]],
+                [t[0][1], t[1][1], 0.0, t[2][1]],
                 [0.0, 0.0, 1.0, 0.0],
-                [t[2][0], t[2][1], 0.0, t[2][2]],
+                [t[0][2], t[1][2], 0.0, t[2][2]],
             ],
             tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };

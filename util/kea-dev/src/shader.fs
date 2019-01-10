@@ -1,11 +1,10 @@
-#version 140
-
-in vec2 v_tex_coords;
-
-out vec4 color;
+#version 100
+precision mediump float;
 
 uniform sampler2D tex;
 
+varying vec2 v_tex_coords;
+
 void main() {
-    color = texture(tex, v_tex_coords);
+    gl_FragColor = texture2D(tex, v_tex_coords);
 }
