@@ -2,8 +2,11 @@
 name = "game"
 version = "0.0.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
+edition = "2018"
 
 [dependencies]
+image = "0.20.1"
+
 
 [dependencies.kea]
 path = "../engine"
