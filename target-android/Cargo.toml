@@ -2,7 +2,7 @@
 name = "target-android"
 version = "0.1.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
-# edition = "2018"
+edition = "2018"
 
 [package.metadata.android]
 package_name = "xyz.noxim.kea"
@@ -13,4 +13,4 @@ fullscreen = true
 [dependencies]
 game = { path = "../game" }
 kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
-kea-piston-renderer = { path = "../util/kea-piston-renderer" }
+kea-dev = { path = "../util/kea-dev" }
