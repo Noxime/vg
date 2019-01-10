@@ -12,7 +12,7 @@ not the perfect.
 * Linux
 * Windows
 * MacOS
-* Android (broken)
+* Android (build process broken)
 * iOS (incomplete, no test hardware)
 * Nintendo Switch (incomplete, lack of stdlib)
 
@@ -37,13 +37,16 @@ development happens in `engine/`.
 
 # Dependencies
 ## Win
-**TODO** (sorry)
+All dependencies managed by `cargo`
 ## Nix
-**TODO** (sorry)
+All dependencies managed by `cargo`
 ## OSX
-**TODO** (sorry)
-## And
-**TODO** (sorry)
+All dependencies managed by `cargo`
+## Drd
+Docker: `target-android` contains a dockerfile, which should include everything
+needed to build. `make build` should even automatically build the dockerfile for
+you, so it should theoretically just be plug-and-play. If not, DM me or make an
+issue!
 ## iOS
 **TODO** (sorry)
 ## nNX
