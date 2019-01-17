@@ -1,48 +1,53 @@
 extern crate kea;
 
-use kea::renderer::{Matrix, Surface, Target, Texture, Color, Size};
+use kea::renderer::{Color, Matrix, Size, Surface, Target, Texture};
 use kea::*;
 
 use std::time::Instant;
 
 macro_rules! load_image {
-    ($path: expr) => {
-        {
-            let raw = image::load_from_memory(include_bytes!($path))
-                .unwrap()
-                .to_rgba();
-            (
-                raw.width() as usize,
-                raw.height() as usize,
-                raw.pixels()
-                    .map(|p| {
-                        [
-                            p.data[0] as f32 / 255.0,
-                            p.data[1] as f32 / 255.0,
-                            p.data[2] as f32 / 255.0,
-                            p.data[3] as f32 / 255.0,
-                        ]
-                    })
-                    .collect(),
-            )
-        }
-    };
+    ($path: expr) => {{
+        let raw = image::load_from_memory(include_bytes!($path))
+            .unwrap()
+            .to_rgba();
+        (
+            raw.width() as usize,
+            raw.height() as usize,
+            raw.pixels()
+                .map(|p| {
+                    [
+                        p.data[0] as f32 / 255.0,
+                        p.data[1] as f32 / 255.0,
+                        p.data[2] as f32 / 255.0,
+                        p.data[3] as f32 / 255.0,
+                    ]
+                })
+                .collect(),
+        )
+    }};
 }
 
 struct Camera {
+    aspect: f32,
     x: f32,
     y: f32,
-    fov: f32,
+    zoom: f32,
 }
 
-impl Camera {
-    fn matrix(&self, surface: &Size) -> Matrix {
-        let aspect = surface[1] as f32 / surface[0] as f32;
-        let mut m = Matrix::identity();
-        m.translate(-self.x * aspect, -self.y);
-        m.scale(aspect, 1.0);
-        m.scale(1.0 / self.fov, 1.0 / self.fov);
-        m
+struct Transform {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+}
+
+impl Transform {
+    fn matrix(&self, camera: &Camera) -> Matrix {
+        Matrix::identity()
+            .translated(self.x / camera.zoom, self.y / camera.zoom)
+            .scaled(self.w, self.h)
+            .translated(-camera.x / camera.zoom, -camera.y / camera.zoom)
+            .scaled(1.0 / camera.zoom, 1.0 / (camera.zoom / camera.aspect))
     }
 }
 
@@ -57,31 +62,74 @@ where
         api.platform.print(&format!("Window is: {}x{}", w, h));
     }
 
-    let img = load_image!("../assets/textures/duburrito.png");
-    let tex = R::Texture::from_data(&mut api.renderer, &[img.0, img.1], &img.2);
+    let grass_tex = {
+        let (w, h, i) = load_image!("../assets/textures/grass.png");
+        R::Texture::from_data(&mut api.renderer, &[w, h], &i)
+    };
 
-    let mut f: f32 = 0.0;
+    let cloud_tex = {
+        let (w, h, i) = load_image!("../assets/textures/cloud.png");
+        R::Texture::from_data(&mut api.renderer, &[w, h], &i)
+    };
+
     let mut last = Instant::now();
+    let mut time = 0.0;
 
     let mut camera = Camera {
         x: 0.0,
-        y: 0.0,
-        fov: 1.0,
+        y: 4.0,
+        aspect: 1.0,
+        zoom: 4.0,
     };
+
+    let mut clouds = vec![(-5.0, 2.0, 0.5), (-5.0, 3.0, 0.38), (-5.0, 6.0, 0.83), (-5.0, 4.0, 0.12)];
 
     loop {
         let size = api.renderer.surface().size();
+        camera.aspect = size[0] as f32 / size[1] as f32;
         let delta = last.elapsed().subsec_nanos() as f32 / 1_000_000_000.0;
+        time += delta;
         last = Instant::now();
-        f += delta;
         println!("FPS: {:.2}", 1.0 / delta);
 
-        api.renderer.surface().set(&[0.0, 0.0, 0.0, 1.0]);
-        
-        camera.x = f.sin();
-        camera.y = f.cos();
+        api.renderer.surface().set(&[0.65, 0.87, 0.91, 1.0]);
 
-        api.renderer.surface().draw(&tex, &camera.matrix(&size));
+        for i in 0..8 {
+            api.renderer.surface().draw(
+                &grass_tex,
+                &Transform {
+                    x: -3.5 + i as f32,
+                    y: 0.0,
+                    w: 1.0,
+                    h: 1.0,
+                }
+                .matrix(&camera),
+            );
+        }
+
+        clouds = clouds.iter().map(|(x, y, v)| {
+            let mut x = *x;
+            let mut y = *y;
+            let mut v = *v;
+            if x > 5.0 {
+                x = -5.0;
+                y = rand::random::<f32>() * 6.0 + 2.0;
+                v = rand::random::<f32>() * 0.5 + 0.25;
+            }
+
+            api.renderer.surface().draw(
+                &cloud_tex,
+                &Transform {
+                    x: x,
+                    y: y,
+                    w: 2.0,
+                    h: 1.0,
+                }
+                .matrix(&camera),
+            );
+            (x + v * delta, y, v)
+        }).collect();
+
         api.renderer.surface().present(true);
     }
 }
