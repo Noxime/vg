@@ -34,10 +34,24 @@ impl Matrix {
         // self.0[1][2] *= x;
     }
 
+    /// Return a scaled clone of this matrix
+    pub fn scaled(&self, x: f32, y: f32) -> Matrix {
+        let mut m = self.clone();
+        m.scale(x, y);
+        m
+    }
+
     /// Translate this matrix by given units
     pub fn translate(&mut self, x: f32, y: f32) {
         self.0[0][2] += x;
         self.0[1][2] += y;
+    }
+
+    /// Return a translated clone of this matrix
+    pub fn translated(&self, x: f32, y: f32) -> Matrix {
+        let mut m = self.clone();
+        m.translate(x, y);
+        m
     }
 
     /// Rotate this matrix around the origin by radian angle `a`
@@ -47,6 +61,13 @@ impl Matrix {
             [a.sin(), a.cos(), 0.0],
             [0.0, 0.0, 1.0],
         ]))
+    }
+
+    /// Return a rotated clone of this matrix
+    pub fn rotated(&self, a: f32) -> Matrix {
+        let mut m = self.clone();
+        m.rotate(a);
+        m
     }
 
     /// Multiply this matrix by a given matrix
@@ -61,6 +82,13 @@ impl Matrix {
                     me.0[x][2] * other.0[2][y];
             }
         }
+    }
+
+    /// Return a multiplied clone of this matrix
+    pub fn multiplied(&self, other: &Self) -> Matrix {
+        let mut m = self.clone();
+        m.multiply(other);
+        m
     }
 
     pub fn raw(&self) -> [[f32; 3]; 3] {
