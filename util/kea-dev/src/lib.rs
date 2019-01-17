@@ -179,7 +179,10 @@ impl kea::renderer::Target<Renderer> for Texture {
                 &glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
                 &*self.program,
                 &uniforms,
-                &Default::default(),
+                &glium::DrawParameters {
+                    blend: glium::Blend::alpha_blending(),
+                    .. Default::default()
+                },
             )
             .unwrap();
     }
@@ -232,7 +235,10 @@ impl kea::renderer::Target<Renderer> for Surface {
                 &glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
                 &*self.program,
                 &uniforms,
-                &Default::default(),
+                &glium::DrawParameters {
+                    blend: glium::Blend::alpha_blending(),
+                    .. Default::default()
+                },
             )
             .unwrap();
     }
