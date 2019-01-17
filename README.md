@@ -12,19 +12,19 @@ not the perfect.
 * Linux
 * Windows
 * MacOS
-* Android (build process broken)
-* iOS (incomplete, no test hardware)
-* Nintendo Switch (incomplete, lack of stdlib)
+* Android
+* iOS (borked, GL context lost on launch)
+* Nintendo Switch (incomplete, only debugging software renderer)
 
 ## Api status
 |       |Software|OpenGL|Vulkan|DirectX 12|Metal|
 |-------|--------|------|------|----------|-----|
-|Linux  |No      |Yes   |Yes   |No        |No   |
-|MacOS  |No      |Yes   |No    |No        |Yes  |
-|Windows|No      |Yes   |Yes   |Yes       |No   |
-|Android|No      |Yes   |Yes   |No        |No   |
-|iOS    |No      |No    |No    |No        |Yes  |
-|Switch |Yes     |Yes   |Yes   |No        |No   |
+|Linux  |No      |Yes   |WIP   |No        |No   |
+|MacOS  |No      |Yes   |No    |No        |WIP  |
+|Windows|No      |Yes   |WIP   |WIP       |No   |
+|Android|No      |Yes   |WIP   |No        |No   |
+|iOS    |No      |Yes   |No    |No        |WIP  |
+|Switch |Yes     |WIP   |WIP   |No        |No   |
 
 
 # Get started
