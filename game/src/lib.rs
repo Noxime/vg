@@ -47,7 +47,7 @@ impl Transform {
             .translated(self.x / camera.zoom, self.y / camera.zoom)
             .scaled(self.w, self.h)
             .translated(-camera.x / camera.zoom, -camera.y / camera.zoom)
-            .scaled(1.0 / camera.zoom, 1.0 / (camera.zoom / camera.aspect))
+            .scaled(1.0 / camera.zoom, 1.0 / camera.zoom * camera.aspect)
     }
 }
 
@@ -72,6 +72,17 @@ where
         R::Texture::from_data(&mut api.renderer, &[w, h], &i)
     };
 
+    let cow = [
+        {
+            let (w, h, i) = load_image!("../assets/textures/cow_0.png");
+            R::Texture::from_data(&mut api.renderer, &[w, h], &i)
+        },
+        {
+            let (w, h, i) = load_image!("../assets/textures/cow_1.png");
+            R::Texture::from_data(&mut api.renderer, &[w, h], &i)
+        },
+    ];
+
     let mut last = Instant::now();
     let mut time = 0.0;
 
@@ -82,7 +93,12 @@ where
         zoom: 4.0,
     };
 
-    let mut clouds = vec![(-5.0, 2.0, 0.5), (-5.0, 3.0, 0.38), (-5.0, 6.0, 0.83), (-5.0, 4.0, 0.12)];
+    let mut clouds = vec![
+        (-5.0, 2.0, 0.5),
+        (-5.0, 3.0, 0.38),
+        (-5.0, 6.0, 0.83),
+        (-5.0, 4.0, 0.12),
+    ];
 
     loop {
         let size = api.renderer.surface().size();
@@ -107,28 +123,50 @@ where
             );
         }
 
-        clouds = clouds.iter().map(|(x, y, v)| {
-            let mut x = *x;
-            let mut y = *y;
-            let mut v = *v;
-            if x > 5.0 {
-                x = -5.0;
-                y = rand::random::<f32>() * 6.0 + 2.0;
-                v = rand::random::<f32>() * 0.5 + 0.25;
-            }
-
-            api.renderer.surface().draw(
-                &cloud_tex,
-                &Transform {
-                    x: x,
-                    y: y,
-                    w: 2.0,
-                    h: 1.0,
+        clouds = clouds
+            .iter()
+            .map(|(x, y, v)| {
+                let mut x = *x;
+                let mut y = *y;
+                let mut v = *v;
+                if x > 5.0 {
+                    x = -5.0;
+                    y = rand::random::<f32>() * 6.0 + 3.0;
+                    v = rand::random::<f32>() * 0.5 + 0.25;
                 }
-                .matrix(&camera),
-            );
-            (x + v * delta, y, v)
-        }).collect();
+
+                api.renderer.surface().draw(
+                    &cloud_tex,
+                    &Transform {
+                        x: x,
+                        y: y,
+                        w: 2.0,
+                        h: 1.0,
+                    }
+                    .matrix(&camera),
+                );
+                (x + v * delta, y, v)
+            })
+            .collect();
+
+        let frame = {
+            if time % 1.0 > 0.5 {
+                1
+            } else {
+                0
+            }
+        };
+
+        api.renderer.surface().draw(
+            &cow[frame],
+            &Transform {
+                x: -2.0,
+                y: 0.0,
+                w: 3.0,
+                h: 5.0,
+            }
+            .matrix(&camera),
+        );
 
         api.renderer.surface().present(true);
     }
