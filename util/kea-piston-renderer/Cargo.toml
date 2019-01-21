@@ -1,9 +1,0 @@
-[package]
-name = "kea-piston-renderer"
-version = "0.1.0"
-authors = ["noxim <aaro.peramaa@gmail.com>"]
-
-[dependencies]
-piston_window = "0.85.0"
-kea = { path = "../../engine" }
-image = "0.20.1"
