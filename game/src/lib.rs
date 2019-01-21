@@ -106,7 +106,7 @@ where
         let delta = last.elapsed().subsec_nanos() as f32 / 1_000_000_000.0;
         time += delta;
         last = Instant::now();
-        println!("FPS: {:.2}", 1.0 / delta);
+        // println!("FPS: {:.2}", 1.0 / delta);
 
         api.renderer.surface().set(&[0.65, 0.87, 0.91, 1.0]);
 
