@@ -8,9 +8,11 @@ edition = "2018"
 package_name = "xyz.noxim.kea"
 label = "Kea"
 fullscreen = true
-
+res = "../game/res"
+icon = "@mipmap/icon"
 
 [dependencies]
 game = { path = "../game" }
 kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
 kea-dev = { path = "../util/kea-dev" }
+android_glue = "0.2.3"

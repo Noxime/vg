@@ -1,4 +1,5 @@
 CMD=docker run --rm \
+ 	-e "TERM=xterm-256color" \
 	-v "$$(pwd):/root/src" \
 	-v "$$(pwd)/../engine/:/root/engine" \
 	-v "$$(pwd)/../game/:/root/game" \
@@ -12,6 +13,7 @@ build:
 run:
 	[ ! -z $$(docker images -q cargo-apk) ] || docker build . --tag cargo-apk
 	$(CMD) cargo-apk build
+	adb uninstall xyz.noxim.kea
 	adb install target/android-artifacts/app/build/outputs/apk/app-debug.apk
 	adb shell monkey -p xyz.noxim.kea 1
 clean:
