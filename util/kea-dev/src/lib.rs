@@ -117,16 +117,13 @@ impl kea::renderer::Texture<Renderer> for Texture {
     fn from_data(renderer: &mut Renderer, size: &Size, data: &Vec<Color>) -> Self {
         let mut img = Vec::new();
         img.reserve(size[0] * size[1] * 4);
-        for i in 0 .. size[0] * size[1] {
+        for i in 0..size[0] * size[1] {
             img.push(data[i][0]);
             img.push(data[i][1]);
             img.push(data[i][2]);
             img.push(data[i][3]);
         }
-        let raw = glium::texture::RawImage2d::from_raw_rgba(
-            img,
-            (size[0] as u32, size[1] as u32),
-        );
+        let raw = glium::texture::RawImage2d::from_raw_rgba(img, (size[0] as u32, size[1] as u32));
         let tex = glium::texture::Texture2d::new(&*renderer.display, raw).unwrap();
 
         Texture {
@@ -181,7 +178,7 @@ impl kea::renderer::Target<Renderer> for Texture {
                 &uniforms,
                 &glium::DrawParameters {
                     blend: glium::Blend::alpha_blending(),
-                    .. Default::default()
+                    ..Default::default()
                 },
             )
             .unwrap();
@@ -192,11 +189,10 @@ impl kea::renderer::Surface<Renderer> for Surface {
     fn capture(&self) -> Texture {
         unimplemented!()
     }
+
     fn present(&mut self, _vsync: bool) {
-        //TODO: Vsync
-        std::mem::replace(&mut self.frame, self.display.draw())
-            .finish()
-            .unwrap();
+        // TODO: vsync
+        std::mem::replace(&mut self.frame, self.display.draw()).finish().unwrap()
     }
 }
 
@@ -237,7 +233,7 @@ impl kea::renderer::Target<Renderer> for Surface {
                 &uniforms,
                 &glium::DrawParameters {
                     blend: glium::Blend::alpha_blending(),
-                    .. Default::default()
+                    ..Default::default()
                 },
             )
             .unwrap();
