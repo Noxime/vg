@@ -71,6 +71,15 @@ impl kea::renderer::Texture<SwitchRenderer> for SwitchTexture {
             data
         }
     }
+
+    fn from_data(renderer: &mut SwitchRenderer, size: &Size, data: &Vec<Color>) -> Self {
+        SwitchTexture {
+            width: size[0] as u32,
+            height: size[1] as u32,
+            data: data.clone(),
+        }
+    }
+
     fn clone(&self) -> Self {
         unimplemented!()
     }

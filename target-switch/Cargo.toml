@@ -22,7 +22,7 @@ debug = true
 opt-level = 3
 
 [dependencies]
-libnx-rs = { git = "https://github.com/ischeinkman/libnx-rs" }
+libnx-rs = { git = "https://github.com/ischeinkman/libnx-rs", branch = "master" }
 
 #pistoncore-libnx-rs_window = { git = "https://github.com/noxime/libnx-rs_window" }
 #piston_window = { version = "^0.82.0", default-features = false }

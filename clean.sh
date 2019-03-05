@@ -1,0 +1,8 @@
+(cd target-desktop && cargo clean)
+(cd target-android && make clean)
+(cd target-switch && make clean)
+(cd target-ios && make clean)
+(cd game && cargo clean)
+(cd engine && cargo clean)
+(cd util/kea-dev && cargo clean)
+(cd util/kea-hal && cargo clean)

@@ -51,6 +51,10 @@ impl Transform {
     }
 }
 
+fn random() -> f32 {
+    1.0
+}
+
 pub fn game<P, R>(mut api: EngineApi<P, R>)
 where
     P: PlatformApi,
@@ -131,8 +135,8 @@ where
                 let mut v = *v;
                 if x > 5.0 {
                     x = -5.0;
-                    y = rand::random::<f32>() * 6.0 + 3.0;
-                    v = rand::random::<f32>() * 0.5 + 0.25;
+                    y = random() * 6.0 + 3.0;
+                    v = random() * 0.5 + 0.25;
                 }
 
                 api.renderer.surface().draw(
