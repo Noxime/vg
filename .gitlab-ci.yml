@@ -28,3 +28,7 @@ desktop:
   - rustc --version && cargo --version
   - cd target-desktop
   - cargo build --verbose
+
+android:
+  script:
+  - make
