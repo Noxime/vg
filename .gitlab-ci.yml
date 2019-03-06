@@ -1,4 +1,5 @@
 image: "rust:latest"
+
 engine:
   before_script:
   - rustup update nightly
@@ -30,6 +31,9 @@ desktop:
   - cargo build --verbose
 
 android:
+  before_script:
+  - apt-get update
+  - apt-get install docker
   script:
   - cd target-android
   - make
