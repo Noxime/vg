@@ -31,4 +31,5 @@ desktop:
 
 android:
   script:
+  - cd target-android
   - make
