@@ -55,10 +55,11 @@ fn random() -> f32 {
     1.0
 }
 
-pub fn game<P, R>(mut api: EngineApi<P, R>)
+pub fn game<P, R, I>(mut api: EngineApi<P, R, I>)
 where
     P: PlatformApi,
     R: renderer::Renderer,
+    I: input::Input,
 {
     {
         let [w, h] = api.renderer.surface().size();
@@ -104,7 +105,18 @@ where
         (-5.0, 4.0, 0.12),
     ];
 
-    loop {
+    {
+        let c = api.input.controller(&api.input.default()).unwrap();
+        api.platform.print(&format!("Using controller: `{}` ({:?})", c.info.name, c.info.power));
+    }
+
+    while !api.platform.exit() {
+        let controller = {
+            let id = api.input.default();
+            api.input.controller(&id).unwrap()
+        };
+        api.poll();
+
         let size = api.renderer.surface().size();
         camera.aspect = size[0] as f32 / size[1] as f32;
         let delta = last.elapsed().subsec_nanos() as f32 / 1_000_000_000.0;
@@ -127,31 +139,18 @@ where
             );
         }
 
-        clouds = clouds
-            .iter()
-            .map(|(x, y, v)| {
-                let mut x = *x;
-                let mut y = *y;
-                let mut v = *v;
-                if x > 5.0 {
-                    x = -5.0;
-                    y = random() * 6.0 + 3.0;
-                    v = random() * 0.5 + 0.25;
-                }
 
-                api.renderer.surface().draw(
-                    &cloud_tex,
-                    &Transform {
-                        x: x,
-                        y: y,
-                        w: 2.0,
-                        h: 1.0,
-                    }
-                    .matrix(&camera),
-                );
-                (x + v * delta, y, v)
-            })
-            .collect();
+
+        api.renderer.surface().draw(
+            &cloud_tex,
+            &Transform {
+                x: controller.right_joy.x + 2.0,
+                y: controller.right_joy.y + 5.0,
+                w: controller.left_shoulder.bumper.value() + 1.0,
+                h: controller.right_shoulder.bumper.value() * 0.5 + 0.5,
+            }
+            .matrix(&camera),
+        );
 
         let frame = {
             if time % 1.0 > 0.5 {
@@ -161,11 +160,13 @@ where
             }
         };
 
+        let frame = if controller.buttons.down.active() { 1 } else { 0 };
+
         api.renderer.surface().draw(
             &cow[frame],
             &Transform {
-                x: -2.0,
-                y: 0.0,
+                x: controller.left_joy.x,
+                y: controller.left_joy.y,
                 w: 3.0,
                 h: 5.0,
             }

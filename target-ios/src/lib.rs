@@ -10,6 +10,6 @@ impl kea::PlatformApi for Api {
 }
 
 #[no_mangle]
-pub extern fn ios_main() {
+pub extern "C" fn ios_main() {
     kea::run(Api, kea_dev::Renderer::new(), &game::game);
 }

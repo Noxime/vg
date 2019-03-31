@@ -1,4 +1,6 @@
+pub use glium::glutin;
 use glium::implement_vertex;
+
 use kea::renderer::{Color, Matrix, Size};
 
 use std::rc::Rc;
@@ -30,8 +32,7 @@ pub struct Surface {
 }
 
 impl Renderer {
-    pub fn new() -> Renderer {
-        use glium::glutin;
+    pub fn new() -> (Renderer, glutin::EventsLoop) {
         let events = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0))
@@ -78,12 +79,15 @@ impl Renderer {
             program: program.clone(),
         };
 
-        Renderer {
-            display,
-            surface,
-            verts: vertices,
-            program,
-        }
+        (
+            Renderer {
+                display,
+                surface,
+                verts: vertices,
+                program,
+            },
+            events,
+        )
     }
 }
 
@@ -192,7 +196,9 @@ impl kea::renderer::Surface<Renderer> for Surface {
 
     fn present(&mut self, _vsync: bool) {
         // TODO: vsync
-        std::mem::replace(&mut self.frame, self.display.draw()).finish().unwrap()
+        std::mem::replace(&mut self.frame, self.display.draw())
+            .finish()
+            .unwrap()
     }
 }
 

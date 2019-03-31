@@ -1,8 +1,8 @@
-use std::marker::PhantomData;
 use super::{Error, GSurface};
+use std::marker::PhantomData;
 
 pub struct GRenderer<B: gfx_hal::Backend> {
-    _d: PhantomData<B>
+    _d: PhantomData<B>,
 }
 
 impl<B: gfx_hal::Backend> GRenderer<B> {

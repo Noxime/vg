@@ -1,4 +1,3 @@
-
 #[derive(Debug)]
 pub enum Error {
     Unk,
@@ -10,4 +9,3 @@ mod tex;
 pub use self::tex::GTexture;
 mod surf;
 pub use self::surf::GSurface;
-

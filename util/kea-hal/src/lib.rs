@@ -1,4 +1,4 @@
-use kea::renderer::{Renderer, Surface, Target, Texture, Size, Color, Coordinate};
+use kea::renderer::{Color, Coordinate, Renderer, Size, Surface, Target, Texture};
 
 use winit::EventsLoop;
 
@@ -62,22 +62,42 @@ impl Renderer for HalRenderer {
 }
 
 impl Texture<HalRenderer> for HalTexture {
-    fn new(size: &Size, color: &Color) -> Self { unimplemented!() }
-    fn clone(&self) -> Self { unimplemented!() }
-    fn scale(&mut self, size: &Size) { unimplemented!() }
+    fn new(size: &Size, color: &Color) -> Self {
+        unimplemented!()
+    }
+    fn clone(&self) -> Self {
+        unimplemented!()
+    }
+    fn scale(&mut self, size: &Size) {
+        unimplemented!()
+    }
 }
 
 impl Target<HalRenderer> for HalTexture {
-    fn size(&self) -> Size { unimplemented!() }
-    fn set(&mut self, color: &Color) { unimplemented!() }
-    fn draw(&mut self, texture: HalTexture, coords: Coordinate) { unimplemented!() }
+    fn size(&self) -> Size {
+        unimplemented!()
+    }
+    fn set(&mut self, color: &Color) {
+        unimplemented!()
+    }
+    fn draw(&mut self, texture: HalTexture, coords: Coordinate) {
+        unimplemented!()
+    }
 }
 
 impl Surface<HalRenderer> for HalSurface {
-    fn capture(&self) -> HalTexture { unimplemented!() }
+    fn capture(&self) -> HalTexture {
+        unimplemented!()
+    }
 }
 impl Target<HalRenderer> for HalSurface {
-    fn size(&self) -> Size { unimplemented!() }
-    fn set(&mut self, color: &Color) { unimplemented!() }
-    fn draw(&mut self, texture: HalTexture, coords: Coordinate) { unimplemented!() }
+    fn size(&self) -> Size {
+        unimplemented!()
+    }
+    fn set(&mut self, color: &Color) {
+        unimplemented!()
+    }
+    fn draw(&mut self, texture: HalTexture, coords: Coordinate) {
+        unimplemented!()
+    }
 }

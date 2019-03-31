@@ -1,7 +1,7 @@
-extern crate kea;
-extern crate game;
-extern crate kea_dev;
 extern crate android_glue;
+extern crate game;
+extern crate kea;
+extern crate kea_dev;
 
 struct Api;
 impl kea::PlatformApi for Api {
@@ -20,13 +20,13 @@ impl android_glue::SyncEventHandler for AndroidHandler {
                 println!("FOCUS LOST: Save game state");
                 // TODO: ask game for its state and save it, and set reload flag
                 std::process::exit(0);
-            },
+            }
             _ => (),
         }
     }
 }
 
-fn main() {  
+fn main() {
     android_glue::add_sync_event_handler(Box::new(AndroidHandler {}));
     kea::run(Api, kea_dev::Renderer::new(), &game::game);
 }

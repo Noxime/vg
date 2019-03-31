@@ -94,7 +94,7 @@ impl kea::renderer::Target<SwitchRenderer> for SwitchTexture {
             self.data[i] = *color;
         }
     }
-    fn draw(&mut self, _texture: &SwitchTexture, trans: &Matrix) {
+    fn draw(&mut self, texture: &SwitchTexture, trans: &Matrix) {
         let mut vert0 = multiply(trans, [-0.5, -0.5]);
         let mut vert1 = multiply(trans, [-0.5,  0.5]);
         let mut vert2 = multiply(trans, [ 0.5,  0.5]);
@@ -140,7 +140,17 @@ impl kea::renderer::Target<SwitchRenderer> for SwitchTexture {
             },
         ];
 
-        verts.sort_by(|a, b| a.y.cmp(&b.y))
+        verts.sort_by(|a, b| a.y.cmp(&b.y));
+
+        // for y in verts[0].y .. verts[2].y {
+
+        // }
+
+        for x in 0 .. texture.width {
+            for y in 0 .. texture.height {
+                self.data[x as usize + y as usize * self.width as usize] = texture.data[x as usize + y as usize * texture.width as usize];
+            }
+        }
     }
 }
 
