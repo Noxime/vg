@@ -18,7 +18,7 @@ RUN mkdir ${ANDROID_HOME} && \
     rm sdk-tools-linux-3859397.zip && \
     chown -R root:root /opt
 RUN yes | ${ANDROID_HOME}/tools/bin/sdkmanager "platform-tools"
-RUN yes | ${ANDROID_HOME}/tools/bin/sdkmanager "platforms;android-18"
+RUN yes | ${ANDROID_HOME}/tools/bin/sdkmanager "platforms;android-26"
 RUN yes | ${ANDROID_HOME}/tools/bin/sdkmanager "build-tools;26.0.1"
 RUN ${ANDROID_HOME}/tools/bin/sdkmanager --update
 ENV PATH $PATH:${ANDROID_HOME}/tools:$ANDROID_HOME/platform-tools

@@ -5,6 +5,7 @@ authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
 [package.metadata.android]
+android_version = 26
 package_name = "xyz.noxim.kea"
 label = "Kea"
 fullscreen = true
@@ -16,3 +17,4 @@ game = { path = "../game" }
 kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
 kea-dev = { path = "../util/kea-dev" }
 android_glue = "0.2.3"
+placeholder-input = { path = "../util/placeholder-input" }

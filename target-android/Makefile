@@ -23,3 +23,6 @@ clean:
 release:
 	[ ! -z $$(docker images -q cargo-apk) ] || docker build . --tag cargo-apk
 	$(CMD) cargo-apk build --release
+	sudo jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore release.keystore target/android-artifacts/app/build/outputs/apk/app-release-unsigned.apk kea_test
+	zipalign 4 target/android-artifacts/app/build/outputs/apk/app-release-unsigned.apk app.apk
+

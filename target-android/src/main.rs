@@ -2,9 +2,13 @@ extern crate android_glue;
 extern crate game;
 extern crate kea;
 extern crate kea_dev;
+extern crate placeholder_input;
 
 struct Api;
 impl kea::PlatformApi for Api {
+    fn exit(&self) -> bool {
+        false
+    }
     fn print(&self, s: &str) {
         println!("{}", s);
     }
@@ -28,5 +32,5 @@ impl android_glue::SyncEventHandler for AndroidHandler {
 
 fn main() {
     android_glue::add_sync_event_handler(Box::new(AndroidHandler {}));
-    kea::run(Api, kea_dev::Renderer::new(), &game::game);
+    kea::run(Api, kea_dev::Renderer::new().0, placeholder_input::Input, Box::new(|| {}), &game::game);
 }
