@@ -119,7 +119,7 @@ pub trait Input {
     /// Get the [`ID`] for the "primary" controller. You should use this for
     /// single player games, and should be the controller that most recently
     /// received input
-    fn default(&self) -> Id;
+    fn default(&self) -> Option<Id>;
     /// Get the [`ID`]s for all currently connected controllers
     ///
     /// Note: To also get controllers that have been disconnected, use

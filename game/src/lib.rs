@@ -105,15 +105,29 @@ where
         (-5.0, 4.0, 0.12),
     ];
 
-    {
-        let c = api.input.controller(&api.input.default()).unwrap();
+    if let Some(id) = api.input.default() {
+        let c = api.input.controller(&id).unwrap();
         api.platform.print(&format!("Using controller: `{}` ({:?})", c.info.name, c.info.power));
+    } else {
+        api.platform.print("WARNING: No controllers connected (not even a keyboard?!)");
     }
 
     while !api.platform.exit() {
-        let controller = {
-            let id = api.input.default();
-            api.input.controller(&id).unwrap()
+        let (cx, cy, cx2, cy2) = {
+            if let Some(id) = api.input.default() {
+                if let Some(c) = api.input.controller(&id) {
+                    (
+                        c.left_joy.x,
+                        c.left_joy.y,
+                        c.right_joy.x,
+                        c.right_joy.y
+                    )
+                } else {
+                    (0.0, 0.0, 0.0, 0.0)
+                }
+            } else {
+                (0.0, 0.0, 0.0, 0.0)
+            }
         };
         api.poll();
 
@@ -144,10 +158,10 @@ where
         api.renderer.surface().draw(
             &cloud_tex,
             &Transform {
-                x: controller.right_joy.x + 2.0,
-                y: controller.right_joy.y + 5.0,
-                w: controller.left_shoulder.bumper.value() + 1.0,
-                h: controller.right_shoulder.bumper.value() * 0.5 + 0.5,
+                x: cx2,
+                y: cy2,
+                w: 2.0,
+                h: 1.0,
             }
             .matrix(&camera),
         );
@@ -160,13 +174,13 @@ where
             }
         };
 
-        let frame = if controller.buttons.down.active() { 1 } else { 0 };
+        // let frame = if controller.buttons.down.active() { 1 } else { 0 };
 
         api.renderer.surface().draw(
             &cow[frame],
             &Transform {
-                x: controller.left_joy.x,
-                y: controller.left_joy.y,
+                x: cx,
+                y: cx,
                 w: 3.0,
                 h: 5.0,
             }

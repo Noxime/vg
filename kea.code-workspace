@@ -19,7 +19,7 @@
 			"path": "engine"
 		},
 		{
-			"path": "util/kea-dev"
+			"path": "util/"
 		}
 	]
 }

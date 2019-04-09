@@ -45,7 +45,7 @@ impl Input {
 }
 
 impl kea::Input for Input {
-    fn default(&self) -> input::Id {
+    fn default(&self) -> Option<input::Id> {
         self.update();
         let gilrs = self.0.lock().unwrap();
         let mut latest = (std::time::SystemTime::UNIX_EPOCH, None);
@@ -62,7 +62,7 @@ impl kea::Input for Input {
                 }
             }
         }
-        *latest.1.unwrap()
+        latest.1.map(|x| *x)
     }
 
     fn all_controllers(&self) -> Vec<input::Id> {
