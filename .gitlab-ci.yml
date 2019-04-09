@@ -25,7 +25,7 @@ desktop:
   - rustup update nightly
   - rustup default nightly
   - apt-get update
-  - apt-get install libudev-dev
+  - apt-get install -y libudev-dev
   script:
   - rustc --version && cargo --version
   - cd target-desktop
