@@ -1,3 +1,16 @@
+// ISC License
+//
+// This is a graphics backend designed for API development, and it uses Glium as
+// its own rendering implementation. Before I ship, this will get replaced by
+// kea-hal or kea-wgpu, which will be a more low-level implementation to support
+// Vulkan, DirectX and Metal enabled devices. Glium only uses OpenGL under the
+// hood, so its not as "cool" ;)
+// 
+// Comments here are quite unclear and hard to read, so I don't recommend
+// messing with this file much :P
+//
+//     Noxim 2019-04-12
+
 pub use glium::glutin;
 use glium::implement_vertex;
 
@@ -33,13 +46,31 @@ pub struct Surface {
 
 impl Renderer {
     pub fn new() -> (Renderer, glutin::EventsLoop) {
-        let events = glutin::EventsLoop::new();
-        let window = glutin::WindowBuilder::new()
-            .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0))
-            .with_title("Kea");
-        let context = glutin::ContextBuilder::new()
-            .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0)));
-        let display = Rc::new(glium::Display::new(window, context, &events).unwrap());
+        // Iterate through various GL versions to find a compatible one
+        let (display, events) = {
+            let mut res = None;
+            for api in &[
+                glutin::GlRequest::Latest,
+                glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 0)),
+                glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0)),
+                glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)),
+                glutin::GlRequest::Specific(glutin::Api::WebGl, (1, 0)),
+            ] {
+                let events = glutin::EventsLoop::new();
+                let window = glutin::WindowBuilder::new()
+                    .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0))
+                    .with_title("Kea");
+                let context = glutin::ContextBuilder::new()
+                    .with_gl(*api);
+                if let Ok(d) = glium::Display::new(window, context, &events) {
+                    res = Some((Rc::new(d), events));
+                    break;
+                }
+            }
+
+            res.expect("No graphics api support found")
+        };
+        
 
         // upload a vertex quad for our rendering ops
         let vertex1 = Vertex {
@@ -62,6 +93,7 @@ impl Renderer {
 
         let vertices = Rc::new(glium::VertexBuffer::new(&*display, &shape).unwrap());
 
+        // default "identity" shaders
         let program = Rc::new(
             glium::Program::from_source(
                 &*display,
@@ -92,7 +124,7 @@ impl Renderer {
 }
 
 impl kea::renderer::Renderer for Renderer {
-    const NAME: &'static str = "Glium";
+    const NAME: &'static str = "DEV (glium)";
 
     type Texture = Texture;
     type Surface = Surface;
@@ -104,6 +136,7 @@ impl kea::renderer::Renderer for Renderer {
 
 impl kea::renderer::Texture<Renderer> for Texture {
     fn new(renderer: &mut Renderer, size: &Size, color: &Color) -> Self {
+        // create a buffer
         let img = (0..size[0] * size[1] * 4).map(|i| color[i % 4]);
         let raw = glium::texture::RawImage2d::from_raw_rgba(
             img.collect(),
@@ -119,6 +152,7 @@ impl kea::renderer::Texture<Renderer> for Texture {
     }
 
     fn from_data(renderer: &mut Renderer, size: &Size, data: &Vec<Color>) -> Self {
+        // turn the data into a linear buffer
         let mut img = Vec::new();
         img.reserve(size[0] * size[1] * 4);
         for i in 0..size[0] * size[1] {
@@ -138,6 +172,7 @@ impl kea::renderer::Texture<Renderer> for Texture {
     }
 
     fn clone(&self) -> Self {
+        // TODO: Read the texture and upload new one
         unimplemented!()
     }
 }
@@ -191,6 +226,7 @@ impl kea::renderer::Target<Renderer> for Texture {
 
 impl kea::renderer::Surface<Renderer> for Surface {
     fn capture(&self) -> Texture {
+        // TODO: Read the texture back to memory
         unimplemented!()
     }
 
