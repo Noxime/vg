@@ -113,6 +113,9 @@ where
     }
 
     while !api.platform.exit() {
+        api.poll();
+
+
         let (cx, cy, cx2, cy2) = {
             if let Some(id) = api.input.default() {
                 if let Some(c) = api.input.controller(&id) {
@@ -129,7 +132,6 @@ where
                 (0.0, 0.0, 0.0, 0.0)
             }
         };
-        api.poll();
 
         let size = api.renderer.surface().size();
         camera.aspect = size[0] as f32 / size[1] as f32;
@@ -180,7 +182,7 @@ where
             &cow[frame],
             &Transform {
                 x: cx,
-                y: cx,
+                y: cy,
                 w: 3.0,
                 h: 5.0,
             }

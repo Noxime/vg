@@ -26,9 +26,43 @@ impl kea::PlatformApi for Api {
     }
 }
 
+// TODO: make this uhh not so dumb
+#[derive(Default)]
+struct KeyState {
+    // left joy
+    w: bool,
+    a: bool,
+    s: bool,
+    d: bool,
+    // right joy
+    i: bool,
+    j: bool,
+    k: bool,
+    l: bool,
+    // dpad
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool,
+    // buttons
+    fa: bool, // E
+    fb: bool, // O
+    fx: bool, // Q
+    fy: bool, // U
+    // shoulders
+    lb: bool, // ctrl/alt/cmd
+    lt: bool, // shift
+    rb: bool,
+    rt: bool,
+    // misc
+    start: bool, // R
+    select: bool, // T
+}
+
 struct Input(
     Mutex<gilrs::Gilrs>,
     Mutex<std::collections::HashMap<input::Id, gilrs::GamepadId>>,
+    Arc<Mutex<(std::time::SystemTime, KeyState)>>,
 );
 impl Input {
     fn update(&self) {
@@ -62,17 +96,65 @@ impl kea::Input for Input {
                 }
             }
         }
+        if self.2.lock().unwrap().0 >= latest.0 {
+            return Some(!0)
+        }
+
         latest.1.map(|x| *x)
     }
 
     fn all_controllers(&self) -> Vec<input::Id> {
         self.update();
-        self.1.lock().unwrap().keys().map(|v| *v).collect()
+        let mut x: Vec<input::Id> = self.1.lock().unwrap().keys().map(|v| *v).collect();
+        x.push(!0);
+        x
     }
 
     fn controller(&self, id: &input::Id) -> Option<input::Controller> {
         self.update();
         use input::*;
+
+        if *id == !0 {
+            let state = &self.2.lock().unwrap().1;
+            return Some(Controller {
+                info: Info {
+                    name: "Keyboard".into(),
+                    power: Power::Unknown,
+                    id: !0,
+                    connected: true,
+                },
+                start: state.start.into(),
+                select: state.select.into(),
+                left_joy: Joy {
+                    x: if state.a { -1.0 } else { 0.0 } + if state.d { 1.0 } else { 0.0 },
+                    y: if state.s { -1.0 } else { 0.0 } + if state.w { 1.0 } else { 0.0 },
+                },
+                right_joy: Joy {
+                    x: if state.j { -1.0 } else { 0.0 } + if state.l { 1.0 } else { 0.0 },
+                    y: if state.k { -1.0 } else { 0.0 } + if state.i { 1.0 } else { 0.0 },
+                },
+                dpad: Buttons {
+                    up: state.up.into(),
+                    down: state.down.into(),
+                    left: state.left.into(),
+                    right: state.right.into(),
+                },
+                buttons: Buttons {
+                    up: state.fy.into(),
+                    down: state.fa.into(),
+                    left: state.fx.into(),
+                    right: state.fb.into(),
+                },
+                left_shoulder: Shoulder {
+                    bumper: state.lb.into(),
+                    trigger: state.lt.into(),
+                },
+                right_shoulder: Shoulder {
+                    bumper: state.rb.into(),
+                    trigger: state.rt.into(),
+                },
+            })
+        }
 
         self.1.lock().unwrap().get(id).map(|id| {
             let gilrs = self.0.lock().unwrap();
@@ -123,21 +205,14 @@ impl kea::Input for Input {
             }
         })
     }
-    // fn controllers(&self) -> Vec<input::Controller> {
 
-    //     let mut gilrs = self.0.lock().unwrap();
+    fn mapping(&self) -> input::KeyboardMapping {
+        unimplemented!()
+    }
 
-    //     while let Some(_) = gilrs.next_event() {}
-    //     // TODO: GilRs does not expose buttons as analog (probably because
-    //     // analog buttons are rare, but not non-existent, see DualShock 2).
-    //     // Anyway, maybe some day we can fix this? out of scope for now.
-    //     // noxim - 2019-03-31
-    //     gilrs.gamepads().map(|(_id, pad)| {
-    //         use input::*;
-    //         let state = pad.state();
-
-    //     }).collect()
-    // }
+    fn set_mapping(&mut self, _: input::KeyboardMapping) {
+        unimplemented!()
+    }
 }
 
 fn main() {
@@ -146,14 +221,24 @@ fn main() {
         should_close: false,
     }));
     let platform = Api(platform_state.clone());
+    let keyboard = Arc::new(Mutex::new((std::time::SystemTime::UNIX_EPOCH, KeyState::default())));
+
     let input = Input(
         Mutex::new(gilrs::Gilrs::new().unwrap()),
         Mutex::new(std::collections::HashMap::new()),
+        keyboard.clone(),
     );
 
     let poll = Box::new(move || {
         events.poll_events(|e| {
-            use glutin::{Event, WindowEvent};
+            use glutin::{
+                Event, 
+                WindowEvent, 
+                DeviceEvent, 
+                KeyboardInput, 
+                VirtualKeyCode, 
+                ElementState
+            };
             match e {
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
@@ -164,7 +249,61 @@ fn main() {
                         .expect("PlatformState lock fail")
                         .should_close = true;
                 }
-                _ => (),
+                Event::WindowEvent {
+                    event: WindowEvent::KeyboardInput {
+                        input: KeyboardInput {
+                            state,
+                            virtual_keycode: Some(key),
+                            ..
+                        },
+                        ..
+                    },
+                    ..
+                } => {
+                    println!("key event: {:?} {:?}", key, state);
+                    let s = match state {
+                        ElementState::Pressed => true,
+                        ElementState::Released => false,
+                    };
+                    match key {
+                        VirtualKeyCode::W => keyboard.lock().unwrap().1.w = s,
+                        VirtualKeyCode::A => keyboard.lock().unwrap().1.a = s,
+                        VirtualKeyCode::S => keyboard.lock().unwrap().1.s = s,
+                        VirtualKeyCode::D => keyboard.lock().unwrap().1.d = s,
+
+                        VirtualKeyCode::I => keyboard.lock().unwrap().1.i = s,
+                        VirtualKeyCode::J => keyboard.lock().unwrap().1.j = s,
+                        VirtualKeyCode::K => keyboard.lock().unwrap().1.k = s,
+                        VirtualKeyCode::L => keyboard.lock().unwrap().1.l = s,
+
+                        VirtualKeyCode::Up => keyboard.lock().unwrap().1.up = s,
+                        VirtualKeyCode::Down => keyboard.lock().unwrap().1.down = s,
+                        VirtualKeyCode::Left => keyboard.lock().unwrap().1.left = s,
+                        VirtualKeyCode::Right => keyboard.lock().unwrap().1.right = s,
+
+                        VirtualKeyCode::E => keyboard.lock().unwrap().1.fa = s,
+                        VirtualKeyCode::Q => keyboard.lock().unwrap().1.fx = s,
+                        VirtualKeyCode::O => keyboard.lock().unwrap().1.fb = s,
+                        VirtualKeyCode::U => keyboard.lock().unwrap().1.fy = s,
+
+                        VirtualKeyCode::LShift => keyboard.lock().unwrap().1.lt = s,
+                        VirtualKeyCode::RShift => keyboard.lock().unwrap().1.rt = s,
+                        VirtualKeyCode::LControl |
+                        VirtualKeyCode::LWin |
+                        VirtualKeyCode::LAlt => keyboard.lock().unwrap().1.lb = s,
+                        VirtualKeyCode::RControl |
+                        VirtualKeyCode::RWin |
+                        VirtualKeyCode::RAlt => keyboard.lock().unwrap().1.rb = s,
+
+                        VirtualKeyCode::R => keyboard.lock().unwrap().1.start = s,
+                        VirtualKeyCode::T => keyboard.lock().unwrap().1.select = s,
+
+
+                        _ => ()
+                    }
+                    keyboard.lock().unwrap().0 = std::time::SystemTime::now();
+                }
+                _ => ()
             }
         })
     });

@@ -1,5 +1,5 @@
 /// A structure representing the state of a game controller
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct Controller {
     pub info: Info,
     pub start: Axis,
@@ -13,7 +13,7 @@ pub struct Controller {
 }
 
 /// Generic metadata about a game controller
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Info {
     /// User friendly name for the game controller
     pub name: String,
@@ -25,6 +25,17 @@ pub struct Info {
     pub connected: bool,
 }
 
+impl Default for Info {
+    fn default() -> Self {
+        Info {
+            name: "INTERNAL ERROR".into(),
+            power: Power::Unknown,
+            id: !0 - 1,
+            connected: false,
+        }
+    }
+}
+
 /// An ID refererring to a controller
 pub type Id = usize;
 
@@ -32,7 +43,7 @@ pub type Id = usize;
 ///
 /// If the variant is either `Charging(_)` or `Discharging(_)`, then the value
 /// is the battery percentage from `0.0` to `1.0`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Power {
     Unknown,
     Wired,
@@ -42,14 +53,14 @@ pub enum Power {
 }
 
 /// An analog stick where each axis is in range `-1.0` to `1.0`
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct Joy {
     pub x: f32,
     pub y: f32,
 }
 
 /// A 4-way button arrangement, such as the face buttons or the D-pad
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct Buttons {
     pub up: Axis,
     pub down: Axis,
@@ -58,25 +69,35 @@ pub struct Buttons {
 }
 
 /// Triggers and bumpers of the controller
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct Shoulder {
     pub trigger: Axis,
     pub bumper: Axis,
 }
 
 /// A digital or analog button
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Axis {
     raw: f32,
     treshold: f32,
     kind: AxisKind,
 }
 
+impl Default for Axis {
+    fn default() -> Self {
+        Axis {
+            raw: 0.0,
+            treshold: 0.25,
+            kind: AxisKind::Digital,
+        }
+    }
+}
+
 /// Is axis a digital or analog input
 ///
 /// Note: You generally do not need to use this, as [`Axis`] abstracts the input
 /// type away.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AxisKind {
     Digital,
     Analog,
@@ -112,28 +133,272 @@ impl From<f32> for Axis {
     }
 }
 
+/// A mapping between a keyboard input device and a virtual [`Controller`]
+/// 
+/// Note: For its usage, see [`mapping`](Input::mapping) and 
+/// [`set_mapping`](Input::set_mapping)
+/// 
+/// The values for a [`default`](Default::default) mapping are:
+/// 
+/// | Controller     | Keyboard                                     |
+/// |----------------|----------------------------------------------|
+/// | Start          | Escape                                       |
+/// | Select         | Enter                                        |
+/// | Left joystick  | WASD                                         |
+/// | Right joystick | IJKL                                         |
+/// | DPAD           | Arrow keys                                   |
+/// | Buttons        | Down is Q, right is E, left is U and up is O |
+/// | Triggets       | Shifts                                       |
+/// | Bumpers        | Alt, Control and Super keys                  |
+#[derive(Debug)]
+pub struct KeyboardMapping {
+    start: Vec<Key>,
+    select: Vec<Key>,
+
+    left_joy_up: Vec<Key>,
+    left_joy_down: Vec<Key>,
+    left_joy_left: Vec<Key>,
+    left_joy_right: Vec<Key>,
+
+    right_joy_up: Vec<Key>,
+    right_joy_down: Vec<Key>,
+    right_joy_left: Vec<Key>,
+    right_joy_right: Vec<Key>,
+
+    dpad_up: Vec<Key>,
+    dpad_down: Vec<Key>,
+    dpad_left: Vec<Key>,
+    dpad_right: Vec<Key>,
+
+    buttons_up: Vec<Key>,
+    buttons_down: Vec<Key>,
+    buttons_left: Vec<Key>,
+    buttons_right: Vec<Key>,
+
+    left_shoulder_trigger: Vec<Key>,
+    left_shoulder_bumper: Vec<Key>,
+    right_shoulder_trigger: Vec<Key>,
+    right_shoulder_bumper: Vec<Key>,
+}
+
+impl Default for KeyboardMapping {
+    fn default() -> KeyboardMapping {
+        KeyboardMapping {
+            start: vec![Key::Esc],
+            select: vec![Key::Enter],
+
+            left_joy_up: vec![Key::W],
+            left_joy_down: vec![Key::S],
+            left_joy_left: vec![Key::A],
+            left_joy_right: vec![Key::D],
+
+            right_joy_up: vec![Key::I],
+            right_joy_down: vec![Key::K],
+            right_joy_left: vec![Key::J],
+            right_joy_right: vec![Key::L],
+
+            dpad_up: vec![Key::Up],
+            dpad_down: vec![Key::Down],
+            dpad_left: vec![Key::Left],
+            dpad_right: vec![Key::Right],
+
+            buttons_up: vec![Key::O],
+            buttons_down: vec![Key::Q],
+            buttons_left: vec![Key::U],
+            buttons_right: vec![Key::E],
+
+            left_shoulder_trigger: vec![Key::LShift],
+            left_shoulder_bumper: vec![Key::LAlt, Key::LCtrl, Key::LSuper],
+            right_shoulder_trigger: vec![Key::RShift],
+            right_shoulder_bumper: vec![Key::RAlt, Key::RCtrl, Key::RSuper],
+        }
+    }
+}
+
+/// A key on the keyboard, used for [`KeyboardMapping`]
+/// 
+/// Note: This enum does not contain all the keys present on keyboards, but
+/// rather a subset that I personally see useful for games.
+#[derive(Debug)]
+pub enum Key {
+    Key0,
+    Key1,
+    Key2,
+    Key3,
+    Key4,
+    Key5,
+    Key6,
+    Key7,
+    Key8,
+    Key9,
+
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+
+    /// Escape key
+    Esc,
+
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+
+    /// Arrow key up
+    Up,
+    /// Arrow key down
+    Down,
+    /// Arrow key left
+    Left,
+    /// Arrow key right
+    Right,
+
+    /// Backspace key
+    Back,
+    /// Enter key
+    Enter,
+    /// Spacebar
+    Space,
+
+    Period,
+    Comma,
+    Minus,
+
+    /// Left shift modifier
+    LShift,
+    /// Left alt modifier
+    LAlt,
+    /// Left ctrl modifier
+    LCtrl,
+    /// Left "super" key, on windows this is the Winkey, on MacOS it is "cmd" and
+    /// so on.
+    LSuper, 
+
+    /// Right shift modifier
+    RShift,
+    /// Right alt modifier
+    /// 
+    /// Note: Avoid using this without an alterantive set, as some keyboards do
+    /// not have this key
+    RAlt,
+    /// Right ctrl modifier
+    /// 
+    /// Note: Avoid using this without an alterantive set, as some keyboards do
+    /// not have this key
+    RCtrl,
+    /// Right "super" key, on windows this is the Winkey, on MacOS it is "cmd" 
+    /// and so on.
+    /// 
+    /// Note: Avoid using this without an alterantive set, as some keyboards do
+    /// not have this key
+    RSuper, 
+}
+
+impl Key {
+    /// Get all modifier keys for the left side of the keyboard
+    /// 
+    /// This is [`LShift`](Key::LShift), [`LAlt`](Key::LAlt),
+    /// [`LCtrl`](Key::LCtrl) and [`LSuper`](Key::LSuper)
+    pub fn left_mods() -> Vec<Key> {
+        vec![Key::LShift, Key::LAlt, Key::LCtrl, Key::LSuper]
+    }
+
+    /// Get all modifier keys for the right side of the keyboard
+    /// 
+    /// This is [`RShift`](Key::RShift), [`RAlt`](Key::RAlt), 
+    /// [`RCtrl`](Key::RCtrl) and [`RSuper`](Key::RSuper)
+    pub fn righs_mods() -> Vec<Key> {
+        vec![Key::RShift, Key::RAlt, Key::RCtrl, Key::RSuper]
+    }
+
+    /// Get both shift modifier keys
+    pub fn shifts() -> Vec<Key> {
+        vec![Key::LShift, Key::RShift]
+    }
+
+    /// Get both alt modifier keys
+    pub fn alts() -> Vec<Key> {
+        vec![Key::LAlt, Key::RAlt]
+    }
+
+    /// Get both ctrl modifier keys
+    pub fn ctrls() -> Vec<Key> {
+        vec![Key::LCtrl, Key::RCtrl]
+    }
+
+    /// Get both super modifier keys
+    pub fn supers() -> Vec<Key> {
+        vec![Key::LSuper, Key::RSuper]
+    }
+}
+
 /// A cross platform input api
 ///
 ///
 pub trait Input {
-    /// Get the [`ID`] for the "primary" controller. You should use this for
+    /// Get the [`Id`] for the "primary" controller. You should use this for
     /// single player games, and should be the controller that most recently
     /// received input
     fn default(&self) -> Option<Id>;
-    /// Get the [`ID`]s for all currently connected controllers
+    /// Get the [`Id`]s for all currently connected controllers
     ///
     /// Note: To also get controllers that have been disconnected, use
-    /// [`all_controllers`]
+    /// [`all_controllers`](Input::all_controllers)
     fn controllers(&self) -> Vec<Id> {
         self.all_controllers()
             .into_iter()
-            .filter(|id| self.controller(id).map(|c| c.info.connected).unwrap_or(false))
+            .filter(|id| self.controller(id).map(|c| c.info.connected)
+                .unwrap_or(false))
             .collect()
     }
-    /// Get the [`ID`]s for all controllers
+    /// Get the [`Id`]s for all controllers
     ///
     /// Note: This also contains controllers that are currently disconnected
     fn all_controllers(&self) -> Vec<Id>;
-    /// Retrieve a controller by its [`ID`], or `None` if it does not exist
+    /// Retrieve a controller by its [`Id`], or `None` if it does not exist
     fn controller(&self, id: &Id) -> Option<Controller>;
+    /// Get the current keyboard to [`Controller`] mapping
+    /// 
+    /// Note: To modify the current mapping, see 
+    /// [`set_mapping`](Input::set_mapping)
+    fn mapping(&self) -> KeyboardMapping;
+    /// Set the current keyboard to [`Controller`] mapping
+    /// 
+    /// Note: To get the current mapping, see [`mapping`](Input::mapping)
+    /// 
+    /// Kea maps all keyboard events to a virtual game controller, and this
+    /// mapping is done through a [`KeyboardMapping`]. See its documentation for
+    /// for the default values.
+    fn set_mapping(&mut self, mapping: KeyboardMapping);
 }
