@@ -41,7 +41,7 @@ pages:
   - cd engine
   - cargo doc
   - rm -rf public
-  - mv target/doc/ public
+  - mv target/doc/ ../public
   artifacts:
     paths:
     - public
