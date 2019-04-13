@@ -10,16 +10,6 @@ engine:
   - cd engine
   - cargo build --verbose
 
-game:
-  before_script:
-  - rustup update nightly
-  - rustup default nightly
-  - apt-get update
-  script:
-  - rustc --version && cargo --version
-  - cd game
-  - cargo build --verbose
-
 desktop:
   before_script:
   - rustup update nightly
@@ -32,7 +22,6 @@ desktop:
   - cargo build --verbose
 
 pages:
-  stage: deploy
   before_script:
   - rustup update nightly
   - rustup default nightly
@@ -42,7 +31,7 @@ pages:
   - cargo doc
   - rm -rf public
   - mv target/doc/ ../public
-  - echo '<meta http-equiv="refresh" content="0; url=kea">' > public/index.html
+  - echo '<meta http-equiv="refresh" content="0; url=kea">' > ../public/index.html
   artifacts:
     paths:
     - public
