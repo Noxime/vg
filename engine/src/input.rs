@@ -152,33 +152,33 @@ impl From<f32> for Axis {
 /// | Bumpers        | Alt, Control and Super keys                  |
 #[derive(Debug)]
 pub struct KeyboardMapping {
-    start: Vec<Key>,
-    select: Vec<Key>,
+    pub start: Vec<Key>,
+    pub select: Vec<Key>,
 
-    left_joy_up: Vec<Key>,
-    left_joy_down: Vec<Key>,
-    left_joy_left: Vec<Key>,
-    left_joy_right: Vec<Key>,
+    pub left_joy_up: Vec<Key>,
+    pub left_joy_down: Vec<Key>,
+    pub left_joy_left: Vec<Key>,
+    pub left_joy_right: Vec<Key>,
 
-    right_joy_up: Vec<Key>,
-    right_joy_down: Vec<Key>,
-    right_joy_left: Vec<Key>,
-    right_joy_right: Vec<Key>,
+    pub right_joy_up: Vec<Key>,
+    pub right_joy_down: Vec<Key>,
+    pub right_joy_left: Vec<Key>,
+    pub right_joy_right: Vec<Key>,
 
-    dpad_up: Vec<Key>,
-    dpad_down: Vec<Key>,
-    dpad_left: Vec<Key>,
-    dpad_right: Vec<Key>,
+    pub dpad_up: Vec<Key>,
+    pub dpad_down: Vec<Key>,
+    pub dpad_left: Vec<Key>,
+    pub dpad_right: Vec<Key>,
 
-    buttons_up: Vec<Key>,
-    buttons_down: Vec<Key>,
-    buttons_left: Vec<Key>,
-    buttons_right: Vec<Key>,
+    pub buttons_up: Vec<Key>,
+    pub buttons_down: Vec<Key>,
+    pub buttons_left: Vec<Key>,
+    pub buttons_right: Vec<Key>,
 
-    left_shoulder_trigger: Vec<Key>,
-    left_shoulder_bumper: Vec<Key>,
-    right_shoulder_trigger: Vec<Key>,
-    right_shoulder_bumper: Vec<Key>,
+    pub left_shoulder_trigger: Vec<Key>,
+    pub left_shoulder_bumper: Vec<Key>,
+    pub right_shoulder_trigger: Vec<Key>,
+    pub right_shoulder_bumper: Vec<Key>,
 }
 
 impl Default for KeyboardMapping {
@@ -363,9 +363,40 @@ impl Key {
     }
 }
 
+/// A [`Pointer`] represents either a mouse cursor or a touch on a screen or
+/// touchpad
+#[derive(Debug)]
+pub struct Pointer {
+    /// The [`Id`] of this pointer, which can be used to keep track of multiple
+    /// fingers on a touch screen.
+    pub id: Id,
+    /// Normalized X position of the pointer, with `-1.0` being the left edge of
+    /// the screen and `1.0` being the right edge of the screen
+    pub x: f32,
+    /// Normalized Y position of the pointer, with `-1.0` being the bottom edge
+    /// of the screen and `1.0` being the top edge of the screen
+    pub y: f32,
+    /// Is the pointer currently pressed down
+    /// 
+    /// Note: On devices that support touch pressure, this will analog value,
+    /// and on others such as the mouse this will be `0.0` or `1.0`
+    pub pressed: Axis,
+}
+
 /// A cross platform input api
-///
-///
+/// 
+/// This trait provides an abstracted way of dealing with game input. There are
+/// 2 forms of input in kea, a [`Controller`] and a [`Pointer`]
+/// 
+/// # Controllers
+/// [`Controller`] represents a generic game controller, which will likely be
+/// your primary input method. Keyboard events are mapped to a [`Controller`]
+/// too, and how that is done can be configured with [`Input::set_mapping`]
+/// 
+/// # Pointers
+/// [`Pointer`] represents any pointer, like the mouse cursor or touch screen
+/// presses. See its documentation for more info
+/// 
 pub trait Input {
     /// Get the [`Id`] for the "primary" controller. You should use this for
     /// single player games, and should be the controller that most recently
@@ -388,6 +419,17 @@ pub trait Input {
     fn all_controllers(&self) -> Vec<Id>;
     /// Retrieve a controller by its [`Id`], or `None` if it does not exist
     fn controller(&self, id: &Id) -> Option<Controller>;
+    /// Get pointers that we know of
+    /// 
+    /// To keep track of multiple touches, use the [`id`](Pointer::id) field of
+    /// [`Pointer`]
+    /// 
+    /// Note: On PS4 Dualshock contollers the [`id`](Pointer::id) of a 
+    /// [`Pointer`] is the same as the [`id`](Info::id) of the
+    /// controller. This currently limits the number of touches on a Dualshock
+    /// controller to only one, but hopefully later I will figure out a nice
+    /// way to handle that :)
+    fn pointers(&self) -> Vec<Pointer>;
     /// Get the current keyboard to [`Controller`] mapping
     /// 
     /// Note: To modify the current mapping, see 

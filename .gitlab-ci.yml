@@ -42,6 +42,7 @@ pages:
   - cargo doc
   - rm -rf public
   - mv target/doc/ ../public
+  - echo '<meta http-equiv="refresh" content="0; url=kea">' > public/index.html
   artifacts:
     paths:
     - public
