@@ -206,6 +206,10 @@ impl kea::Input for Input {
         })
     }
 
+    fn pointers(&self) -> Vec<input::Pointer> {
+        unimplemented!()
+    }
+
     fn mapping(&self) -> input::KeyboardMapping {
         unimplemented!()
     }
