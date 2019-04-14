@@ -95,8 +95,8 @@ impl Default for Axis {
 
 /// Is axis a digital or analog input
 ///
-/// Note: You generally do not need to use this, as [`Axis`] abstracts the input
-/// type away.
+/// Note: You generally do not need to use this, as [`Axis`] abstracts the
+/// input type away.
 #[derive(Debug, Clone)]
 pub enum AxisKind {
     Digital,
@@ -301,8 +301,8 @@ pub enum Key {
     LAlt,
     /// Left ctrl modifier
     LCtrl,
-    /// Left "super" key, on windows this is the Winkey, on MacOS it is "cmd" and
-    /// so on.
+    /// Left "super" key, on windows this is the Winkey, on MacOS it is "cmd"
+    /// and so on.
     LSuper, 
 
     /// Right shift modifier
@@ -370,8 +370,8 @@ pub struct Pointer {
     /// The [`Id`] of this pointer, which can be used to keep track of multiple
     /// fingers on a touch screen.
     pub id: Id,
-    /// Normalized X position of the pointer, with `-1.0` being the left edge of
-    /// the screen and `1.0` being the right edge of the screen
+    /// Normalized X position of the pointer, with `-1.0` being the left edge
+    /// of the screen and `1.0` being the right edge of the screen
     pub x: f32,
     /// Normalized Y position of the pointer, with `-1.0` being the bottom edge
     /// of the screen and `1.0` being the top edge of the screen
@@ -440,7 +440,7 @@ pub trait Input {
     /// Note: To get the current mapping, see [`mapping`](Input::mapping)
     /// 
     /// Kea maps all keyboard events to a virtual game controller, and this
-    /// mapping is done through a [`KeyboardMapping`]. See its documentation for
+    /// mapping is done through a [`KeyboardMapping`]. See its documentation
     /// for the default values.
     fn set_mapping(&mut self, mapping: KeyboardMapping);
 }

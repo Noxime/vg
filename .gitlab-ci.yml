@@ -1,10 +1,6 @@
 image: "rust:latest"
 
 engine:
-  before_script:
-  - rustup update nightly
-  - rustup default nightly
-  - apt-get update
   script:
   - rustc --version && cargo --version
   - cd engine
@@ -12,8 +8,6 @@ engine:
 
 desktop:
   before_script:
-  - rustup update nightly
-  - rustup default nightly
   - apt-get update
   - apt-get install -y libudev-dev
   script:
@@ -22,9 +16,7 @@ desktop:
   - cargo build --verbose
 
 pages:
-  before_script:
-  - rustup update nightly
-  - rustup default nightly
+  stage: deploy
   script:
   - rustc --version && cargo --version
   - cd engine

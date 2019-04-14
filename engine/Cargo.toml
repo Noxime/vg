@@ -2,27 +2,8 @@
 name = "kea"
 version = "0.0.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
-license = "MIT"
+license = "ISC"
 publish = false
-# edition = "2018"
-
-# TODO: Figure out what is the best way to do backend support... somethin wrong
-# here
-[features]
-default = []
-# backend-gl = ["gfx-backend-gl"]
-# backend-vk = ["gfx-backend-vulkan"]
-# backend-mt = ["gfx-backend-metal"]
-# backend-dx = ["gfx-backend-dx12"]
-backend-gl = []
-backend-vk = []
-backend-mt = []
-backend-dx = []
-
+edition = "2018"
 
 [dependencies]
-# gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
-# gfx-backend-gl = { git = "https://github.com/gfx-rs/gfx", optional = true }
-# gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx", optional = true }
-# gfx-backend-metal = { git = "https://github.com/gfx-rs/gfx", optional = true }
-# gfx-backend-dx12 = { git = "https://github.com/gfx-rs/gfx", optional = true }

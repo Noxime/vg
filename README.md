@@ -1,5 +1,4 @@
 # Kea Engine
-[![Build Status](https://dev.azure.com/noxim/kea/_apis/build/status/kea)](https://dev.azure.com/noxim/kea/_build/latest?definitionId=3)
 
 Kea engine is a cross-platform, cross-api lightweight game engine for 2D 
 games. It is mostly written to support my own game projects, but it 
@@ -7,6 +6,8 @@ might be a useful start for you to learn how to port to different
 platforms or how to design a somewhat-functional engine in Rust. 
 **Please note:** I am not a professional engine developer, so my code is 
 not the perfect.
+
+## [Documentation](https://noxim.owo.codes/kea)
 
 ## Supported platforms
 * Linux
@@ -27,13 +28,9 @@ not the perfect.
 |Switch |Yes     |WIP   |WIP   |No        |No   |
 
 
-# Get started
-Clone this repo and `$ cd` into one of the preferred targets, most likely 
-`target-desktop` and run `cargo build`. If you use any other target, there is a
-makefile in each of the `target-*` folders, use `make build` or `make run`.
-
-All game development happens in `game/`, independent of any targets, and engine
-development happens in `engine/`. 
+# Getting started
+Please check out the [documentation](https://noxim.owo.codes/kea) on how to
+start your Kea based game project!
 
 # Building and dependencies
 ## Dsk
