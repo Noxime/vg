@@ -198,7 +198,8 @@ impl<'a> Assets<'a> {
                 self.data(count as usize - 1).size() as usize + offset as usize + 1
             }
         };
-        let length = self.data[offset - 1] as usize;
+        let length = self.data[offset] as usize;
+        let offset = offset + 1;
         std::str::from_utf8(&self.data[offset..offset + length]).expect("Asset pack had invalid name")
     }
 
@@ -225,13 +226,34 @@ impl<'a> Assets<'a> {
         }
         Err(NotFound)
     }
+
+    pub fn all_binaries(&self) -> Vec<(&'a str, &'a [u8])> {
+        let mut buf = vec![];
+        for i in 0 .. self.count() {
+            let data = self.data(i as usize);
+            if data.kind() == DataType::Binary {
+                buf.push((data.name(), data.data()))
+            }
+        }
+        buf
+    }
+
+    pub fn all_assets(&self) -> Vec<Assets<'a>> {
+        let mut buf = vec![];
+        for i in 0 .. self.count() {
+            let data = self.data(i as usize);
+            if data.kind() == DataType::Assets {
+                buf.push(Assets { data: data.data() })
+            }
+        }
+        buf
+    }
 }
 
 fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
     assert!(Path::new(path).exists());
 
     let (mut data, kind) = if path.is_dir() {
-
         // asset pack
         let mut buf = vec![];
         let mut count: u64 = 0;
@@ -247,7 +269,8 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
             data.append(&mut entry);
         }
 
-        let name = path.file_name().unwrap().to_str().unwrap().as_bytes();
+        let name = path.file_name().expect("No file name in path")
+            .to_str().expect("File name is not string").as_bytes();
         let size = 16 + 8 * offsets.len() + data.len() + name.len();
 
         buf.append(&mut vec![
@@ -299,7 +322,8 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
         return data;
     }
 
-    let name = path.file_name().unwrap().to_str().unwrap().as_bytes();
+    let name = path.file_name().expect("No file name in path")
+        .to_str().expect("File name is not string").as_bytes();
     let size = 8 + 1 + 8 + data.len() + name.len();
 
     let mut buf = vec![];
