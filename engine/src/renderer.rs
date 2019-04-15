@@ -12,16 +12,16 @@
 //! your window (so you can draw to it)
 //! ## `Surface`
 //! Surface represents a window that you can draw to. It has 2 methods:
-//! * [`capture`](Surface::capture) screenshots the window and returns it as 
+//! * [`capture`](renderer::Surface::capture) screenshots the window and returns it as 
 //! texture
-//! * [`present`](Surface::present) ends the current frame and swaps the buffer
+//! * [`present`](renderer::Surface::present) ends the current frame and swaps the buffer
 //! to the window, possibly waiting until next Vblank
 //! ## `Texture`
 //! Texture is what it sounds like, an RGBA texture in GPU memory that you can
-//! [`draw`](Target::draw) to any valid [`Target`]
+//! [`draw`](renderer::Target::draw) to any valid [`Target`](renderer::Target)
 //! ## `Target`
-//! Target is anything you can render [`Texture`]s into. A [`Surface`] is a
-//! target, but so are [`Texture`]s
+//! Target is anything you can render [`Texture`](renderer::Texture)s into. A [`Surface`](renderer::Surface) is a
+//! target, but so are [`Texture`](renderer::Texture)s
 //! 
 
 pub type Color = [f32; 4];
@@ -124,7 +124,7 @@ impl Matrix {
 
 /// Instance of a rendering backend
 /// 
-/// See the [module documentation](::renderer) on how to use the rendering api
+/// See the [module documentation](crate::renderer) on how to use the rendering api
 pub trait Renderer: Sized {
     /// A user friendly name of our rendering engine
     const NAME: &'static str;

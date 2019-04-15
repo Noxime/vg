@@ -126,7 +126,7 @@ impl<'a> Data<'a> {
 
 /// [`Assets`] provides an API for loading data from asset packs
 /// 
-/// The only way currently to create [`Assets`] is to use the [`asset_pack!`](::asset_pack) macro. See its 
+/// The only way currently to create [`Assets`] is to use the [`asset_pack!`] macro. See its 
 /// documentation for more details.
 /// 
 /// # Example

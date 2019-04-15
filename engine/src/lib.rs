@@ -4,15 +4,15 @@
 //! [(2019-04-13)](https://owo.codes/noxim/kea/tree/28726ff2652edce8e09f886ce20ef8945d15ece9)
 //! kea doesn't provide much functionality, but the basics are there. 
 //! 
-//! Currently kea only really abstracts rendering, input and assets, but next 
-//! up should be audio and bunch of utility functions. Check the 
-//! [issues](https://owo.codes/noxim/kea/issues) to see how everything is coming
-//! along :)
+//! Kea is currently in heavy development, and many features are still missing
+//! Check the [issues](https://owo.codes/noxim/kea/issues) to see how everything
+//! is coming along :)
 //! 
 //! The most important points of abstraction are
-//! * [`renderer::Renderer`]
-//! * [`input::Input`]
-//! * [`assets::Assets`]
+//! * [`renderer`]
+//! * [`input`]
+//! * [`assets`]
+//! * [`audio`]
 //! 
 //! # Getting started
 //! The way Kea is structured is little annoying to use, but allows us to write
@@ -69,6 +69,7 @@
 pub mod platform_api;
 pub mod renderer;
 pub mod input;
+pub mod audio;
 // TODO: Move the macros back inside `assets`
 #[macro_use]
 pub mod assets;
