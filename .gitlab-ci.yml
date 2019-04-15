@@ -15,6 +15,12 @@ desktop:
   - cd target-desktop
   - cargo build --verbose
 
+util-keapack:
+  allow_failure: true
+  script:
+  - cd util/keapack
+  - cargo build --verbose
+
 pages:
   stage: deploy
   script:
