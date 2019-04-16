@@ -1,4 +1,4 @@
-use kea::renderer::{Color, Matrix, Size, Surface, Target, Texture};
+use kea::renderer::{Color, Size, Surface, Target, Texture};
 use kea::*;
 
 use std::time::Instant;
