@@ -141,7 +141,13 @@ pub struct Assets<'a> {
 }
 
 /// Represents an error when you try to read an non-existing file
+#[derive(Debug)]
 pub struct NotFound;
+impl std::fmt::Display for NotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Not found")
+    }
+}
 
 impl<'a> Assets<'a> {
     /// The byte size of the asset pack

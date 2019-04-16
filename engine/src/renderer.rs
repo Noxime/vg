@@ -122,6 +122,22 @@ impl Matrix {
     }
 }
 
+/// Various shading options when rendering
+#[derive(Debug)]
+pub struct Shading {
+    pub add: Color,
+    pub multiply: Color,
+}
+
+impl Default for Shading {
+    fn default() -> Shading {
+        Shading {
+            add: [0.0; 4],
+            multiply: [1.0; 4],
+        }
+    }
+}
+
 /// Instance of a rendering backend
 /// 
 /// See the [module documentation](crate::renderer) on how to use the rendering api
