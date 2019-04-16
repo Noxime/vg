@@ -14,7 +14,7 @@
 pub use glium::glutin;
 use glium::implement_vertex;
 
-use kea::renderer::{Color, Matrix, Size};
+use kea::renderer::{Color, View, Transform, Scale, Size, Shading};
 
 use std::rc::Rc;
 
@@ -74,19 +74,19 @@ impl Renderer {
 
         // upload a vertex quad for our rendering ops
         let vertex1 = Vertex {
-            position: [-0.5, -0.5],
+            position: [0.0, 0.0],
             tex_coords: [0.0, 0.0],
         };
         let vertex2 = Vertex {
-            position: [-0.5, 0.5],
+            position: [0.0, 1.0],
             tex_coords: [0.0, 1.0],
         };
         let vertex3 = Vertex {
-            position: [0.5, 0.5],
+            position: [1.0, 1.0],
             tex_coords: [1.0, 1.0],
         };
         let vertex4 = Vertex {
-            position: [0.5, -0.5],
+            position: [1.0, 0.0],
             tex_coords: [1.0, 0.0],
         };
         let shape = vec![vertex1, vertex2, vertex3, vertex3, vertex1, vertex4];
@@ -191,19 +191,19 @@ impl kea::renderer::Target<Renderer> for Texture {
             .as_surface()
             .clear_color(color[0], color[1], color[2], color[3]);
     }
-    fn draw(&mut self, texture: &Texture, transform: &Matrix) {
+    fn draw(&mut self, texture: &Texture, shading: &Shading, view: &View, transform: &Transform) {
         use glium::uniform;
         use glium::Surface;
 
-        let t = transform.raw();
-
         let uniforms = uniform! {
+            add: shading.add,
+            multiply: shading.multiply,
             // transposed since GlES does not support `transpose`
             matrix: [
-                [t[0][0], t[1][0], 0.0, t[2][0]],
-                [t[0][1], t[1][1], 0.0, t[2][1]],
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],
-                [t[0][2], t[1][2], 0.0, t[2][2]],
+                [0.0, 0.0, 0.0, 1.0],
             ],
             tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
@@ -251,18 +251,37 @@ impl kea::renderer::Target<Renderer> for Surface {
         self.frame
             .clear_color(color[0], color[1], color[2], color[3]);
     }
-    fn draw(&mut self, texture: &Texture, transform: &Matrix) {
+    fn draw(&mut self, texture: &Texture, shading: &Shading, view: &View, transform: &Transform) {
         use glium::uniform;
         use glium::Surface;
 
-        let t = transform.raw();
+        let (ax, ay) = match view.scale {
+            Scale::Vertical(s) => (self.size()[0] as f32 / self.size()[1] as f32 * s, s),
+            Scale::Horizontal(s) => (s, self.size()[1] as f32 / self.size()[0] as f32 * s),
+        };
+
+        let r = transform.rotation - view.rotation;
+        let sx = transform.scale_x;
+        let sy = transform.scale_y;
+        let x = transform.x - view.x;
+        let y = transform.y - view.y;
+
+        let tx = texture.size()[0] as f32 / view.pixels_per_unit;
+        let ty = texture.size()[1] as f32 / view.pixels_per_unit;
+
+        let vsx = sx / ax * 2.0;
+        let vsy = sy / ay * 2.0;
+
+        println!("drawing at {}", x);
 
         let uniforms = uniform! {
+            add: shading.add,
+            multiply: shading.multiply,
             matrix: [
-                [t[0][0], t[1][0], 0.0, t[2][0]],
-                [t[0][1], t[1][1], 0.0, t[2][1]],
-                [0.0, 0.0, 1.0, 0.0],
-                [t[0][2], t[1][2], 0.0, t[2][2]],
+                [r.cos() * vsx * tx, r.sin() * vsy * ty, 0.0, 0.0],
+                [-r.sin() * vsx * tx, r.cos() * vsy * ty, 0.0, 0.0],
+                [0.0f32, 0.0, 1.0, 0.0],
+                [x * vsx, y * vsy, 0.0, 1.0],
             ],
             tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
@@ -284,6 +303,6 @@ impl kea::renderer::Target<Renderer> for Surface {
 
 impl Drop for Surface {
     fn drop(&mut self) {
-        self.frame.set_finish();
+        self.frame.set_finish().unwrap();
     }
 }

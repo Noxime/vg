@@ -24,102 +24,79 @@
 //! target, but so are [`Texture`](renderer::Texture)s
 //! 
 
+pub mod font;
+
 pub type Color = [f32; 4];
 pub type Size = [usize; 2];
-/// A matrix representing the transform of a texture
-#[derive(Clone, Copy, Debug)]
-pub struct Matrix([[f32; 3]; 3]);
 
-impl Matrix {
-    /// Create an identity matrix
-    /// 
-    /// ```
-    /// [1, 0, 0]
-    /// [0, 1, 0]
-    /// [0, 0, 1]
-    /// ```
-    pub fn identity() -> Self {
-        Matrix([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ])
-    }
+#[derive(Debug, Clone)]
+pub struct Transform {
+    pub x: f32,
+    pub y: f32,
+    pub rotation: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+}
 
-    pub fn from(raw: &[[f32; 3]; 3]) -> Self {
-        Matrix(*raw)
-    }
-
-    /// Scale this matrix around the origin
-    pub fn scale(&mut self, x: f32, y: f32) {
-        self.0[0][0] *= x;
-        self.0[1][1] *= y;
-
-        // ..?
-        // self.0[0][2] *= x;
-        // self.0[1][2] *= x;
-    }
-
-    /// Return a scaled clone of this matrix
-    pub fn scaled(&self, x: f32, y: f32) -> Matrix {
-        let mut m = self.clone();
-        m.scale(x, y);
-        m
-    }
-
-    /// Translate this matrix by given units
-    pub fn translate(&mut self, x: f32, y: f32) {
-        self.0[0][2] += x;
-        self.0[1][2] += y;
-    }
-
-    /// Return a translated clone of this matrix
-    pub fn translated(&self, x: f32, y: f32) -> Matrix {
-        let mut m = self.clone();
-        m.translate(x, y);
-        m
-    }
-
-    /// Rotate this matrix around the origin by radian angle `a`
-    pub fn rotate(&mut self, a: f32) {
-        self.multiply(&Matrix::from(&[
-            [a.cos(), -a.sin(), 0.0],
-            [a.sin(), a.cos(), 0.0],
-            [0.0, 0.0, 1.0],
-        ]))
-    }
-
-    /// Return a rotated clone of this matrix
-    pub fn rotated(&self, a: f32) -> Matrix {
-        let mut m = self.clone();
-        m.rotate(a);
-        m
-    }
-
-    /// Multiply this matrix by a given matrix
-    pub fn multiply(&mut self, other: &Self) {
-        // Dot multiplication, not sure if correct, i think it is
-        let me = self.clone();
-        for x in 0 .. 2 {
-            for y in 0 .. 2 {
-                self.0[x][y] = 
-                    me.0[x][0] * other.0[0][y] + 
-                    me.0[x][1] * other.0[1][y] + 
-                    me.0[x][2] * other.0[2][y];
-            }
+impl Transform {
+    pub fn translate(&self, x: f32, y: f32) -> Transform {
+        Transform {
+            x: x + self.x,
+            y: y + self.y,
+            ..*self
         }
     }
 
-    /// Return a multiplied clone of this matrix
-    pub fn multiplied(&self, other: &Self) -> Matrix {
-        let mut m = self.clone();
-        m.multiply(other);
-        m
+    pub fn rotate(&self, radians: f32) -> Transform {
+        Transform {
+            rotation: self.rotation + radians,
+            ..*self
+        }
     }
 
-    pub fn raw(&self) -> [[f32; 3]; 3] {
-        self.0
+    pub fn scale(&self, x: f32, y: f32) -> Transform {
+        Transform {
+            scale_x: self.scale_x * x,
+            scale_y: self.scale_y * y,
+            ..*self
+        }
     }
+}
+
+impl Default for Transform {
+    fn default() -> Transform {
+        Transform {
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct View {
+    pub x: f32,
+    pub y: f32,
+    pub rotation: f32,
+    pub scale: Scale,
+    pub pixels_per_unit: f32,
+}
+
+impl View {
+    pub fn dimensions(&self, size: &Size) -> [f32; 2] {
+        match self.scale {
+            Scale::Vertical(v) => [v * size[0] as f32 / size[1] as f32, v],
+            Scale::Horizontal(v) => [v, v  * size[1] as f32 / size[0] as f32],
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Scale {
+    Vertical(f32),
+    Horizontal(f32),
 }
 
 /// Various shading options when rendering
@@ -178,6 +155,6 @@ pub trait Target<R: Renderer> {
     /// Set (clear) the target to some specific color
     fn set(&mut self, color: &Color);
     /// Draw a texture into this target, by transforming it with the provided
-    /// matrix. 
-    fn draw(&mut self, texture: &R::Texture, transform: &Matrix);
+    /// transform. 
+    fn draw(&mut self, texture: &R::Texture, shading: &Shading, view: &View, transform: &Transform);
 }
