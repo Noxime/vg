@@ -23,6 +23,8 @@ util-keapack:
 
 pages:
   stage: deploy
+  before_script:
+  - rustup toolchain add nightly
   script:
   - rustc --version && cargo --version
   - cd engine
