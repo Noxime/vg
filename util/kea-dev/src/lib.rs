@@ -281,3 +281,9 @@ impl kea::renderer::Target<Renderer> for Surface {
             .unwrap();
     }
 }
+
+impl Drop for Surface {
+    fn drop(&mut self) {
+        self.frame.set_finish();
+    }
+}
