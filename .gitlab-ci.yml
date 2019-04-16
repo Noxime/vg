@@ -23,10 +23,12 @@ util-keapack:
 
 pages:
   stage: deploy
+  before_script:
+  - rustup toolchain add nightly
   script:
   - rustc --version && cargo --version
   - cd engine
-  - cargo doc
+  - cargo +nightly doc
   - rm -rf public
   - mv target/doc/ ../public
   - echo '<meta http-equiv="refresh" content="0; url=kea">' > ../public/index.html
