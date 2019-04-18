@@ -10,18 +10,13 @@ pub enum Kind {
 
 /// An audio file, which you can load and [`start`](Audio::start)
 pub trait Audio {
+    type Clip: Clip;
     /// Load the audio from vorbis data
-    fn from_vorbis(bytes: &[u8]) -> Self;
-    /// Start playing the audio, returning a handle that can be used to 
-    fn start(&self) -> &Instance;
-    /// Channel information of this audio
-    fn kind(&self) -> Kind;
-    /// The length of the audio track in seconds
-    fn length(&self) -> f32;
+    fn from_vorbis(&self, bytes: &[u8]) -> Self::Clip;
 }
 
-pub trait Instance {
-    /// Start playing the audio clip, stopping when 
+pub trait Clip {
+    /// Start playing the audio clip, stopping when reaching the end
     fn play(&mut self);
     /// Pause the audio clip
     fn pause(&mut self);
@@ -30,8 +25,10 @@ pub trait Instance {
         self.pause();
         self.seek(0.0);
     }
-    /// Sets this [`Instance`] to loop over and over
+    /// Sets this [`Clip`] to loop over and over
     fn repeat(&mut self, repeat: bool);
+    /// The total length of this audio clip, in seconds
+    fn length(&self) -> f32;
     /// Seek to a second
     /// 
     /// Note: Panics if seeking beyond the length of this audio clip

@@ -2,6 +2,7 @@ extern crate game;
 extern crate gilrs;
 extern crate kea;
 extern crate kea_dev;
+extern crate audio_ears;
 
 use kea::input;
 use kea_dev::glutin;
@@ -312,5 +313,7 @@ fn main() {
         })
     });
 
-    kea::run(platform, renderer, input, poll, &game::game);
+    let audio = audio_ears::Audio::new();
+
+    kea::run(platform, renderer, input, audio, poll, &game::game);
 }

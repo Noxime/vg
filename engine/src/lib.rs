@@ -77,30 +77,33 @@ pub use self::platform_api::PlatformApi;
 pub use self::renderer::Renderer;
 pub use self::input::Input;
 
-pub struct EngineApi<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input> {
+pub struct EngineApi<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input, Audio: audio::Audio> {
     pub platform: Platform,
     pub renderer: Renderer,
     pub input: Input,
+    pub audio: Audio,
     pub poll: Box<FnMut()>,
 }
 
-impl<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input> EngineApi<Platform, Renderer, Input> {
+impl<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input, Audio: audio::Audio> EngineApi<Platform, Renderer, Input, Audio> {
     pub fn poll(&mut self) {
         (self.poll)()
     }
 }
 
-pub fn run<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input>(
+pub fn run<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input, Audio: audio::Audio>(
     platform: Platform,
     renderer: Renderer,
     input: Input,
+    audio: Audio,
     poll: Box<FnMut()>,
-    game: &Fn(EngineApi<Platform, Renderer, Input>),
+    game: &Fn(EngineApi<Platform, Renderer, Input, Audio>),
 ) {
     let engine = EngineApi {
         platform,
         renderer,
         input,
+        audio,
         poll,
     };
     engine.platform.print("Running Kea");

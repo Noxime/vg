@@ -9,3 +9,4 @@ game = { path = "../game" }
 kea = { path = "../engine" }
 kea-dev = { path = "../util/kea-dev" }
 gilrs = "0.7"
+audio-ears = { path = "../util/audio-ears" }
