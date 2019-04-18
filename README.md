@@ -35,7 +35,9 @@ start your Kea based game project!
 # Building and dependencies
 ## Dsk
 On desktop, most dependencies are handled by Cargo, but you need to install
-`pkg-config` and `libudev` on *nix platforms.
+`pkg-config`, `libudev` and `libasound2-dev` on *nix platforms.
+
+`sudo apt install pkg-config libudev libasound2-dev`
 
 (On ubuntu this is `libudev-dev`)
 ## Drd

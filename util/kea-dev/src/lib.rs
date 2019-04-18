@@ -272,8 +272,6 @@ impl kea::renderer::Target<Renderer> for Surface {
         let vsx = sx / ax * 2.0;
         let vsy = sy / ay * 2.0;
 
-        println!("drawing at {}", x);
-
         let uniforms = uniform! {
             add: shading.add,
             multiply: shading.multiply,

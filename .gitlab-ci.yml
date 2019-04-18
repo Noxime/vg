@@ -9,7 +9,7 @@ engine:
 desktop:
   before_script:
   - apt-get update
-  - apt-get install -y libudev-dev
+  - apt-get install -y libudev-dev libasound2-dev
   script:
   - rustc --version && cargo --version
   - cd target-desktop
