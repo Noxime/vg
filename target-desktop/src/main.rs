@@ -1,8 +1,8 @@
+extern crate audio_ears;
 extern crate game;
 extern crate gilrs;
 extern crate kea;
 extern crate kea_dev;
-extern crate audio_ears;
 
 use kea::input;
 use kea_dev::glutin;
@@ -56,7 +56,7 @@ struct KeyState {
     rb: bool,
     rt: bool,
     // misc
-    start: bool, // R
+    start: bool,  // R
     select: bool, // T
 }
 
@@ -98,7 +98,7 @@ impl kea::Input for Input {
             }
         }
         if self.2.lock().unwrap().0 >= latest.0 {
-            return Some(!0)
+            return Some(!0);
         }
 
         latest.1.map(|x| *x)
@@ -154,7 +154,7 @@ impl kea::Input for Input {
                     bumper: state.rb.into(),
                     trigger: state.rt.into(),
                 },
-            })
+            });
         }
 
         self.1.lock().unwrap().get(id).map(|id| {
@@ -226,7 +226,10 @@ fn main() {
         should_close: false,
     }));
     let platform = Api(platform_state.clone());
-    let keyboard = Arc::new(Mutex::new((std::time::SystemTime::UNIX_EPOCH, KeyState::default())));
+    let keyboard = Arc::new(Mutex::new((
+        std::time::SystemTime::UNIX_EPOCH,
+        KeyState::default(),
+    )));
 
     let input = Input(
         Mutex::new(gilrs::Gilrs::new().unwrap()),
@@ -237,12 +240,7 @@ fn main() {
     let poll = Box::new(move || {
         events.poll_events(|e| {
             use glutin::{
-                Event, 
-                WindowEvent, 
-                DeviceEvent, 
-                KeyboardInput, 
-                VirtualKeyCode, 
-                ElementState
+                ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent,
             };
             match e {
                 Event::WindowEvent {
@@ -255,14 +253,16 @@ fn main() {
                         .should_close = true;
                 }
                 Event::WindowEvent {
-                    event: WindowEvent::KeyboardInput {
-                        input: KeyboardInput {
-                            state,
-                            virtual_keycode: Some(key),
+                    event:
+                        WindowEvent::KeyboardInput {
+                            input:
+                                KeyboardInput {
+                                    state,
+                                    virtual_keycode: Some(key),
+                                    ..
+                                },
                             ..
                         },
-                        ..
-                    },
                     ..
                 } => {
                     println!("key event: {:?} {:?}", key, state);
@@ -293,22 +293,21 @@ fn main() {
 
                         VirtualKeyCode::LShift => keyboard.lock().unwrap().1.lt = s,
                         VirtualKeyCode::RShift => keyboard.lock().unwrap().1.rt = s,
-                        VirtualKeyCode::LControl |
-                        VirtualKeyCode::LWin |
-                        VirtualKeyCode::LAlt => keyboard.lock().unwrap().1.lb = s,
-                        VirtualKeyCode::RControl |
-                        VirtualKeyCode::RWin |
-                        VirtualKeyCode::RAlt => keyboard.lock().unwrap().1.rb = s,
+                        VirtualKeyCode::LControl | VirtualKeyCode::LWin | VirtualKeyCode::LAlt => {
+                            keyboard.lock().unwrap().1.lb = s
+                        }
+                        VirtualKeyCode::RControl | VirtualKeyCode::RWin | VirtualKeyCode::RAlt => {
+                            keyboard.lock().unwrap().1.rb = s
+                        }
 
                         VirtualKeyCode::R => keyboard.lock().unwrap().1.start = s,
                         VirtualKeyCode::T => keyboard.lock().unwrap().1.select = s,
 
-
-                        _ => ()
+                        _ => (),
                     }
                     keyboard.lock().unwrap().0 = std::time::SystemTime::now();
                 }
-                _ => ()
+                _ => (),
             }
         })
     });
