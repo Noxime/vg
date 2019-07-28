@@ -12,100 +12,35 @@
 //! * [`renderer`]
 //! * [`input`]
 //! * [`assets`]
-//! * [`audio`]
 //! 
 //! # Getting started
-//! The way Kea is structured is little annoying to use, but allows us to write
-//! platform specific code very cleanly in their own crates. Structuring kea
-//! "traditionally" would make building it quite difficult for targets like iOS
-//! or the Nintendo Switch
+//! **TODO**
 //! 
-//! ## Steps
-//! Start by cloning the repository somewhere on your disk
-//! ```bash
-//! $ git clone https://owo.codes/noxim/kea && cd kea
-//! ```
-//! 
-//! Create your game crate, it should be a library since targets depend on it
-//! ```bash
-//! $ cargo new tetris --lib
-//! ```
-//! 
-//! You have to configure kea for it to know where your game is, so run
-//! ```bash
-//! $ ./configure tetris
-//! ```
-//! 
-//! Now, your game needs an entry point. Go to `tetris/src/lib.rs` and change
-//! it to 
-//! ```rust
-//! use kea::*;
-//! 
-//! pub fn game<P, R, I>(mut api: EngineApi<P, R, I>)
-//! where
-//!     P: PlatformApi,
-//!     R: renderer::Renderer,
-//!     I: input::Input,
-//! {
-//!     // This is your main function
-//! }
-//! ```
-//! 
-//! Also remember to add kea to your dependencies in `tetris/Cargo.toml` :)
-//! ```toml
-//! [dependencies]
-//! kea = { path = "../engine" }
-//! ```
-//! 
-//! Now you should be all set to build and run! Although, your game does nothing
-//! and will immediately exit :P
-//! ```bash
-//! $ cd target-desktop && cargo run
-//! ```
-//! 
-//! ---
-//! Noxim, 2019-04-15
+//! Noxim, 2019-07-28
 
-pub mod platform_api;
 pub mod renderer;
 pub mod input;
-pub mod audio;
-// TODO: Move the macros back inside `assets`
+
 #[macro_use]
 pub mod assets;
-pub use self::platform_api::PlatformApi;
+
 pub use self::renderer::Renderer;
 pub use self::input::Input;
 
-pub struct EngineApi<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input, Audio: audio::Audio> {
-    pub platform: Platform,
-    pub renderer: Renderer,
-    pub input: Input,
-    pub audio: Audio,
-    pub poll: Box<FnMut()>,
-}
+pub trait Api {
+    type R: Renderer;
+    type I: Input;
 
-impl<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input, Audio: audio::Audio> EngineApi<Platform, Renderer, Input, Audio> {
-    pub fn poll(&mut self) {
-        (self.poll)()
-    }
-}
-
-pub fn run<Platform: PlatformApi, Renderer: renderer::Renderer, Input: input::Input, Audio: audio::Audio>(
-    platform: Platform,
-    renderer: Renderer,
-    input: Input,
-    audio: Audio,
-    poll: Box<FnMut()>,
-    game: &Fn(EngineApi<Platform, Renderer, Input, Audio>),
-) {
-    let engine = EngineApi {
-        platform,
-        renderer,
-        input,
-        audio,
-        poll,
-    };
-    engine.platform.print("Running Kea");
-    game(engine);
+    /// Run internal Kea systems, often things like input updates
+    /// 
+    /// You should call this often, for example on every frame
+    fn poll(&mut self);
+    /// Does the engine want to exit, e.g. has the X been clicked
+    /// 
+    /// You should check this in your game loop
+    fn exit(&self) -> bool;
+    /// Get a handle to the renderer api
+    fn renderer<'a>(&'a mut self) -> &'a mut Self::R;
+    /// Get a handle to the input api
+    fn input<'a>(&'a mut self) -> &'a mut Self::I;
 }

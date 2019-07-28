@@ -1,0 +1,10 @@
+[package]
+name = "platform"
+version = "0.1.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+kea = { path = "../engine" }
+kea-glium = { path = "../util/kea-glium" }
+kea-gilrs = { path = "../util/kea-gilrs" }
