@@ -12,3 +12,4 @@ game = { path = "../../" }
 kea = { path = "../engine" }
 kea-glium = { path = "../util/kea-glium" }
 kea-gilrs = { path = "../util/kea-gilrs" }
+kea-cpal = { path = "../util/kea-cpal" }

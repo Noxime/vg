@@ -12,6 +12,7 @@
 //! * [`renderer`]
 //! * [`input`]
 //! * [`assets`]
+//! * [`audio`]
 //! 
 //! # Getting started
 //! **TODO**
@@ -20,16 +21,19 @@
 
 pub mod renderer;
 pub mod input;
+pub mod audio;
 
 #[macro_use]
 pub mod assets;
 
 pub use self::renderer::Renderer;
 pub use self::input::Input;
+pub use self::audio::Audio;
 
 pub trait Api {
     type R: Renderer;
     type I: Input;
+    type A: Audio;
 
     /// Run internal Kea systems, often things like input updates
     /// 
@@ -43,4 +47,6 @@ pub trait Api {
     fn renderer<'a>(&'a mut self) -> &'a mut Self::R;
     /// Get a handle to the input api
     fn input<'a>(&'a mut self) -> &'a mut Self::I;
+    /// Get a handle to the audio api
+    fn audio<'a>(&'a mut self) -> &'a mut Self::A;
 }

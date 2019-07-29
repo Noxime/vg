@@ -1,10 +1,10 @@
 [package]
-name = "audio-ears"
+name = "kea-cpal"
 version = "0.1.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 kea = { path = "../../engine" }
-cpal = "0.8"
+cpal = "0.10"
 lewton = "0.9"
