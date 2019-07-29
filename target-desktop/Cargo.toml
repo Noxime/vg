@@ -5,8 +5,7 @@ authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-game = { path = "../game" }
+game = { path = "../../" }
 kea = { path = "../engine" }
-kea-dev = { path = "../util/kea-dev" }
-gilrs = "0.7"
-audio-ears = { path = "../util/audio-ears" }
+kea-glium = { path = "../util/kea-glium" }
+kea-gilrs = { path = "../util/kea-gilrs" }
