@@ -1,30 +1,23 @@
 use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct Id(usize);
-
-#[derive(Debug)]
 pub struct Output {
-    id: Id,
-    name: String,
-    channels: usize,
-    bitrate: usize,
-    bitdepth: usize,
+    pub name: String,
+    pub channels: usize,
+    pub samples: usize,
+    pub bits: usize,
 }
 
 pub struct Error;
 
 pub trait Audio {
-    fn ogg(&mut self, bytes: Arc<[u8]>) -> Sound {
-        Sound {
-            ogg: bytes,
-            playing: Arc::new(false),
-        }
-    }
+    fn ogg(&mut self, bytes: Vec<u8>) -> Sound;
 
+    // fn create(&mut self) -> Self::Sound;
+
+    fn output(&self) -> Option<Output>;
     fn outputs(&self) -> Vec<Output>;
-    fn default_output(&self) -> Option<Output>;
-    fn set_output(&mut self, id: &Id);
+    fn set_output(&mut self, Output: impl AsRef<Output>) -> Result<(), ()>; // TODO: Errors
 
     fn volume(&self) -> f32;
     fn set_volume(&mut self, volume: f32);
@@ -34,11 +27,14 @@ pub trait Audio {
 }
 
 pub struct Sound {
-    ogg: Arc<[u8]>,
-    playing: Arc<bool>,
+    pub playing: bool,
 }
 
 impl Sound {
-    pub fn play(&mut self) {}
-    pub fn pause(&mut self) {}
+    pub fn play(&mut self) {
+        self.playing = true;
+    }
+    pub fn pause(&mut self) {
+        self.playing = false;
+    }
 }
