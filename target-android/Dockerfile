@@ -8,7 +8,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH /root/.cargo/bin:$PATH
 
 RUN rustup default nightly-2019-01-09
-RUN rustup target add arm-linux-androideabi
+RUN rustup target add aarch-linux-android
 
 ENV ANDROID_HOME /opt/android-sdk-linux
 RUN mkdir ${ANDROID_HOME} && \

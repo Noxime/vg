@@ -1,16 +1,30 @@
+use kea::input;
+
 /// Input handler implementation that always returns `None` or an empty `Vec`
 pub struct Input;
 
 impl kea::Input for Input {
-    fn default(&self) -> Option<kea::input::Id> {
+    fn default(&self) -> Option<input::Id> {
         None
     }
 
-    fn all_controllers(&self) -> Vec<kea::input::Id> {
+    fn all_controllers(&self) -> Vec<input::Id> {
         vec![]
     }
 
-    fn controller(&self, _: &kea::input::Id) -> Option<kea::input::Controller> {
+    fn controller(&self, id: &input::Id) -> Option<input::Controller> {
         None
+    }
+
+    fn pointers(&self) -> Vec<input::Pointer> {
+        vec![]
+    }
+
+    fn mapping(&self) -> input::KeyboardMapping {
+        unimplemented!()
+    }
+
+    fn set_mapping(&mut self, _: input::KeyboardMapping) {
+        unimplemented!()
     }
 }

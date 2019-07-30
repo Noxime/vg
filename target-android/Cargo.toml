@@ -13,8 +13,8 @@ res = "../game/res"
 icon = "@mipmap/icon"
 
 [dependencies]
-game = { path = "../game" }
-kea = { path = "../engine", default-features = false, features = ["backend-vk"] }
-kea-dev = { path = "../util/kea-dev" }
+game = { path = "../../" }
+kea = { path = "../engine" }
+kea-glium = { path = "../util/kea-glium" }
 android_glue = "0.2.3"
 placeholder-input = { path = "../util/placeholder-input" }

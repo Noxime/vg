@@ -280,14 +280,14 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
         let size = 16 + 8 * offsets.len() + data.len() + name.len();
 
         buf.append(&mut vec![
-            (size >> 0) as u8,
-            (size >> 8) as u8,
-            (size >> 16) as u8,
-            (size >> 24) as u8,
-            (size >> 32) as u8,
-            (size >> 40) as u8,
-            (size >> 48) as u8,
-            (size >> 56) as u8,
+            (size as u64 >> 0) as u8,
+            (size as u64 >> 8) as u8,
+            (size as u64 >> 16) as u8,
+            (size as u64 >> 24) as u8,
+            (size as u64 >> 32) as u8,
+            (size as u64 >> 40) as u8,
+            (size as u64 >> 48) as u8,
+            (size as u64 >> 56) as u8,
         ]);
         buf.append(&mut vec![
             (count >> 0) as u8,
@@ -334,27 +334,27 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
 
     let mut buf = vec![];
     buf.append(&mut vec![
-        (size >> 0) as u8,
-        (size >> 8) as u8,
-        (size >> 16) as u8,
-        (size >> 24) as u8,
-        (size >> 32) as u8,
-        (size >> 40) as u8,
-        (size >> 48) as u8,
-        (size >> 56) as u8,
+        (size as u64 >> 0) as u8,
+        (size as u64 >> 8) as u8,
+        (size as u64 >> 16) as u8,
+        (size as u64 >> 24) as u8,
+        (size as u64 >> 32) as u8,
+        (size as u64 >> 40) as u8,
+        (size as u64 >> 48) as u8,
+        (size as u64 >> 56) as u8,
     ]);
 
     buf.push(kind);
 
     buf.append(&mut vec![
-        (data.len() >> 0) as u8,
-        (data.len() >> 8) as u8,
-        (data.len() >> 16) as u8,
-        (data.len() >> 24) as u8,
-        (data.len() >> 32) as u8,
-        (data.len() >> 40) as u8,
-        (data.len() >> 48) as u8,
-        (data.len() >> 56) as u8,
+        (data.len() as u64 >> 0) as u8,
+        (data.len() as u64 >> 8) as u8,
+        (data.len() as u64 >> 16) as u8,
+        (data.len() as u64 >> 24) as u8,
+        (data.len() as u64 >> 32) as u8,
+        (data.len() as u64 >> 40) as u8,
+        (data.len() as u64 >> 48) as u8,
+        (data.len() as u64 >> 56) as u8,
     ]);
     buf.append(&mut data);
 
