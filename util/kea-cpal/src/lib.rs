@@ -13,6 +13,7 @@ struct Inner {
     vorbis: Mutex<OggStreamReader<Cursor<Vec<u8>>>>,
     buffer: Mutex<VecDeque<i16>>,
     playing: AtomicBool,
+    repeating: AtomicBool,
 }
 
 pub struct Sound {
@@ -20,18 +21,37 @@ pub struct Sound {
 }
 
 impl audio::Sound for Sound {
+    fn playing(&self) -> bool {
+        self.inner.playing.load(Relaxed)
+    }
+
     fn play(&mut self) {
-        println!("Playing");
         self.inner.playing.store(true, Relaxed);
     }
+
     fn pause(&mut self) {
         self.inner.playing.store(false, Relaxed);
     }
+
+    fn repeating(&self) -> bool {
+        self.inner.repeating.load(Relaxed)
+    }
+
+    fn set_repeating(&mut self, repeating: bool) {
+        self.inner.repeating.store(repeating, Relaxed);
+    }
+}
+
+#[derive(Copy, Clone)]
+struct Settings {
+    volume: f32,
+    pan: f32,
 }
 
 pub struct Audio {
     sounds: Arc<Mutex<Vec<Weak<Inner>>>>,
     thread: std::thread::JoinHandle<()>,
+    settings: Arc<Mutex<Settings>>,
 }
 
 impl audio::Audio for Audio {
@@ -42,6 +62,7 @@ impl audio::Audio for Audio {
             vorbis: Mutex::new(OggStreamReader::new(Cursor::new(bytes)).expect("Invalid OGG")),
             buffer: Mutex::new(VecDeque::new()),
             playing: AtomicBool::from(false),
+            repeating: AtomicBool::from(false),
         });
 
         self.sounds.lock().push(Arc::downgrade(&inner));
@@ -63,11 +84,11 @@ impl audio::Audio for Audio {
         unimplemented!()
     }
 
-    fn volume(&self) -> f32 { unimplemented!() }
-    fn set_volume(&mut self, volume: f32) { unimplemented!() }
+    fn volume(&self) -> f32 { self.settings.lock().volume }
+    fn set_volume(&mut self, volume: f32) { self.settings.lock().volume = volume }
 
-    fn pan(&self) -> f32 { unimplemented!() }
-    fn set_pan(&self, pan: f32) { unimplemented!() }
+    fn pan(&self) -> f32 { self.settings.lock().pan }
+    fn set_pan(&self, pan: f32) { self.settings.lock().pan = pan }
 }
 
 impl Audio {
@@ -76,15 +97,31 @@ impl Audio {
         let events = host.event_loop();
 
         let device = host.default_output_device().expect("No output devices");
-        let format = device.default_output_format().expect("Format error");
+        let mut format = device.default_output_format().expect("Format error");
+        format.sample_rate.0 = 44100;
+
+        let id = match events.build_output_stream(&device, &format) {
+            Ok(id) => id,
+            Err(e) => {
+                println!("CPAL: your output device doesnt support 44.1khz audio, so falling back to compat mode. Expect worse sound quality");
+                events.build_output_stream(&device, &device.default_output_format().expect("Format error 2")).expect("No formats")
+            }
+        };
 
         let rate = format.sample_rate.0 as usize;
-        println!("{} hz", rate);
-        let id = events.build_output_stream(&device, &format).unwrap();
+        println!("CPAL: {} hz", rate);
+
         events.play_stream(id).expect("Failed to play stream");
 
         let sounds: Arc<Mutex<Vec<Weak<Inner>>>> = Arc::new(Mutex::new(vec![]));
         let thread_sounds = sounds.clone();
+
+        let settings = Arc::new(Mutex::new(Settings {
+            volume: 1.0,
+            pan: 0.0,
+        }));
+
+        let _t_settings = Arc::clone(&settings);
 
         let thread = std::thread::spawn(move || {
             events.run(move |id, result| {
@@ -97,6 +134,25 @@ impl Audio {
                     }
                     _ => return,
                 };
+
+                match stream_data {
+                    cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(ref mut buffer) } => {
+                        for elem in buffer.iter_mut() {
+                            *elem = u16::max_value() / 2;
+                        }
+                    },
+                    cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(ref mut buffer) } => {
+                        for elem in buffer.iter_mut() {
+                            *elem = 0;
+                        }
+                    },
+                    cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(ref mut buffer) } => {
+                        for elem in buffer.iter_mut() {
+                            *elem = 0.0;
+                        }
+                    },
+                    _ => (),
+                }
 
                 let sounds = thread_sounds.lock();
                 for sound in sounds.iter() {
@@ -129,32 +185,38 @@ impl Audio {
                                         resampled.push_back((samples[i.floor() as usize] + samples[i.ceil() as usize]) / 2);
                                     }
 
-                                    println!("Resampled {} to {}", samples.len(), resampled.len());
-
                                     buf.append(&mut resampled);
                                     buf.pop_front().unwrap_or(0)
                                 } else {
-                                    sound.playing.store(false, Relaxed);
+                                    if sound.repeating.load(Relaxed) {
+                                        // TODO: Repeat the track
+                                    } else {
+                                        sound.playing.store(false, Relaxed);
+                                    }
                                     0
                                 }
                             }
                         }
                     };
 
+                    let mut i = 0;
                     match stream_data {
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
                                 *elem += (load() as i32 + u16::max_value() as i32 / 2) as u16;
+                                i += 1;
                             }
                         },
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
                                 *elem += load();
+                                i += 1;
                             }
                         },
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
                                 *elem = load() as f32 / i16::max_value() as f32;
+                                i += 1;
                             }
                         },
                         _ => (),
@@ -166,6 +228,7 @@ impl Audio {
         Audio {
             sounds,
             thread, 
+            settings,
         }
     }
 }

@@ -32,6 +32,10 @@ pub trait Audio {
 }
 
 pub trait Sound {
-    fn play(&mut self) {}
-    fn pause(&mut self) {}
+    fn playing(&self) -> bool;
+    fn play(&mut self);
+    fn pause(&mut self);
+
+    fn repeating(&self) -> bool;
+    fn set_repeating(&mut self, repeating: bool);
 }

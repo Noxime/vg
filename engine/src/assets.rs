@@ -379,6 +379,6 @@ pub fn generate_asset_pack(path: &str, name: &str) {
 #[macro_export]
 macro_rules! asset_pack {
     ($path:expr) => {
-        crate::assets::Assets { data: include_bytes!(concat!(env!("OUT_DIR"), "/", $path)) }
+        $crate::assets::Assets { data: include_bytes!(concat!(env!("OUT_DIR"), "/", $path)) }
     };
 }
