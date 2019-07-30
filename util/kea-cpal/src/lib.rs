@@ -1,103 +1,66 @@
 use cpal;
 use cpal::traits::{HostTrait, DeviceTrait, EventLoopTrait};
 use kea::audio;
+use parking_lot::{Mutex, RwLock};
+use lewton::inside_ogg::OggStreamReader;
 
-use std::sync::Arc;
+use std::collections::VecDeque;
+use std::io::Cursor;
+use std::sync::{Arc, Weak, atomic::AtomicBool, atomic::Ordering::Relaxed};
+
+
+struct Inner {
+    vorbis: Mutex<OggStreamReader<Cursor<Vec<u8>>>>,
+    buffer: Mutex<VecDeque<i16>>,
+    playing: AtomicBool,
+}
+
+pub struct Sound {
+    inner: Arc<Inner>,
+}
+
+impl audio::Sound for Sound {
+    fn play(&mut self) {
+        println!("Playing");
+        self.inner.playing.store(true, Relaxed);
+    }
+    fn pause(&mut self) {
+        self.inner.playing.store(false, Relaxed);
+    }
+}
 
 pub struct Audio {
-    host: cpal::Host,
-    device: cpal::Device,
+    sounds: Arc<Mutex<Vec<Weak<Inner>>>>,
     thread: std::thread::JoinHandle<()>,
 }
 
 impl audio::Audio for Audio {
-    fn ogg(&mut self, bytes: Vec<u8>) -> audio::Sound {
-        audio::Sound {
-            playing: false,
+    type Sound = Sound;
+
+    fn ogg(&mut self, bytes: Vec<u8>) -> Self::Sound {
+        let inner = Arc::new(Inner {
+            vorbis: Mutex::new(OggStreamReader::new(Cursor::new(bytes)).expect("Invalid OGG")),
+            buffer: Mutex::new(VecDeque::new()),
+            playing: AtomicBool::from(false),
+        });
+
+        self.sounds.lock().push(Arc::downgrade(&inner));
+
+        Sound {
+            inner
         }
     }
 
     fn output(&self) -> Option<audio::Output> {
-        let (name, format) = match (self.device.name(), self.device.default_output_format()) {
-            (Ok(n), Ok(f)) => (n, f),
-            e => {
-                println!("CPAL ERROR: {:?}", e);
-                return None;
-            }
-        };
-
-        Some(audio::Output {
-            name,
-            channels: format.channels as usize,
-            samples: format.sample_rate.0 as usize,
-            bits: format.data_type.sample_size() * 8,
-        })
+        unimplemented!()
     }
 
     fn outputs(&self) -> Vec<audio::Output> {
-        use std::iter::FromIterator;
-
-        let devices = match self.host.output_devices() {
-            Ok(v) => v,
-            Err(e) => {
-                println!("CPAL ERROR: {}", e);
-                return vec![]
-            }
-        };
-
-        let mut outs = vec![];
-
-        for device in devices {
-            let (name, formats) = match (device.name(), device.supported_output_formats()) {
-                (Ok(n), Ok(f)) => (n, f),
-                e => {
-                    println!("CPAL ERROR: <unk>");
-                    continue;
-                }
-            };
-
-            for format in formats {
-                let format = format.with_max_sample_rate();
-                outs.push(audio::Output {
-                    name: name.clone(),
-                    channels: format.channels as usize,
-                    samples: format.sample_rate.0 as usize,
-                    bits: format.data_type.sample_size() * 8,
-                });
-            }
-        }
-
-        outs
+        unimplemented!()
     }
 
-    fn set_output(&mut self, output: impl AsRef<audio::Output>) -> Result<(), ()> {
-        let output = output.as_ref();
-
-        let device = self.host.output_devices().map_err(|_| ())?.find(|v| {
-            if let Ok(name) = v.name() {
-                name == output.name
-            } else { false }
-        });
-
-        let device = match device {
-            Some(d) => d,
-            None => return Err(())
-        };
-
-        let format = device.supported_output_formats().map_err(|_| ())?.find(|v| {
-            v.channels as usize == output.channels &&
-            v.data_type.sample_size() * 8 == output.bits &&
-            (v.max_sample_rate.0 as usize >= output.samples && v.min_sample_rate.0 as usize <= output.samples)
-        });
-
-        let format = match format {
-            Some(f) => f.with_max_sample_rate(),
-            None => return Err(())
-        };
-
-        self.device = device;
-
-        Ok(())
+    fn set_output(&mut self, output: &audio::Output) -> Result<(), String> {
+        unimplemented!()
     }
 
     fn volume(&self) -> f32 { unimplemented!() }
@@ -115,12 +78,18 @@ impl Audio {
         let device = host.default_output_device().expect("No output devices");
         let format = device.default_output_format().expect("Format error");
 
+        let rate = format.sample_rate.0 as usize;
+        println!("{} hz", rate);
         let id = events.build_output_stream(&device, &format).unwrap();
         events.play_stream(id).expect("Failed to play stream");
 
+        let sounds: Arc<Mutex<Vec<Weak<Inner>>>> = Arc::new(Mutex::new(vec![]));
+        let thread_sounds = sounds.clone();
+
         let thread = std::thread::spawn(move || {
             events.run(move |id, result| {
-                let stream_data = match result {
+
+                let mut stream_data = match result {
                     Ok(data) => data,
                     Err(err) => {
                         eprintln!("an error occurred on stream {:?}: {}", id, err);
@@ -129,31 +98,74 @@ impl Audio {
                     _ => return,
                 };
 
-                match stream_data {
-                    cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(mut buffer) } => {
-                        for elem in buffer.iter_mut() {
-                            *elem = u16::max_value() / 2;
+                let sounds = thread_sounds.lock();
+                for sound in sounds.iter() {
+                    let sound = match sound.upgrade() {
+                        Some(sound) => sound,
+                        _ => continue
+                    };
+
+                    if !sound.playing.load(Relaxed){
+                        continue
+                    }
+
+                    let load = || {
+                        let mut buf = sound.buffer.lock();
+                        match buf.pop_front() {
+                            Some(sample) => sample,
+                            None => {
+                                let samples = sound.vorbis.lock().read_dec_packet_itl().expect("Decode error");
+                                if let Some(samples) = samples {
+                                    let mut resampled = VecDeque::new();
+                                    let ogg_rate = sound.vorbis.lock().ident_hdr.audio_sample_rate as usize;
+                                    let sample_count = samples.len() * rate / ogg_rate;
+
+                                    // TODO: A better resampling method? This sounds pretty horrible, some high squaky 
+                                    // sounds. Perhaps spline? or better yet, a Sinc function
+
+                                    for i in 0..sample_count {
+                                        let i = i as f64 * ogg_rate as f64 / rate as f64;
+                                        let i = i.min(samples.len() as f64 - 1.0);
+                                        resampled.push_back((samples[i.floor() as usize] + samples[i.ceil() as usize]) / 2);
+                                    }
+
+                                    println!("Resampled {} to {}", samples.len(), resampled.len());
+
+                                    buf.append(&mut resampled);
+                                    buf.pop_front().unwrap_or(0)
+                                } else {
+                                    sound.playing.store(false, Relaxed);
+                                    0
+                                }
+                            }
                         }
-                    },
-                    cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(mut buffer) } => {
-                        for elem in buffer.iter_mut() {
-                            *elem = 0;
-                        }
-                    },
-                    cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
-                        for elem in buffer.iter_mut() {
-                            *elem = 0.0;
-                        }
-                    },
-                    _ => (),
+                    };
+
+                    match stream_data {
+                        cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(ref mut buffer) } => {
+                            for elem in buffer.iter_mut() {
+                                *elem += (load() as i32 + u16::max_value() as i32 / 2) as u16;
+                            }
+                        },
+                        cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(ref mut buffer) } => {
+                            for elem in buffer.iter_mut() {
+                                *elem += load();
+                            }
+                        },
+                        cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(ref mut buffer) } => {
+                            for elem in buffer.iter_mut() {
+                                *elem = load() as f32 / i16::max_value() as f32;
+                            }
+                        },
+                        _ => (),
+                    }
                 }
             })
         });
 
         Audio {
-            host,
-            device,
-            thread,
+            sounds,
+            thread, 
         }
     }
 }
