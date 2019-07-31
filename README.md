@@ -13,9 +13,10 @@ not the perfect.
 * Linux
 * Windows
 * MacOS
+* Web (borked)
 * Android
 * iOS (borked, GL context lost on launch)
-* Nintendo Switch (incomplete, only debugging software renderer)
+* Nintendo Switch (borked, only debugging software renderer)
 
 ## Api status
 |       |Software|OpenGL|Vulkan|DirectX 12|Metal|
@@ -23,7 +24,8 @@ not the perfect.
 |Linux  |No      |Yes   |WIP   |No        |No   |
 |MacOS  |No      |Yes   |No    |No        |WIP  |
 |Windows|No      |Yes   |WIP   |WIP       |No   |
-|Android|No      |Yes   |WIP   |No        |No   |
+|Web    |No      |Yes   |No    |No        |No   |
+|Android|No      |Yes   |WIP   |WIP       |No   |
 |iOS    |No      |Yes   |No    |No        |WIP  |
 |Switch |Yes     |WIP   |WIP   |No        |No   |
 
