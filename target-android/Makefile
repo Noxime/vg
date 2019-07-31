@@ -1,15 +1,14 @@
 CMD=docker run --rm \
  	-e "TERM=xterm-256color" \
-	-v "$$(pwd):/root/src" \
-	-v "$$(pwd)/../engine/:/root/engine" \
-	-v "$$(pwd)/../game/:/root/game" \
-	-v "$$(pwd)/../util/:/root/util" \
-	-w /root/src cargo-apk
+	-v "$$(pwd)/../..:/root/" \
+	-v "$$(pwd)/../engine/:/root/kea/engine" \
+	-v "$$(pwd)/../util/:/root/kea/util" \
+	-w /root/kea/src cargo-apk
 
 build:
 	# check if docker image exists, if not, build
 	[ ! -z $$(docker images -q cargo-apk) ] || docker build . --tag cargo-apk
-	$(CMD) cargo-apk build
+	$(CMD) cargo apk build
 run:
 	[ ! -z $$(docker images -q cargo-apk) ] || docker build . --tag cargo-apk
 	$(CMD) cargo-apk build
