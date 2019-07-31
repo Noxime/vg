@@ -50,7 +50,7 @@ struct Settings {
 
 pub struct Audio {
     sounds: Arc<Mutex<Vec<Weak<Inner>>>>,
-    thread: std::thread::JoinHandle<()>,
+    // thread: std::thread::JoinHandle<()>,
     settings: Arc<Mutex<Settings>>,
 }
 
@@ -123,6 +123,7 @@ impl Audio {
 
         let _t_settings = Arc::clone(&settings);
 
+        /*
         let thread = std::thread::spawn(move || {
             events.run(move |id, result| {
 
@@ -224,10 +225,11 @@ impl Audio {
                 }
             })
         });
+        */
 
         Audio {
             sounds,
-            thread, 
+            // thread, 
             settings,
         }
     }
