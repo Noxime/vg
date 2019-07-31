@@ -13,6 +13,9 @@
 			"path": "target-ios"
 		},
 		{
+			"path": "target-wasm"
+		},
+		{
 			"path": "game"
 		},
 		{
