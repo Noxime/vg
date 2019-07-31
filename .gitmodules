@@ -3,4 +3,4 @@
 	url = https://github.com/rust-lang/libc
 [submodule "target-wasm/winit"]
 	path = target-wasm/winit
-	url = https://github.com/rust-windowing/winit
+	url = https://owo.codes/noxim/winit
