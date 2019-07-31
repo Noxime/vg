@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 kea = { path = "../../engine" }
-glium = "0.22.0"
+glium = "0.25.1"
 # glium = { git = "https://github.com/glium/glium/" }

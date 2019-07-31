@@ -46,6 +46,7 @@ pub struct Surface {
 
 impl Renderer {
     pub fn new() -> (Renderer, glutin::EventsLoop) {
+        println!("GLIUM: new");
         // Iterate through various GL versions to find a compatible one
         let (display, events) = {
             let mut res = None;
@@ -63,6 +64,7 @@ impl Renderer {
                 let context = glutin::ContextBuilder::new()
                     .with_gl(*api);
                 if let Ok(d) = glium::Display::new(window, context, &events) {
+                    println!("Renderer: {}", d.get_opengl_version_string());
                     res = Some((Rc::new(d), events));
                     break;
                 }
@@ -70,7 +72,7 @@ impl Renderer {
 
             res.expect("No graphics api support found")
         };
-        
+
 
         // upload a vertex quad for our rendering ops
         let vertex1 = Vertex {
@@ -205,7 +207,7 @@ impl kea::renderer::Target<Renderer> for Texture {
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0],
             ],
-            tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            tex: &texture.tex//.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
 
         self.tex
@@ -281,7 +283,7 @@ impl kea::renderer::Target<Renderer> for Surface {
                 [0.0f32, 0.0, 1.0, 0.0],
                 [x * vsx, y * vsy, 0.0, 1.0],
             ],
-            tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            tex: &texture.tex//.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
 
         self.frame

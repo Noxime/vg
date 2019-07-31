@@ -1,7 +1,7 @@
 use kea::Api;
 use kea_glium::glutin;
 
-use placeholder_audio as kea_cpal;
+// use placeholder_audio as kea_cpal;
 
 struct Wasm {
     renderer: kea_glium::Renderer,
@@ -48,7 +48,7 @@ impl Api for Wasm {
     }
 }
 
-// use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::*;
 
 // // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // // allocator.
@@ -56,14 +56,18 @@ impl Api for Wasm {
 // #[global_allocator]
 // static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-// #[wasm_bindgen]
-// extern {
-//     fn alert(s: &str);
-// }
+#[wasm_bindgen]
+extern {
+    fn alert(s: &str);
+}
 
 // #[wasm_bindgen]
 pub fn main() {
+    console_error_panic_hook::set_once();
+    println!("Running Kea engine on WASM");
+
     let (renderer, events) = kea_glium::Renderer::new();
+
     game::run(Wasm {
         renderer,
         events,
@@ -72,14 +76,3 @@ pub fn main() {
         audio: kea_cpal::Audio::new(),
     })
 }
-
-// pub fn set_panic_hook() {
-//     // When the `console_error_panic_hook` feature is enabled, we can call the
-//     // `set_panic_hook` function at least once during initialization, and then
-//     // we will get better error messages if our code ever panics.
-//     //
-//     // For more details see
-//     // https://github.com/rustwasm/console_error_panic_hook#readme
-//     #[cfg(feature = "console_error_panic_hook")]
-//     console_error_panic_hook::set_once();
-// }
