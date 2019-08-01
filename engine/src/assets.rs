@@ -1,6 +1,6 @@
 //! # Filesystem API for immutable assets
-//! This module contains an API to load asset packs into your game. 
-//! 
+//! This module contains an API to load asset packs into your game.
+//!
 //! # Usage
 //! To use asset packing, you have to add a `build.rs` to your crate root and place the following line in it:
 //! ```rust
@@ -10,22 +10,22 @@
 //! }
 //! ```
 //! _remember to add kea into your `[build-dependencies]` too_
-//! 
-//! Then in your code 
+//!
+//! Then in your code
 //! ```rust
 //! const ASSETS: Assets = asset_pack!("assets.keapack");
-//! 
+//!
 //! // ...
-//! 
+//!
 //! let config_str = ASSETS::str("config.toml")?;
 //! let splash = ASSETS::assets("textures")?.bin("splash.png")?;
 //! ```
-//! 
+//!
 //! # Asset pack internal format
 //! This is something you should not need to worry about, but I will document it briefly here anyway.
-//! 
+//!
 //! Currently asset packs in kea (`.keapack`) are quite a basic file format, and hopefully will stay that way.
-//! 
+//!
 //! ## Asset pack header
 //! | Field        | Offset           | Type          | Description                                                  |
 //! |--------------|------------------|---------------|--------------------------------------------------------------|
@@ -35,7 +35,7 @@
 //! | Data         | 0x16 + Count*0x8 | [Data; Count] | All the files contained in this Asset pack                   |
 //! | Name length  | Size-Name.len -1 | u8            | How long the name is                                         |
 //! | Name         | Size - Name.len  | str           | The name of the asset pack                                   |
-//! 
+//!
 //! ## Data header
 //! | Field       | Offset        | Type         | Description                                                                |
 //! |-------------|---------------|--------------|----------------------------------------------------------------------------|
@@ -71,7 +71,7 @@ enum DataType {
 }
 
 struct Data<'a> {
-    data: &'a [u8]
+    data: &'a [u8],
 }
 
 impl<'a> Data<'a> {
@@ -110,7 +110,7 @@ impl<'a> Data<'a> {
     }
 
     fn data(&self) -> &'a [u8] {
-        &self.data[17 .. (17 + self.data_size()) as usize]
+        &self.data[17..(17 + self.data_size()) as usize]
     }
 
     fn name_length(&self) -> u8 {
@@ -119,16 +119,16 @@ impl<'a> Data<'a> {
 
     fn name(&self) -> &'a str {
         let offset = 18 + self.data_size() as usize;
-        std::str::from_utf8(&self.data[offset..offset + self.name_length() as usize]).expect("Asset pack data had invalid name")
+        std::str::from_utf8(&self.data[offset..offset + self.name_length() as usize])
+            .expect("Asset pack data had invalid name")
     }
-
 }
 
 /// [`Assets`] provides an API for loading data from asset packs
-/// 
-/// The only way currently to create [`Assets`] is to use the [`asset_pack!`] macro. See its 
+///
+/// The only way currently to create [`Assets`] is to use the [`asset_pack!`] macro. See its
 /// documentation for more details.
-/// 
+///
 /// # Example
 /// ```rust
 /// const TEXTURES: Assets = asset_pack!("textures_new.keapack");
@@ -137,7 +137,7 @@ impl<'a> Data<'a> {
 /// ```
 pub struct Assets<'a> {
     #[doc(hidden)]
-    pub data: &'a [u8]
+    pub data: &'a [u8],
 }
 
 /// Represents an error when you try to read an non-existing file
@@ -151,7 +151,7 @@ impl std::fmt::Display for NotFound {
 
 impl<'a> Assets<'a> {
     /// The byte size of the asset pack
-    /// 
+    ///
     /// Note: This is not the combined size of the files in the asset pack. This size also contains the internal asset
     /// pack header data
     pub fn size(&self) -> u64 {
@@ -191,7 +191,9 @@ impl<'a> Assets<'a> {
     }
 
     fn data(&self, index: usize) -> Data<'a> {
-        Data { data: &self.data[self.file_offset(index) as usize .. ] }
+        Data {
+            data: &self.data[self.file_offset(index) as usize..],
+        }
     }
 
     // The name of this asset pack
@@ -206,17 +208,18 @@ impl<'a> Assets<'a> {
         };
         let length = self.data[offset] as usize;
         let offset = offset + 1;
-        std::str::from_utf8(&self.data[offset..offset + length]).expect("Asset pack had invalid name")
+        std::str::from_utf8(&self.data[offset..offset + length])
+            .expect("Asset pack had invalid name")
     }
 
     // Find a binary file in this asset pack
-    // 
+    //
     // Note: This function does not recurse, use [`assets`](Assets::assets) to access nested asset packs
     pub fn binary(&self, name: &str) -> Result<&'a [u8], NotFound> {
-        for i in 0 .. self.count() {
+        for i in 0..self.count() {
             let data = self.data(i as usize);
             if data.name() == name && data.kind() == DataType::Binary {
-                return Ok(data.data())
+                return Ok(data.data());
             }
         }
         Err(NotFound)
@@ -224,10 +227,10 @@ impl<'a> Assets<'a> {
 
     /// Find a nested asset pack
     pub fn assets(&self, name: &str) -> Result<Assets<'a>, NotFound> {
-        for i in 0 .. self.count() {
+        for i in 0..self.count() {
             let data = self.data(i as usize);
             if data.name() == name && data.kind() == DataType::Assets {
-                return Ok(Assets { data: data.data() })
+                return Ok(Assets { data: data.data() });
             }
         }
         Err(NotFound)
@@ -235,7 +238,7 @@ impl<'a> Assets<'a> {
 
     pub fn all_binaries(&self) -> Vec<(&'a str, &'a [u8])> {
         let mut buf = vec![];
-        for i in 0 .. self.count() {
+        for i in 0..self.count() {
             let data = self.data(i as usize);
             if data.kind() == DataType::Binary {
                 buf.push((data.name(), data.data()))
@@ -246,7 +249,7 @@ impl<'a> Assets<'a> {
 
     pub fn all_assets(&self) -> Vec<Assets<'a>> {
         let mut buf = vec![];
-        for i in 0 .. self.count() {
+        for i in 0..self.count() {
             let data = self.data(i as usize);
             if data.kind() == DataType::Assets {
                 buf.push(Assets { data: data.data() })
@@ -264,7 +267,10 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
         let mut buf = vec![];
         let mut count: u64 = 0;
         let mut offsets = vec![];
-        let entries: Vec<std::fs::DirEntry> = std::fs::read_dir(path).expect("Asset folder read failed").filter_map(|e| e.ok()).collect();
+        let entries: Vec<std::fs::DirEntry> = std::fs::read_dir(path)
+            .expect("Asset folder read failed")
+            .filter_map(|e| e.ok())
+            .collect();
         let mut data_offset = 8 * entries.len() as u64 + 16;
         let mut data = vec![];
         for entry in &entries {
@@ -275,8 +281,12 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
             data.append(&mut entry);
         }
 
-        let name = path.file_name().expect("No file name in path")
-            .to_str().expect("File name is not string").as_bytes();
+        let name = path
+            .file_name()
+            .expect("No file name in path")
+            .to_str()
+            .expect("File name is not string")
+            .as_bytes();
         let size = 16 + 8 * offsets.len() + data.len() + name.len();
 
         buf.append(&mut vec![
@@ -328,8 +338,12 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
         return data;
     }
 
-    let name = path.file_name().expect("No file name in path")
-        .to_str().expect("File name is not string").as_bytes();
+    let name = path
+        .file_name()
+        .expect("No file name in path")
+        .to_str()
+        .expect("File name is not string")
+        .as_bytes();
     let size = 8 + 1 + 8 + data.len() + name.len();
 
     let mut buf = vec![];
@@ -363,22 +377,49 @@ fn recurse_asset_packs(path: &Path, root: bool) -> Vec<u8> {
     buf
 }
 
-
 pub fn generate_asset_pack(path: &str, name: &str) {
     let pack = recurse_asset_packs(Path::new(path), true);
     if pack.len() > 1024 * 1024 * 128 {
         println!("cargo:warning=Asset pack `{}` is very large ({:.2} Mb), consider splitting it into smaller packs", name, pack.len() as f64 / 1024.0 / 1024.0);
     }
-    let _ = std::fs::write(format!("{}/{}", std::env::var("OUT_DIR").unwrap(), name), pack).expect("Asset pack write failed");
+    let _ = std::fs::write(
+        format!("{}/{}", std::env::var("OUT_DIR").unwrap(), name),
+        pack,
+    )
+    .expect("Asset pack write failed");
+}
+
+pub fn png(bytes: &[u8]) -> Result<(super::renderer::Size, Vec<super::renderer::Color>), ()> {
+    let (info, mut reader) = png::Decoder::new(bytes).read_info().map_err(|e| println!("Invalid PNG: {}", e))?;
+    assert_eq!(
+        info.color_type,
+        png::ColorType::RGBA,
+        "only RGBA png supported"
+    );
+    assert_eq!(
+        info.bit_depth,
+        png::BitDepth::Eight,
+        "only 8 bit RGBA png supported"
+    );
+    let mut buf = vec![0; info.buffer_size()];
+    reader.next_frame(&mut buf).map_err(|e| println!("Invalid PNG frame: {}", e))?;
+    let mut real = vec![[0.0, 0.0, 0.0, 0.0]; info.width as usize * info.height as usize];
+    for (i, v) in buf.into_iter().enumerate() {
+        // gamma correct
+        real[i / 4][i % 4] = (v as f32 / 255.0).powf(2.2);
+    }
+    Ok(([info.width as usize, info.height as usize], real))
 }
 
 /// This macro includes a built asset pack into your game
-/// 
-/// Note: This macro will fail to compile with a cryptic message `environment variable OUT_DIR is not set` if your 
+///
+/// Note: This macro will fail to compile with a cryptic message `environment variable OUT_DIR is not set` if your
 /// game does not have a `build.rs` file.
 #[macro_export]
 macro_rules! asset_pack {
     ($path:expr) => {
-        $crate::assets::Assets { data: include_bytes!(concat!(env!("OUT_DIR"), "/", $path)) }
+        $crate::assets::Assets {
+            data: include_bytes!(concat!(env!("OUT_DIR"), "/", $path)),
+        }
     };
 }

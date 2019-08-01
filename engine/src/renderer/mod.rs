@@ -3,16 +3,16 @@
 //! basic sprite rendering. This is on purpose, as sprite games are only ones
 //! I plan on making, but if you have good ideas on how to extend the api, drop
 //! me a PR ;)
-//! 
+//!
 //! There are 4 traits that provide a generic way of rendering sprites (called
 //! textures) in kea:
-//! 
+//!
 //! ## `Renderer`
 //! This your instance of a rendering backend, and you use it to get access to
 //! your window (so you can draw to it)
 //! ## `Surface`
 //! Surface represents a window that you can draw to. It has 2 methods:
-//! * [`capture`](renderer::Surface::capture) screenshots the window and returns it as 
+//! * [`capture`](renderer::Surface::capture) screenshots the window and returns it as
 //! texture
 //! * [`present`](renderer::Surface::present) ends the current frame and swaps the buffer
 //! to the window, possibly waiting until next Vblank
@@ -22,7 +22,7 @@
 //! ## `Target`
 //! Target is anything you can render [`Texture`](renderer::Texture)s into. A [`Surface`](renderer::Surface) is a
 //! target, but so are [`Texture`](renderer::Texture)s
-//! 
+//!
 
 pub mod font;
 
@@ -88,7 +88,7 @@ impl View {
     pub fn dimensions(&self, size: &Size) -> [f32; 2] {
         match self.scale {
             Scale::Vertical(v) => [v * size[0] as f32 / size[1] as f32, v],
-            Scale::Horizontal(v) => [v, v  * size[1] as f32 / size[0] as f32],
+            Scale::Horizontal(v) => [v, v * size[1] as f32 / size[0] as f32],
         }
     }
 }
@@ -116,7 +116,7 @@ impl Default for Shading {
 }
 
 /// Instance of a rendering backend
-/// 
+///
 /// See the [module documentation](crate::renderer) on how to use the rendering api
 pub trait Renderer: Sized {
     /// A user friendly name of our rendering engine
@@ -155,6 +155,6 @@ pub trait Target<R: Renderer> {
     /// Set (clear) the target to some specific color
     fn set(&mut self, color: &Color);
     /// Draw a texture into this target, by transforming it with the provided
-    /// transform. 
+    /// transform.
     fn draw(&mut self, texture: &R::Texture, shading: &Shading, view: &View, transform: &Transform);
 }

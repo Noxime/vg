@@ -1,10 +1,10 @@
 //! A utility for rendering text
-//! 
+//!
 //! You provide a font with a hashmap of characters to textures, and a default
 //! texture to use if a character does not exist in the mapping.
 
+use super::{Renderer, Target, Transform};
 use std::collections::HashMap;
-use super::{Renderer, Transform, Target};
 
 pub struct Font<R: Renderer> {
     mapping: HashMap<char, R::Texture>,
@@ -14,16 +14,13 @@ pub struct Font<R: Renderer> {
 impl<R: Renderer> Font<R> {
     /// Create a new font from a character map and a default
     pub fn new(mapping: HashMap<char, R::Texture>, default: R::Texture) -> Font<R> {
-        Font {
-            mapping,
-            default,
-        }
+        Font { mapping, default }
     }
 
     /// Render a given string
     pub fn render<F>(&self, string: &str, transform: &Transform, mut f: F)
     where
-        F: FnMut(&Transform, &R::Texture)
+        F: FnMut(&Transform, &R::Texture),
     {
         let mut transform = transform.clone();
 
@@ -31,7 +28,10 @@ impl<R: Renderer> Font<R> {
             let tex = self.mapping.get(&c).unwrap_or(&self.default);
             let width = tex.size()[0] as f32 / tex.size()[1] as f32;
             f(&transform, tex);
-            transform = transform.translate(width * transform.rotation.cos(), width * transform.rotation.sin());
+            transform = transform.translate(
+                width * transform.rotation.cos(),
+                width * transform.rotation.sin(),
+            );
         }
     }
 

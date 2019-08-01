@@ -134,12 +134,12 @@ impl From<f32> for Axis {
 }
 
 /// A mapping between a keyboard input device and a virtual [`Controller`]
-/// 
-/// Note: For its usage, see [`mapping`](Input::mapping) and 
+///
+/// Note: For its usage, see [`mapping`](Input::mapping) and
 /// [`set_mapping`](Input::set_mapping)
-/// 
+///
 /// The values for a [`default`](Default::default) mapping are:
-/// 
+///
 /// | Controller     | Keyboard                                     |
 /// |----------------|----------------------------------------------|
 /// | Start          | Escape                                       |
@@ -150,7 +150,7 @@ impl From<f32> for Axis {
 /// | Buttons        | Down is Q, right is E, left is U and up is O |
 /// | Triggets       | Shifts                                       |
 /// | Bumpers        | Alt, Control and Super keys                  |
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KeyboardMapping {
     pub start: Vec<Key>,
     pub select: Vec<Key>,
@@ -216,10 +216,10 @@ impl Default for KeyboardMapping {
 }
 
 /// A key on the keyboard, used for [`KeyboardMapping`]
-/// 
+///
 /// Note: This enum does not contain all the keys present on keyboards, but
 /// rather a subset that I personally see useful for games.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Key {
     Key0,
     Key1,
@@ -303,31 +303,31 @@ pub enum Key {
     LCtrl,
     /// Left "super" key, on windows this is the Winkey, on MacOS it is "cmd"
     /// and so on.
-    LSuper, 
+    LSuper,
 
     /// Right shift modifier
     RShift,
     /// Right alt modifier
-    /// 
+    ///
     /// Note: Avoid using this without an alterantive set, as some keyboards do
     /// not have this key
     RAlt,
     /// Right ctrl modifier
-    /// 
+    ///
     /// Note: Avoid using this without an alterantive set, as some keyboards do
     /// not have this key
     RCtrl,
-    /// Right "super" key, on windows this is the Winkey, on MacOS it is "cmd" 
+    /// Right "super" key, on windows this is the Winkey, on MacOS it is "cmd"
     /// and so on.
-    /// 
+    ///
     /// Note: Avoid using this without an alterantive set, as some keyboards do
     /// not have this key
-    RSuper, 
+    RSuper,
 }
 
 impl Key {
     /// Get all modifier keys for the left side of the keyboard
-    /// 
+    ///
     /// This is [`LShift`](Key::LShift), [`LAlt`](Key::LAlt),
     /// [`LCtrl`](Key::LCtrl) and [`LSuper`](Key::LSuper)
     pub fn left_mods() -> Vec<Key> {
@@ -335,8 +335,8 @@ impl Key {
     }
 
     /// Get all modifier keys for the right side of the keyboard
-    /// 
-    /// This is [`RShift`](Key::RShift), [`RAlt`](Key::RAlt), 
+    ///
+    /// This is [`RShift`](Key::RShift), [`RAlt`](Key::RAlt),
     /// [`RCtrl`](Key::RCtrl) and [`RSuper`](Key::RSuper)
     pub fn righs_mods() -> Vec<Key> {
         vec![Key::RShift, Key::RAlt, Key::RCtrl, Key::RSuper]
@@ -377,26 +377,26 @@ pub struct Pointer {
     /// of the screen and `1.0` being the top edge of the screen
     pub y: f32,
     /// Is the pointer currently pressed down
-    /// 
+    ///
     /// Note: On devices that support touch pressure, this will analog value,
     /// and on others such as the mouse this will be `0.0` or `1.0`
     pub pressed: Axis,
 }
 
 /// A cross platform input api
-/// 
+///
 /// This trait provides an abstracted way of dealing with game input. There are
 /// 2 forms of input in kea, a [`Controller`] and a [`Pointer`]
-/// 
+///
 /// # Controllers
 /// [`Controller`] represents a generic game controller, which will likely be
 /// your primary input method. Keyboard events are mapped to a [`Controller`]
 /// too, and how that is done can be configured with [`Input::set_mapping`]
-/// 
+///
 /// # Pointers
 /// [`Pointer`] represents any pointer, like the mouse cursor or touch screen
 /// presses. See its documentation for more info
-/// 
+///
 pub trait Input {
     /// Get the [`Id`] for the "primary" controller. You should use this for
     /// single player games, and should be the controller that most recently
@@ -409,8 +409,11 @@ pub trait Input {
     fn controllers(&self) -> Vec<Id> {
         self.all_controllers()
             .into_iter()
-            .filter(|id| self.controller(id).map(|c| c.info.connected)
-                .unwrap_or(false))
+            .filter(|id| {
+                self.controller(id)
+                    .map(|c| c.info.connected)
+                    .unwrap_or(false)
+            })
             .collect()
     }
     /// Get the [`Id`]s for all controllers
@@ -420,25 +423,25 @@ pub trait Input {
     /// Retrieve a controller by its [`Id`], or `None` if it does not exist
     fn controller(&self, id: &Id) -> Option<Controller>;
     /// Get pointers that we know of
-    /// 
+    ///
     /// To keep track of multiple touches, use the [`id`](Pointer::id) field of
     /// [`Pointer`]
-    /// 
-    /// Note: On PS4 Dualshock contollers the [`id`](Pointer::id) of a 
+    ///
+    /// Note: On PS4 Dualshock contollers the [`id`](Pointer::id) of a
     /// [`Pointer`] is the same as the [`id`](Info::id) of the
     /// controller. This currently limits the number of touches on a Dualshock
     /// controller to only one, but hopefully later I will figure out a nice
     /// way to handle that :)
     fn pointers(&self) -> Vec<Pointer>;
     /// Get the current keyboard to [`Controller`] mapping
-    /// 
-    /// Note: To modify the current mapping, see 
+    ///
+    /// Note: To modify the current mapping, see
     /// [`set_mapping`](Input::set_mapping)
     fn mapping(&self) -> KeyboardMapping;
     /// Set the current keyboard to [`Controller`] mapping
-    /// 
+    ///
     /// Note: To get the current mapping, see [`mapping`](Input::mapping)
-    /// 
+    ///
     /// Kea maps all keyboard events to a virtual game controller, and this
     /// mapping is done through a [`KeyboardMapping`]. See its documentation
     /// for the default values.
