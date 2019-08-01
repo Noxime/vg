@@ -123,7 +123,7 @@ impl Audio {
 
         let _t_settings = Arc::clone(&settings);
 
-        /*
+        
         let thread = std::thread::spawn(move || {
             events.run(move |id, result| {
 
@@ -225,7 +225,6 @@ impl Audio {
                 }
             })
         });
-        */
 
         Audio {
             sounds,
