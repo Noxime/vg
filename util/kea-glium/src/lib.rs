@@ -207,7 +207,7 @@ impl kea::renderer::Target<Renderer> for Texture {
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0],
             ],
-            tex: &texture.tex//.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
 
         self.tex
@@ -283,7 +283,7 @@ impl kea::renderer::Target<Renderer> for Surface {
                 [0.0f32, 0.0, 1.0, 0.0],
                 [x * vsx, y * vsy, 0.0, 1.0],
             ],
-            tex: &texture.tex//.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
 
         self.frame
