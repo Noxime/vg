@@ -191,7 +191,7 @@ impl kea::renderer::Target<Renderer> for Texture {
 
         self.tex
             .as_surface()
-            .clear_color(color[0], color[1], color[2], color[3]);
+            .clear_color_srgb(color[0], color[1], color[2], color[3]);
     }
     fn draw(&mut self, texture: &Texture, shading: &Shading, view: &View, transform: &Transform) {
         use glium::uniform;
@@ -281,7 +281,7 @@ impl kea::renderer::Target<Renderer> for Surface {
         use glium::Surface;
 
         self.frame
-            .clear_color(color[0], color[1], color[2], color[3]);
+            .clear_color_srgb(color[0], color[1], color[2], color[3]);
     }
     fn draw(&mut self, texture: &Texture, shading: &Shading, view: &View, transform: &Transform) {
         use glium::uniform;
