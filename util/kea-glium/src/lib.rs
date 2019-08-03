@@ -197,15 +197,31 @@ impl kea::renderer::Target<Renderer> for Texture {
         use glium::uniform;
         use glium::Surface;
 
+        let (ax, ay) = match view.scale {
+            Scale::Vertical(s) => (self.size()[0] as f32 / self.size()[1] as f32 * s, s),
+            Scale::Horizontal(s) => (s, self.size()[1] as f32 / self.size()[0] as f32 * s),
+        };
+
+        let r = transform.rotation - view.rotation;
+        let sx = transform.scale_x;
+        let sy = transform.scale_y;
+        let x = transform.x - view.x;
+        let y = transform.y - view.y;
+
+        let tx = texture.size()[0] as f32 / view.pixels_per_unit;
+        let ty = texture.size()[1] as f32 / view.pixels_per_unit;
+
+        let vsx = sx / ax * 2.0;
+        let vsy = sy / ay * 2.0;
+
         let uniforms = uniform! {
             add: shading.add,
             multiply: shading.multiply,
-            // transposed since GlES does not support `transpose`
             matrix: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0, 1.0],
+                [r.cos() * vsx * tx, r.sin() * vsy * ty, 0.0, 0.0],
+                [-r.sin() * vsx * tx, r.cos() * vsy * ty, 0.0, 0.0],
+                [0.0f32, 0.0, 1.0, 0.0],
+                [x * vsx, y * vsy, 0.0, 1.0],
             ],
             tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
@@ -228,8 +244,22 @@ impl kea::renderer::Target<Renderer> for Texture {
 
 impl kea::renderer::Surface<Renderer> for Surface {
     fn capture(&self) -> Texture {
-        // TODO: Read the texture back to memory
-        unimplemented!()
+        use kea::renderer::Target;
+        use glium::Surface;
+        let size = self.size();
+        let tex = glium::texture::Texture2d::empty(&*self.display, size[0] as u32, size[1] as u32).expect("Glium tex read failure");
+        self.frame.blit_whole_color_to(&tex.as_surface(), &glium::BlitTarget {
+            left: 0,
+            bottom: size[1] as u32,
+            width: size[0] as i32,
+            height: -(size[1] as i32),
+        }, glium::uniforms::MagnifySamplerFilter::Nearest);
+        Texture {
+            tex,
+            program: self.program.clone(),
+            verts: self.verts.clone(),
+        }
+
     }
 
     fn present(&mut self, _vsync: bool) {
