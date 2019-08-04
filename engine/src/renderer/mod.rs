@@ -93,7 +93,7 @@ impl View {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Scale {
     Vertical(f32),
     Horizontal(f32),
