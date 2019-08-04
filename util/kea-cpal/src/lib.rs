@@ -8,7 +8,6 @@ use std::collections::VecDeque;
 use std::io::Cursor;
 use std::sync::{Arc, Weak, atomic::AtomicBool, atomic::Ordering::Relaxed};
 
-
 struct Inner {
     vorbis: Mutex<OggStreamReader<Cursor<Vec<u8>>>>,
     buffer: Mutex<VecDeque<i16>>,
@@ -183,7 +182,7 @@ impl Audio {
                                     for i in 0..sample_count {
                                         let i = i as f64 * ogg_rate as f64 / rate as f64;
                                         let i = i.min(samples.len() as f64 - 1.0);
-                                        resampled.push_back((samples[i.floor() as usize] + samples[i.ceil() as usize]) / 2);
+                                        resampled.push_back(((samples[i.floor() as usize] as i32 + samples[i.ceil() as usize] as i32) / 2) as i16);
                                     }
 
                                     buf.append(&mut resampled);
@@ -200,24 +199,20 @@ impl Audio {
                         }
                     };
 
-                    let mut i = 0;
                     match stream_data {
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
                                 *elem += (load() as i32 + u16::max_value() as i32 / 2) as u16;
-                                i += 1;
                             }
                         },
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
                                 *elem += load();
-                                i += 1;
                             }
                         },
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
                                 *elem = load() as f32 / i16::max_value() as f32;
-                                i += 1;
                             }
                         },
                         _ => (),
