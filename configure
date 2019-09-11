@@ -22,13 +22,15 @@ fi
 echo "Configuring kea to use '$name'"
 
 if [[ "$OSTYPE" == "darwin" ]]; then
-	sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-desktop/Cargo.toml
-	sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-android/Cargo.toml
-	sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-ios/Cargo.toml
-	sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-switch/Cargo.toml
+    sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-desktop/Cargo.toml
+    sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-android/Cargo.toml
+    sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-ios/Cargo.toml
+    sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-switch/Cargo.toml
+    sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-wasm/Cargo.toml
 else
-	sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-desktop/Cargo.toml
-        sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-android/Cargo.toml
-        sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-ios/Cargo.toml
-        sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-switch/Cargo.toml
+    sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-desktop/Cargo.toml
+    sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-android/Cargo.toml
+    sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-ios/Cargo.toml
+    sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-switch/Cargo.toml
+    sed -i "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-wasm/Cargo.toml
 fi

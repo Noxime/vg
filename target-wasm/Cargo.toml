@@ -12,11 +12,12 @@ edition = "2018"
 
 [dependencies]
 wasm-bindgen = "0.2"
-game = { path = "../../" }
+game = { path = "../game" }
 kea = { path = "../engine" }
 kea-glium = { path = "../util/kea-glium" }
 kea-gilrs = { path = "../util/kea-gilrs" }
 kea-cpal = { path = "../util/kea-cpal" }
+glium = "0.25"
 # placeholder-audio = { path = "../util/placeholder-audio" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
@@ -40,4 +41,4 @@ console_error_panic_hook = "0.1.6"
 opt-level = "s"
 
 [patch.crates-io]
-winit = { path = "winit/", branch = "em-fixes" }
+winit = { path = "winit/", branch = "web" }

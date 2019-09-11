@@ -8,7 +8,7 @@ edition = "2018"
 lto = true
 
 [dependencies]
-game = { path = "../../" }
+game = { path = "../game", package = "game" }
 kea = { path = "../engine" }
 kea-glium = { path = "../util/kea-glium" }
 kea-gilrs = { path = "../util/kea-gilrs" }

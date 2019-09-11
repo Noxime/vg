@@ -9,7 +9,7 @@ name = "kea_ios"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-game = { path = "../game" }
+game = { path = "../game", package = "game" }
 kea = { path = "../engine" }
 kea-dev = { path = "../util/kea-dev" }
 

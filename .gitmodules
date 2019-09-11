@@ -1,6 +1,3 @@
 [submodule "target-switch/libc"]
 	path = target-switch/libc
 	url = https://github.com/rust-lang/libc
-[submodule "target-wasm/winit"]
-	path = target-wasm/winit
-	url = https://owo.codes/noxim/winit

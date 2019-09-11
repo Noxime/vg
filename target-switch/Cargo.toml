@@ -28,7 +28,7 @@ libnx-rs = { git = "https://github.com/ischeinkman/libnx-rs", branch = "master" 
 #piston_window = { version = "^0.82.0", default-features = false }
 
 kea = { path = "../engine" }
-game = { path = "../game" }
+game = { path = "../game", package = "game" }
 
 [replace]
 #"num_cpus:1.9.0" = { git = 'https://github.com/noxime/num_cpus/', branch = 'nintendo-3ds-horizon' }

@@ -1,52 +1,52 @@
-use kea::Api;
-use kea_glium::glutin;
+// use kea::Api;
+// use kea_glium::glutin;
 
-// use placeholder_audio as kea_cpal;
+// // use placeholder_audio as kea_cpal;
 
-struct Wasm {
-    renderer: kea_glium::Renderer,
-    input: kea_gilrs::Input,
-    audio: kea_cpal::Audio,
-    events: glutin::EventsLoop,
-    closing: bool,
-}
+// struct Wasm {
+//     renderer: kea_glium::Renderer,
+//     input: kea_gilrs::Input,
+//     audio: kea_cpal::Audio,
+//     events: glutin::EventsLoop,
+//     closing: bool,
+// }
 
-impl Api for Wasm {
-    type R = kea_glium::Renderer;
-    type I = kea_gilrs::Input;
-    type A = kea_cpal::Audio;
+// impl Api for Wasm {
+//     type R = kea_glium::Renderer;
+//     type I = kea_gilrs::Input;
+//     type A = kea_cpal::Audio;
 
-    fn poll(&mut self) {
-        let mut closing = false;
+//     fn poll(&mut self) {
+//         let mut closing = false;
 
-        self.events.poll_events(|event| {
-            match event {
-                glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, .. } => closing = true,
-                _ => (),
-            }
-        });
+//         self.events.poll_events(|event| {
+//             match event {
+//                 glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, .. } => closing = true,
+//                 _ => (),
+//             }
+//         });
 
-        self.closing = closing;
+//         self.closing = closing;
 
-        self.input.update()
-    }
+//         self.input.update()
+//     }
 
-    fn exit(&self) -> bool {
-        self.closing
-    }
+//     fn exit(&self) -> bool {
+//         self.closing
+//     }
 
-    fn renderer<'a>(&'a mut self) -> &'a mut kea_glium::Renderer {
-        &mut self.renderer
-    }
+//     fn renderer<'a>(&'a mut self) -> &'a mut kea_glium::Renderer {
+//         &mut self.renderer
+//     }
 
-    fn input<'a>(&'a mut self) -> &'a mut kea_gilrs::Input {
-        &mut self.input
-    }
+//     fn input<'a>(&'a mut self) -> &'a mut kea_gilrs::Input {
+//         &mut self.input
+//     }
 
-    fn audio<'a>(&'a mut self) -> &'a mut kea_cpal::Audio {
-        &mut self.audio
-    }
-}
+//     fn audio<'a>(&'a mut self) -> &'a mut kea_cpal::Audio {
+//         &mut self.audio
+//     }
+// }
 
 use wasm_bindgen::prelude::*;
 
@@ -66,13 +66,17 @@ pub fn main() {
     console_error_panic_hook::set_once();
     println!("Running Kea engine on WASM");
 
-    let (renderer, events) = kea_glium::Renderer::new();
+    let events = glium::glutin::EventsLoop::new();
+    let display = glium::Display::new(glium::glutin::WindowBuilder::new(), glium::glutin::ContextBuilder::new(), &events);
 
-    game::run(Wasm {
-        renderer,
-        events,
-        closing: false,
-        input: kea_gilrs::Input::new(),
-        audio: kea_cpal::Audio::new(),
-    })
+    // let (renderer, events) = kea_glium::Renderer::new();
+
+    println!("Engine exit");
+    // game::run(Wasm {
+    //     renderer,
+    //     events,
+    //     closing: false,
+    //     input: kea_gilrs::Input::new(),
+    //     audio: kea_cpal::Audio::new(),
+    // })
 }
