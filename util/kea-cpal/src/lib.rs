@@ -212,7 +212,7 @@ impl Audio {
                         },
                         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(ref mut buffer) } => {
                             for elem in buffer.iter_mut() {
-                                *elem = load() as f32 / i16::max_value() as f32;
+                                *elem += load() as f32 / i16::max_value() as f32;
                             }
                         },
                         _ => (),
