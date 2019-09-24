@@ -14,11 +14,13 @@ edition = "2018"
 wasm-bindgen = "0.2"
 game = { path = "../game" }
 kea = { path = "../engine" }
-kea-glium = { path = "../util/kea-glium" }
-kea-gilrs = { path = "../util/kea-gilrs" }
-kea-cpal = { path = "../util/kea-cpal" }
-glium = "0.25"
-# placeholder-audio = { path = "../util/placeholder-audio" }
+# kea-glium = { path = "../util/kea-glium" }
+# kea-gilrs = { path = "../util/kea-gilrs" }
+# kea-cpal = { path = "../util/kea-cpal" }
+
+# glium_sdl2 = { version = "0.15", git = "https://github.com/DomWilliams0/glium-sdl2" }
+sdl2 = "0.32"
+# glium = "0.25"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -41,4 +43,4 @@ console_error_panic_hook = "0.1.6"
 opt-level = "s"
 
 [patch.crates-io]
-winit = { path = "winit/", branch = "web" }
+# winit = { path = "winit/", branch = "web" }
