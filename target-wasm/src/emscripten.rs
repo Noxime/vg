@@ -1,12 +1,13 @@
 // taken from https://github.com/Gigoteur/UnicornConsole/blob/ad62c6a9736fde999629a0e764c4f22140102593/unicorn/src/unicorn/emscripten.rs
+#![allow(dead_code)]
 
-#[cfg_attr(not(target_os = "emscripten"), error("hi"))]
+#[cfg(not(target_os = "emscripten"))]
+compile_error!("This backend only works on Emscripten, please build with `cargo web build`");
 
 #[cfg(target_os = "emscripten")]
 pub mod emscripten {
     use std::cell::RefCell;
-    use std::ffi::{CStr, CString};
-    use std::os::raw::{c_char, c_float, c_int, c_void};
+    use std::os::raw::{c_float, c_int, c_void};
     use std::ptr::null_mut;
 
     #[allow(non_camel_case_types)]
