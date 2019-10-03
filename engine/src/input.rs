@@ -19,8 +19,6 @@ pub struct Info {
     pub name: String,
     /// The current power status of the controller
     pub power: Power,
-    /// ID which you can use to access a specific gamepad
-    pub id: Id,
     /// Is the controller currently connected
     pub connected: bool,
 }
@@ -30,14 +28,10 @@ impl Default for Info {
         Info {
             name: "INTERNAL ERROR".into(),
             power: Power::Unknown,
-            id: !0 - 1,
             connected: false,
         }
     }
 }
-
-/// An ID refererring to a controller
-pub type Id = usize;
 
 /// The current power state of a controller
 ///
@@ -338,7 +332,7 @@ impl Key {
     ///
     /// This is [`RShift`](Key::RShift), [`RAlt`](Key::RAlt),
     /// [`RCtrl`](Key::RCtrl) and [`RSuper`](Key::RSuper)
-    pub fn righs_mods() -> Vec<Key> {
+    pub fn right_mods() -> Vec<Key> {
         vec![Key::RShift, Key::RAlt, Key::RCtrl, Key::RSuper]
     }
 
@@ -369,7 +363,7 @@ impl Key {
 pub struct Pointer {
     /// The [`Id`] of this pointer, which can be used to keep track of multiple
     /// fingers on a touch screen.
-    pub id: Id,
+    pub id: usize,
     /// Normalized X position of the pointer, with `-1.0` being the left edge
     /// of the screen and `1.0` being the right edge of the screen
     pub x: f32,
