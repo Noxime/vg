@@ -15,14 +15,16 @@ wasm-bindgen = "0.2"
 game = { path = "../game" }
 kea = { path = "../engine" }
 kea-sdl2 = { path = "../util/kea-sdl2" }
+futures-preview = "0.3.0-alpha.19"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
 console_error_panic_hook = "0.1.6"
-wee_alloc = "0.4.5" # wee-alloc is a bit slower than default one but 10x smaller
+# wee-alloc is a bit slower than default one but 10x smaller
+# wee_alloc = "0.4.5"
 
 [profile.release]
-# Tell `rustc` to optimize for small code size.
+# Binary size is important on the web
 opt-level = "s"
