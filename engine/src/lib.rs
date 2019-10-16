@@ -23,6 +23,8 @@ pub mod audio;
 pub mod input;
 pub mod renderer;
 
+mod transform;
+
 #[macro_use]
 pub mod assets;
 

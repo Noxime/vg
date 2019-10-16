@@ -145,7 +145,7 @@ pub trait Surface<R: Renderer>: Target<R> {
     fn capture(&self) -> R::Texture;
     /// Flush the rendering queue and present the final image to the display,
     /// possibly waiting for next vertical blank
-    fn present(&mut self, vsync: bool);
+    fn present(&mut self, vsync: bool) -> Box<dyn std::future::Future<Output=()> + Unpin>;
 }
 
 /// Common trait for both Texture and Surface, where you can draw to
