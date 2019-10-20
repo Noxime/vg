@@ -1,8 +1,4 @@
-default-target = "asmjs-unknown-emscripten"
+default-target = "wasm32-unknown-unknown"
 
 [cargo-web]
 minimum-version = "0.6.0"
-
-[target.emscripten]
-# prepend-js = "src/emscripten_runtime.js"
-link-args = ["-s", "USE_SDL=2", "-s", "DEMANGLE_SUPPORT=1"]
