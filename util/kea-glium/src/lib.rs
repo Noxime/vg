@@ -262,11 +262,24 @@ impl kea::renderer::Surface<Renderer> for Surface {
 
     }
 
-    fn present(&mut self, _vsync: bool) {
+    fn present(&mut self, _vsync: bool) -> Box<(dyn std::future::Future<Output = ()> + std::marker::Unpin + 'static)> {
         // TODO: vsync
         std::mem::replace(&mut self.frame, self.display.draw())
             .finish()
-            .unwrap()
+            .unwrap();
+
+        
+        struct Present;
+        impl std::future::Future for Present {
+            type Output = ();
+            fn poll(self: std::pin::Pin<&mut Present>, _ctx: &mut std::task::Context<'_>) 
+                -> std::task::Poll<()>
+            {
+                std::task::Poll::Ready(())
+            }
+        }
+
+        Box::new(Present)
     }
 }
 

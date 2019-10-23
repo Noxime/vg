@@ -13,3 +13,4 @@ kea = { path = "../engine" }
 kea-glium = { path = "../util/kea-glium" }
 kea-gilrs = { path = "../util/kea-gilrs" }
 kea-cpal = { path = "../util/kea-cpal" }
+futures-preview = "0.3.0-alpha.19"

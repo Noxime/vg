@@ -128,11 +128,11 @@ impl Api for Desktop {
 
 fn main() {
     let (renderer, events) = kea_glium::Renderer::new();
-    game::run(Desktop {
+    futures::executor::block_on(game::run(Desktop {
         renderer,
         events,
         closing: false,
         input: kea_gilrs::Input::new(),
         audio: kea_cpal::Audio::new(),
-    })
+    }));
 }
