@@ -19,7 +19,10 @@ web:
   before_script:
   - cargo install --force cargo-web
   script:
+<<<<<<< HEAD
   - cd target-web
+=======
+>>>>>>> 02d6b8719ddd7b9e79b5347bb619542b184249c1
   - cargo web build --verbose
 
 
