@@ -1,9 +1,11 @@
 [package]
 name = "kea"
+description = "A lightweight and easily portable framework for 2D games"
 version = "0.0.0"
+repository = "https://owo.codes/noxim/kea"
+homepage = "https://noxim.xyz/kea"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 license = "ISC"
-publish = false
 edition = "2018"
 
 [dependencies]
