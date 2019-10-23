@@ -15,10 +15,58 @@ desktop:
   - cd target-desktop
   - cargo build --verbose
 
+web:
+  before_script:
+  - cargo install --force cargo-web
+  script:
+  - cd target-web
+  - cargo web build --verbose
+
+
 util-keapack:
   allow_failure: true
   script:
   - cd util/keapack
+  - cargo build --verbose
+
+util-kea-cpal:
+  allow_failure: true
+  before_script:
+    - apt-get update && apt install -y libudev-dev libasound2-dev
+  script:
+  - cd util/kea-cpal
+  - cargo build --verbose
+
+util-kea-gilrs:
+  allow_failure: true
+  before_script:
+    - apt-get update && apt install -y libudev-dev libasound2-dev
+  script:
+  - cd util/kea-gilrs
+  - cargo build --verbose
+
+util-kea-glium:
+  allow_failure: true
+  script:
+  - cd util/kea-glium
+  - cargo build --verbose
+
+util-kea-hal:
+  allow_failure: true
+  script:
+  - cd util/kea-hal
+  - cargo build --verbose
+
+util-kea-wgpu:
+  allow_failure: true
+  script:
+  - cd util/kea-wgpu
+  - cargo build --verbose
+
+util-kea-sdl2:
+  allow_failure: true
+  script:
+  - cd util/kea-sdl2
   - cargo build --verbose
 
 pages:
