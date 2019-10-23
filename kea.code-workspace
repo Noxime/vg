@@ -13,7 +13,7 @@
 			"path": "target-ios"
 		},
 		{
-			"path": "target-wasm"
+			"path": "target-web"
 		},
 		{
 			"path": "game"
