@@ -1,12 +1,22 @@
 image: "rust:latest"
 
+stages: 
+- core
+- tier1
+- tier2
+- tier3
+- component
+- docs
+
 engine:
+  stage: core
   script:
   - rustc --version && cargo --version
   - cd engine
   - cargo build --verbose
 
 desktop:
+  stage: tier1
   before_script:
   - apt-get update
   - apt-get install -y libudev-dev libasound2-dev
@@ -16,6 +26,7 @@ desktop:
   - cargo build --verbose
 
 web:
+  stage: tier2
   before_script:
   - cargo install --force cargo-web
   script:
@@ -24,12 +35,14 @@ web:
 
 
 util-keapack:
+  stage: component
   allow_failure: true
   script:
   - cd util/keapack
   - cargo build --verbose
 
 util-kea-cpal:
+  stage: component
   allow_failure: true
   before_script:
     - apt-get update && apt install -y libudev-dev libasound2-dev
@@ -38,6 +51,7 @@ util-kea-cpal:
   - cargo build --verbose
 
 util-kea-gilrs:
+  stage: component
   allow_failure: true
   before_script:
     - apt-get update && apt install -y libudev-dev libasound2-dev
@@ -46,31 +60,35 @@ util-kea-gilrs:
   - cargo build --verbose
 
 util-kea-glium:
+  stage: component
   allow_failure: true
   script:
   - cd util/kea-glium
   - cargo build --verbose
 
 util-kea-hal:
+  stage: component
   allow_failure: true
   script:
   - cd util/kea-hal
   - cargo build --verbose
 
 util-kea-wgpu:
+  stage: component
   allow_failure: true
   script:
   - cd util/kea-wgpu
   - cargo build --verbose
 
 util-kea-sdl2:
+  stage: component
   allow_failure: true
   script:
   - cd util/kea-sdl2
   - cargo build --verbose
 
 pages:
-  stage: deploy
+  stage: docs
   before_script:
   - rustup toolchain add nightly
   script:
