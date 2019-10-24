@@ -1,9 +1,10 @@
 #![feature(set_stdio)]
 
-use webgl_stdweb as webgl;
-use stdweb::{console, js};
-use stdweb::web::{self, html_element::CanvasElement, IParentNode, INode};
+use std::rc::Rc;
+use std::sync::Mutex;
+use stdweb::console;
 use stdweb::unstable::TryInto;
+use stdweb::web::{self, html_element::CanvasElement, INode};
 
 mod gfx;
 
@@ -18,15 +19,17 @@ async fn game(mut api: impl kea::Renderer) {
     println!("async loop start");
     let mut t = 0.0f32;
     loop {
-        t += 1.0/120.0;
-        console!(log, "Loop");
+        t += 1.0 / 120.0;
+        console!(log, "window is ", format!("{:?}", api.surface().size()));
         api.surface().set(&[t.sin() * 0.5 + 0.5, 0.87, 0.91, 1.0]);
         api.surface().present(true).await;
     }
 }
 
 pub fn main() {
-    // console_error_panic_hook::set_once();
+    std::panic::set_hook(Box::new(|info| {
+        console!(error, format!("{}", info));
+    }));
     console!(log, "Kea start");
 
     let document = web::document();
@@ -37,11 +40,10 @@ pub fn main() {
     canvas.set_width(800);
     canvas.set_height(600);
 
-    let kea = gfx::Gfx::new(canvas);
+    let (kea, waker) = gfx::Gfx::new(canvas);
 
-    use futures::future::{FutureExt, TryFutureExt};
-    use futures::task::LocalSpawn;
     use futures::executor::LocalPool;
+    use futures::task::LocalSpawn;
     let executor = LocalPool::new();
 
     executor
@@ -49,13 +51,17 @@ pub fn main() {
         .spawn_local_obj(Box::new(game(kea)).into())
         .expect("Failed to spawn");
 
-    fn main_loop(mut executor: LocalPool) {
+    fn main_loop(mut executor: LocalPool, mut waker: Rc<Mutex<Option<std::task::Waker>>>) {
         executor.run_until_stalled();
-        console!(log, "Done with executor");
-        web::window().request_animation_frame(move |_| main_loop(executor));
+        
+        if let Some(waker) = waker.lock().expect("failed to lock").take() {
+            waker.wake();
+        } else {
+            console!(error, "lol our waker is gone? yikes");
+        }
+
+        web::window().request_animation_frame(move |_| main_loop(executor, waker));
     }
 
-    main_loop(executor);
-
-    console!(log, "Engine exit (the bad way? oh god)");
+    main_loop(executor, waker);
 }

@@ -1,25 +1,39 @@
+use kea::renderer::{Color, Shading, Size, Transform, View};
 use std::rc::Rc;
-use kea::renderer::{Size, Color, View, Transform, Shading};
+use std::sync::Mutex;
 
 pub struct Surf {
     pub ctx: Rc<super::Ctx>,
+    pub waker: Rc<Mutex<Option<std::task::Waker>>>,
 }
 
-struct Present(usize);
+struct Present(Rc<Mutex<Option<std::task::Waker>>>, bool);
 impl std::future::Future for Present {
     type Output = ();
 
-    fn poll(mut self: std::pin::Pin<&mut Present>, ctx: &mut std::task::Context<'_>) 
-        -> std::task::Poll<()>
-    {
-        if self.0 == 0 {
-            stdweb::console!(log, "ready");
-            std::task::Poll::Ready(())
+    fn poll(
+        mut self: std::pin::Pin<&mut Present>,
+        ctx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<()> {
+        let mut set = self.1;
+        if let Ok(mut mutex) = self.0.lock() {
+            // the waker has been taken, either means first poll or consaumed
+            if mutex.is_none() {
+                // first poll
+                if self.1 {
+                    *mutex = Some(ctx.waker().clone());
+                    set = false;
+                } else {
+                    // it got taken, so we have yielded
+                    return std::task::Poll::Ready(());
+                }
+            }
         } else {
-            stdweb::console!(log, "pending");
-            self.0 -= 1;
-            std::task::Poll::Pending
+            panic!("Failed to lock mutex")
         }
+        self.1 = set;
+
+        std::task::Poll::Pending
     }
 }
 
@@ -28,14 +42,17 @@ impl kea::renderer::Surface<super::Gfx> for Surf {
         unimplemented!()
     }
 
-    fn present(&mut self, vsync: bool)  -> Box<dyn std::future::Future<Output=()> + Unpin> {
-        Box::new(Present(2))
+    fn present(&mut self, vsync: bool) -> Box<dyn std::future::Future<Output = ()> + Unpin> {
+        Box::new(Present(Rc::clone(&self.waker), true))
     }
 }
 
 impl kea::renderer::Target<super::Gfx> for Surf {
     fn size(&self) -> Size {
-        unimplemented!()
+        [
+            self.ctx.drawing_buffer_width() as usize,
+            self.ctx.drawing_buffer_height() as usize,
+        ]
     }
 
     fn set(&mut self, color: &Color) {
@@ -43,7 +60,13 @@ impl kea::renderer::Target<super::Gfx> for Surf {
         self.ctx.clear(super::Ctx::COLOR_BUFFER_BIT);
     }
 
-    fn draw(&mut self, texture: &super::Tex, shading: &Shading, view: &View, transform: &Transform) {
+    fn draw(
+        &mut self,
+        texture: &super::Tex,
+        shading: &Shading,
+        view: &View,
+        transform: &Transform,
+    ) {
         unimplemented!()
     }
 }
