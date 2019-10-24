@@ -14,25 +14,45 @@ mod gfx;
 #[cfg(not(debug_assertions))]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-async fn game(mut api: impl kea::Renderer) {
-    use kea::renderer::{Renderer, Surface, Target};
-    println!("async loop start");
-    let mut t = 0.0f32;
-    loop {
-        t += 1.0 / 120.0;
-        console!(log, "window is ", format!("{:?}", api.surface().size()));
-        api.surface().set(&[t.sin() * 0.5 + 0.5, 0.87, 0.91, 1.0]);
-        api.surface().present(true).await;
+struct Kea {
+    gfx: gfx::Gfx,
+    sfx: placeholder_audio::Audio,
+    input: placeholder_input::Input,
+}
+
+impl kea::Api for Kea {
+    type R = gfx::Gfx;
+    type I = placeholder_input::Input;
+    type A = placeholder_audio::Audio;
+
+    fn poll(&mut self) {}
+    fn exit(&self) -> bool {
+        false
+    }
+
+    fn audio(&mut self) -> &mut Self::A {
+        &mut self.sfx
+    }
+
+    fn input(&mut self) -> &mut Self::I {
+        &mut self.input
+    }
+
+    fn renderer(&mut self) -> &mut Self::R {
+        &mut self.gfx
     }
 }
 
 pub fn main() {
+    // web panics are garbage by default
     std::panic::set_hook(Box::new(|info| {
         console!(error, format!("{}", info));
     }));
+
     console!(log, "Kea start");
 
     let document = web::document();
+    document.set_title("Kea");
     let element = document.create_element("canvas").unwrap();
     let canvas: CanvasElement = element.try_into().unwrap();
     let body = document.body().unwrap();
@@ -40,7 +60,13 @@ pub fn main() {
     canvas.set_width(800);
     canvas.set_height(600);
 
-    let (kea, waker) = gfx::Gfx::new(canvas);
+    let (gfx, waker) = gfx::Gfx::new(canvas);
+
+    let kea = Kea {
+        gfx,
+        sfx: placeholder_audio::Audio::new(),
+        input: placeholder_input::Input
+    };
 
     use futures::executor::LocalPool;
     use futures::task::LocalSpawn;
@@ -48,12 +74,12 @@ pub fn main() {
 
     executor
         .spawner()
-        .spawn_local_obj(Box::new(game(kea)).into())
+        .spawn_local_obj(Box::new(game::run(kea)).into())
         .expect("Failed to spawn");
 
-    fn main_loop(mut executor: LocalPool, mut waker: Rc<Mutex<Option<std::task::Waker>>>) {
+    fn main_loop(mut executor: LocalPool, waker: Rc<Mutex<Option<std::task::Waker>>>) {
         executor.run_until_stalled();
-        
+
         if let Some(waker) = waker.lock().expect("failed to lock").take() {
             waker.wake();
         } else {

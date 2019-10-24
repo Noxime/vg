@@ -2,8 +2,10 @@ use kea::renderer::{Color, Shading, Size, Transform, View};
 use std::rc::Rc;
 use std::sync::Mutex;
 
+use super::Ctx;
+
 pub struct Surf {
-    pub ctx: Rc<super::Ctx>,
+    pub ctx: Rc<Ctx>,
     pub waker: Rc<Mutex<Option<std::task::Waker>>>,
 }
 
@@ -67,6 +69,9 @@ impl kea::renderer::Target<super::Gfx> for Surf {
         view: &View,
         transform: &Transform,
     ) {
-        unimplemented!()
+        // let size = self.size();
+        // self.ctx.viewport(0, 0, size[0] as _, size[1] as _);
+        self.ctx.draw_arrays(Ctx::TRIANGLES, 0, 6);
+        stdweb::console!(log, "draw");
     }
 }
