@@ -1,4 +1,4 @@
-use kea::audio;
+use vg::audio;
 
 pub struct Sound;
 

@@ -1,4 +1,4 @@
-use kea::input;
+use vg::input;
 use gilrs;
 use std::sync::{Mutex, Arc};
 use std::time::SystemTime;
@@ -101,7 +101,7 @@ impl Input {
 
 const KB_ID: input::Id = 1552525;
 
-impl kea::Input for Input {
+impl vg::Input for Input {
     fn default(&self) -> Option<input::Id> {
         let gilrs = self.gilrs.lock().unwrap();
         let mut latest = (std::time::SystemTime::UNIX_EPOCH, None);

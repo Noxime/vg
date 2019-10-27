@@ -4,16 +4,16 @@
 //! # Usage
 //! To use asset packing, you have to add a `build.rs` to your crate root and place the following line in it:
 //! ```rust
-//! use kea::assets::generate_asset_packs;
+//! use vg::assets::generate_asset_packs;
 //! fn main() {
-//!     generate_asset_pack("assets/", "assets.keapack");
+//!     generate_asset_pack("assets/", "assets.vgpack");
 //! }
 //! ```
-//! _remember to add kea into your `[build-dependencies]` too_
+//! _remember to add vg into your `[build-dependencies]` too_
 //!
 //! Then in your code
 //! ```rust
-//! const ASSETS: Assets = asset_pack!("assets.keapack");
+//! const ASSETS: Assets = asset_pack!("assets.vgpack");
 //!
 //! // ...
 //!
@@ -24,7 +24,7 @@
 //! # Asset pack internal format
 //! This is something you should not need to worry about, but I will document it briefly here anyway.
 //!
-//! Currently asset packs in kea (`.keapack`) are quite a basic file format, and hopefully will stay that way.
+//! Currently asset packs in vg (`.vgpack`) are quite a basic file format, and hopefully will stay that way.
 //!
 //! ## Asset pack header
 //! | Field        | Offset           | Type          | Description                                                  |
@@ -131,7 +131,7 @@ impl<'a> Data<'a> {
 ///
 /// # Example
 /// ```rust
-/// const TEXTURES: Assets = asset_pack!("textures_new.keapack");
+/// const TEXTURES: Assets = asset_pack!("textures_new.vgpack");
 /// let image = decode_png(TEXTURES.assets("x512")?.binary()?)?;
 /// // do whatever with your image :)
 /// ```

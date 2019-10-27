@@ -1,6 +1,6 @@
 use cpal;
 use cpal::traits::{HostTrait, DeviceTrait, EventLoopTrait};
-use kea::audio;
+use vg::audio;
 use parking_lot::{Mutex, RwLock};
 use lewton::inside_ogg::OggStreamReader;
 

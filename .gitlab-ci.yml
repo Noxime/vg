@@ -34,57 +34,57 @@ web:
   - cargo web build --verbose
 
 
-util-keapack:
+util-vgpack:
   stage: component
   allow_failure: true
   script:
-  - cd util/keapack
+  - cd util/vgpack
   - cargo build --verbose
 
-util-kea-cpal:
+util-vg-cpal:
   stage: component
   allow_failure: true
   before_script:
     - apt-get update && apt install -y libudev-dev libasound2-dev
   script:
-  - cd util/kea-cpal
+  - cd util/vg-cpal
   - cargo build --verbose
 
-util-kea-gilrs:
+util-vg-gilrs:
   stage: component
   allow_failure: true
   before_script:
     - apt-get update && apt install -y libudev-dev libasound2-dev
   script:
-  - cd util/kea-gilrs
+  - cd util/vg-gilrs
   - cargo build --verbose
 
-util-kea-glium:
+util-vg-glium:
   stage: component
   allow_failure: true
   script:
-  - cd util/kea-glium
+  - cd util/vg-glium
   - cargo build --verbose
 
-util-kea-hal:
+util-vg-hal:
   stage: component
   allow_failure: true
   script:
-  - cd util/kea-hal
+  - cd util/vg-hal
   - cargo build --verbose
 
-util-kea-wgpu:
+util-vg-wgpu:
   stage: component
   allow_failure: true
   script:
-  - cd util/kea-wgpu
+  - cd util/vg-wgpu
   - cargo build --verbose
 
-util-kea-sdl2:
+util-vg-sdl2:
   stage: component
   allow_failure: true
   script:
-  - cd util/kea-sdl2
+  - cd util/vg-sdl2
   - cargo build --verbose
 
 pages:
@@ -97,7 +97,7 @@ pages:
   - cargo +nightly doc
   - rm -rf public
   - mv target/doc/ ../public
-  - echo '<meta http-equiv="refresh" content="0; url=kea">' > ../public/index.html
+  - echo '<meta http-equiv="refresh" content="0; url=vg">' > ../public/index.html
   artifacts:
     paths:
     - public

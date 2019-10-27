@@ -1,11 +1,11 @@
 use super::Ctx;
-use kea::renderer::*;
+use vg::renderer::*;
 
 pub struct Tex {
     tex: webgl_stdweb::WebGLTexture
 }
 
-impl kea::renderer::Texture<super::Gfx> for Tex {
+impl vg::renderer::Texture<super::Gfx> for Tex {
     fn new(r: &mut super::Gfx, size: &Size, color: &Color) -> Self {
         let mut buffer = Vec::with_capacity(size[0] * size[1] * 4);
         for _ in 0..(size[0] * size[1]) {
@@ -48,7 +48,7 @@ impl kea::renderer::Texture<super::Gfx> for Tex {
     }
 }
 
-impl kea::renderer::Target<super::Gfx> for Tex {
+impl vg::renderer::Target<super::Gfx> for Tex {
     fn size(&self) -> Size {
         unimplemented!()
     }

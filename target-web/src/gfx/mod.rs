@@ -16,7 +16,7 @@ pub struct Gfx {
     surface: Surf,
 }
 
-impl kea::Renderer for Gfx {
+impl vg::Renderer for Gfx {
     const NAME: &'static str = "WebGL";
     type Texture = Tex;
     type Surface = Surf;

@@ -9,8 +9,8 @@ lto = true
 
 [dependencies]
 game = { path = "../game", package = "game" }
-kea = { path = "../engine" }
-kea-glium = { path = "../util/kea-glium" }
-kea-gilrs = { path = "../util/kea-gilrs" }
-kea-cpal = { path = "../util/kea-cpal" }
+vg = { path = "../engine" }
+vg-glium = { path = "../util/vg-glium" }
+vg-gilrs = { path = "../util/vg-gilrs" }
+vg-cpal = { path = "../util/vg-cpal" }
 futures-preview = "0.3.0-alpha.19"

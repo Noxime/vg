@@ -1,4 +1,4 @@
-// a kea graphics, input and audio backend backed by SDL2
+// a vg graphics, input and audio backend backed by SDL2
 
 mod texture;
 mod surface;
@@ -20,7 +20,7 @@ impl Renderer {
         println!("video: {}", sdl2::get_error());
 
         let display = video
-            .window("Kea", 800, 600)
+            .window("vg", 800, 600)
             .resizable()
             .build()
             .unwrap();
@@ -72,7 +72,7 @@ impl Drop for Renderer {
     }
 }
 
-impl kea::Renderer for Renderer {
+impl vg::Renderer for Renderer {
     const NAME: &'static str = "SDL2";
     type Texture = Texture;
     type Surface = Surface;

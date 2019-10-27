@@ -2,10 +2,10 @@
 
 extern crate libnx_rs;
 
-extern crate kea;
+extern crate vg;
 extern crate game;
 
-use kea::{PlatformApi};
+use vg::{PlatformApi};
 
 mod renderer;
 
@@ -15,5 +15,5 @@ impl PlatformApi for SwitchApi {
 }
 
 pub fn main() {
-    kea::run(SwitchApi, renderer::SwitchRenderer::new(), &game::game);
+    vg::run(SwitchApi, renderer::SwitchRenderer::new(), &game::game);
 }

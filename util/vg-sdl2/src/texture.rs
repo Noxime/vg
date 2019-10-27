@@ -1,8 +1,8 @@
-use kea::renderer::{Size, Color, View, Transform, Shading};
+use vg::renderer::{Size, Color, View, Transform, Shading};
 
 pub struct Texture;
 
-impl kea::renderer::Texture<super::Renderer> for Texture {
+impl vg::renderer::Texture<super::Renderer> for Texture {
     fn new(r: &mut super::Renderer, size: &Size, color: &Color) -> Self {
         unimplemented!()
     }
@@ -17,7 +17,7 @@ impl kea::renderer::Texture<super::Renderer> for Texture {
 }
 
 
-impl kea::renderer::Target<super::Renderer> for Texture {
+impl vg::renderer::Target<super::Renderer> for Texture {
     fn size(&self) -> Size {
         unimplemented!()
     }

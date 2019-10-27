@@ -14,13 +14,13 @@ mod gfx;
 #[cfg(not(debug_assertions))]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-struct Kea {
+struct Vg {
     gfx: gfx::Gfx,
     sfx: placeholder_audio::Audio,
     input: placeholder_input::Input,
 }
 
-impl kea::Api for Kea {
+impl vg::Api for Vg {
     type R = gfx::Gfx;
     type I = placeholder_input::Input;
     type A = placeholder_audio::Audio;
@@ -49,10 +49,10 @@ pub fn main() {
         console!(error, format!("{}", info));
     }));
 
-    console!(log, "Kea start");
+    console!(log, "vg start");
 
     let document = web::document();
-    document.set_title("Kea");
+    document.set_title("vg");
     let element = document.create_element("canvas").unwrap();
     let canvas: CanvasElement = element.try_into().unwrap();
     let body = document.body().unwrap();
@@ -62,7 +62,7 @@ pub fn main() {
 
     let (gfx, waker) = gfx::Gfx::new(canvas);
 
-    let kea = Kea {
+    let vg = Vg {
         gfx,
         sfx: placeholder_audio::Audio::new(),
         input: placeholder_input::Input
@@ -74,7 +74,7 @@ pub fn main() {
 
     executor
         .spawner()
-        .spawn_local_obj(Box::new(game::run(kea)).into())
+        .spawn_local_obj(Box::new(game::run(vg)).into())
         .expect("Failed to spawn");
 
     fn main_loop(mut executor: LocalPool, waker: Rc<Mutex<Option<std::task::Waker>>>) {

@@ -1,10 +1,10 @@
 CMD=docker run --rm \
-	-v "$$(pwd)/:/root/kea/src" \
+	-v "$$(pwd)/:/root/vg/src" \
 	-v "$$(pwd)/../../:/root/" \
-	-v "$$(pwd)/../engine:/root/kea/engine" \
-	-v "$$(pwd)/../util/:/root/kea/util" \
-	-w "/root/kea/src" \
-	kea-wasm
+	-v "$$(pwd)/../engine:/root/vg/engine" \
+	-v "$$(pwd)/../util/:/root/vg/util" \
+	-w "/root/vg/src" \
+	vg-wasm
 
 build:
 	$(CMD) cargo web deploy
@@ -13,4 +13,4 @@ x:
 	$(CMD) nodejs --version
 
 docker:
-	docker build . -t kea-wasm
+	docker build . -t vg-wasm

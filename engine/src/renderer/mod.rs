@@ -1,11 +1,11 @@
 //! # Overview
-//! The renderer abstraction in kea is very basic, and really is only useful for
+//! The renderer abstraction in vg is very basic, and really is only useful for
 //! basic sprite rendering. This is on purpose, as sprite games are only ones
 //! I plan on making, but if you have good ideas on how to extend the api, drop
 //! me a PR ;)
 //!
 //! There are 4 traits that provide a generic way of rendering sprites (called
-//! textures) in kea:
+//! textures) in vg:
 //!
 //! ## `Renderer`
 //! This your instance of a rendering backend, and you use it to get access to

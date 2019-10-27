@@ -1,8 +1,8 @@
-use kea::renderer::{Renderer, Texture, Surface, Target};
+use vg::renderer::{Renderer, Texture, Surface, Target};
 // use audio::Clip;
-use kea::*;
+use vg::*;
 
-const ASSETS: assets::Assets = asset_pack!("assets.keapack");
+const ASSETS: assets::Assets = asset_pack!("assets.vgpack");
 
 pub async fn run<A: Api>(mut api: A) {
     println!("assets.pack contains {} bytes of data", ASSETS.size());
@@ -14,11 +14,11 @@ pub async fn run<A: Api>(mut api: A) {
         // let id = api.input().default().unwrap();
 
         api.renderer().surface().set(&[0.65, 0.87, 0.91, 1.0]);
-        api.renderer().surface().draw(&tex, &Default::default(), &kea::renderer::View {
+        api.renderer().surface().draw(&tex, &Default::default(), &vg::renderer::View {
             x: 0.5,
             y: 0.5,
             rotation: 0.0,
-            scale: kea::renderer::Scale::Horizontal(1.0),
+            scale: vg::renderer::Scale::Horizontal(1.0),
             pixels_per_unit: 1.0,
         }, &Default::default());
 

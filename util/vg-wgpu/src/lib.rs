@@ -1,3 +1,3 @@
-use kea::renderer;
+use vg::renderer;
 
 pub struct Renderer;

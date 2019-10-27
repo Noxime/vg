@@ -1,4 +1,4 @@
-use kea::renderer::{Size, Color, View, Transform, Shading};
+use vg::renderer::{Size, Color, View, Transform, Shading};
 
 pub struct Surface {
     pub(crate) canvas: sdl2::render::WindowCanvas,
@@ -22,7 +22,7 @@ impl std::future::Future for Present {
     }
 }
 
-impl kea::renderer::Surface<super::Renderer> for Surface {
+impl vg::renderer::Surface<super::Renderer> for Surface {
     fn capture(&self) -> super::Texture {
         unimplemented!()
     }
@@ -45,7 +45,7 @@ impl kea::renderer::Surface<super::Renderer> for Surface {
     }
 }
 
-impl kea::renderer::Target<super::Renderer> for Surface {
+impl vg::renderer::Target<super::Renderer> for Surface {
     fn size(&self) -> Size {
         let (w, h) = self.canvas.output_size().expect("Failed to get surface size");
         [w as usize, h as usize]

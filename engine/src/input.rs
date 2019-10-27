@@ -386,7 +386,7 @@ pub struct Pointer {
 /// A cross platform input api
 ///
 /// This trait provides an abstracted way of dealing with game input. There are
-/// 2 forms of input in kea, a [`Controller`] and a [`Pointer`]
+/// 2 forms of input in vg, a [`Controller`] and a [`Pointer`]
 ///
 /// # Controllers
 /// [`Controller`] represents a generic game controller, which will likely be
@@ -442,7 +442,7 @@ pub trait Input {
     ///
     /// Note: To get the current mapping, see [`mapping`](Input::mapping)
     ///
-    /// Kea maps all keyboard events to a virtual game controller, and this
+    /// vg maps all keyboard events to a virtual game controller, and this
     /// mapping is done through a [`KeyboardMapping`]. See its documentation
     /// for the default values.
     fn set_mapping(&mut self, mapping: KeyboardMapping);

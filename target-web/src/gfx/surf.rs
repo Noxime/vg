@@ -1,4 +1,4 @@
-use kea::renderer::{Color, Shading, Size, Transform, View};
+use vg::renderer::{Color, Shading, Size, Transform, View};
 use std::rc::Rc;
 use std::sync::Mutex;
 
@@ -39,7 +39,7 @@ impl std::future::Future for Present {
     }
 }
 
-impl kea::renderer::Surface<super::Gfx> for Surf {
+impl vg::renderer::Surface<super::Gfx> for Surf {
     fn capture(&self) -> super::Tex {
         unimplemented!()
     }
@@ -49,7 +49,7 @@ impl kea::renderer::Surface<super::Gfx> for Surf {
     }
 }
 
-impl kea::renderer::Target<super::Gfx> for Surf {
+impl vg::renderer::Target<super::Gfx> for Surf {
     fn size(&self) -> Size {
         [
             self.ctx.drawing_buffer_width() as usize,

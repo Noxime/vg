@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleGetInfoString</key>
-  <string>Kea-macOS</string>
+  <string>vg-macOS</string>
   <key>CFBundleExecutable</key>
-  <string>kea-macos</string>
+  <string>vg-macos</string>
   <key>CFBundleIdentifier</key>
-  <string>xyz.noxim.kea</string>
+  <string>xyz.noxim.vg</string>
   <key>CFBundleName</key>
-  <string>kea-macos</string>
+  <string>vg-macos</string>
   <key>CFBundleShortVersionString</key>
   <string>0.01</string>
   <key>CFBundleInfoDictionaryVersion</key>

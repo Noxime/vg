@@ -1,10 +1,10 @@
 extern crate android_glue;
 extern crate game;
-extern crate kea;
-extern crate kea_glium;
+extern crate vg;
+extern crate vg_glium;
 extern crate placeholder_input;
 
-use kea::Api;
+use vg::Api;
 
 struct AndroidHandler {}
 
@@ -23,17 +23,17 @@ impl android_glue::SyncEventHandler for AndroidHandler {
 }
 
 struct Android {
-    renderer: kea_glium::Renderer,
-    input: kea_gilrs::Input,
-    audio: kea_cpal::Audio,
+    renderer: vg_glium::Renderer,
+    input: vg_gilrs::Input,
+    audio: vg_cpal::Audio,
     events: glutin::EventsLoop,
     closing: bool,
 }
 
 impl Api for Android {
-    type R = kea_glium::Renderer;
-    type I = kea_gilrs::Input;
-    type A = kea_cpal::Audio;
+    type R = vg_glium::Renderer;
+    type I = vg_gilrs::Input;
+    type A = vg_cpal::Audio;
 
     fn poll(&mut self) {
         let mut closing = false;
@@ -54,26 +54,26 @@ impl Api for Android {
         self.closing
     }
 
-    fn renderer<'a>(&'a mut self) -> &'a mut kea_glium::Renderer {
+    fn renderer<'a>(&'a mut self) -> &'a mut vg_glium::Renderer {
         &mut self.renderer
     }
 
-    fn input<'a>(&'a mut self) -> &'a mut kea_gilrs::Input {
+    fn input<'a>(&'a mut self) -> &'a mut vg_gilrs::Input {
         &mut self.input
     }
 
-    fn audio<'a>(&'a mut self) -> &'a mut kea_cpal::Audio {
+    fn audio<'a>(&'a mut self) -> &'a mut vg_cpal::Audio {
         &mut self.audio
     }
 }
 
 fn main() {
-    let (renderer, events) = kea_glium::Renderer::new();
+    let (renderer, events) = vg_glium::Renderer::new();
     game::run(Android {
         renderer,
         events,
         closing: false,
         input: placeholder_input::Input,
-        audio: kea_cpal::Audio::new(),
+        audio: vg_cpal::Audio::new(),
     })
 }

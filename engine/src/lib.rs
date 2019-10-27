@@ -1,11 +1,11 @@
 //! # Overview
-//! Kea is a lightweight game engine / framework, intended to abstract all the
+//! Vg is a lightweight game engine / framework, intended to abstract all the
 //! platform specific parts to building a 2D game. As of now
-//! [(2019-04-13)](https://owo.codes/noxim/kea/tree/28726ff2652edce8e09f886ce20ef8945d15ece9)
-//! kea doesn't provide much functionality, but the basics are there.
+//! [(2019-04-13)](https://owo.codes/noxim/vg/tree/28726ff2652edce8e09f886ce20ef8945d15ece9)
+//! vg doesn't provide much functionality, but the basics are there.
 //!
-//! Kea is currently in heavy development, and many features are still missing
-//! Check the [issues](https://owo.codes/noxim/kea/issues) to see how everything
+//! vg is currently in heavy development, and many features are still missing
+//! Check the [issues](https://owo.codes/noxim/vg/issues) to see how everything
 //! is coming along :)
 //!
 //! The most important points of abstraction are
@@ -37,7 +37,7 @@ pub trait Api {
     type I: Input;
     type A: Audio;
 
-    /// Run internal Kea systems, often things like input updates
+    /// Run internal vg systems, often things like input updates
     ///
     /// You should call this often, for example on every frame
     fn poll(&mut self);

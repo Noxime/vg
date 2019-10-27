@@ -1,10 +1,10 @@
 [package]
-name = "kea-glium"
+name = "vg-glium"
 version = "0.1.0"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-kea = { path = "../../engine" }
+vg = { path = "../../engine" }
 glium = "0.25.1"
 # glium = { git = "https://github.com/glium/glium/" }

@@ -1,4 +1,4 @@
-use kea::renderer::{Color, Coordinate, Renderer, Size, Surface, Target, Texture};
+use vg::renderer::{Color, Coordinate, Renderer, Size, Surface, Target, Texture};
 
 use winit::EventsLoop;
 

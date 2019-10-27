@@ -2,7 +2,7 @@
 //
 // This is a graphics backend designed for API development, and it uses Glium as
 // its own rendering implementation. Before I ship, this will get replaced by
-// kea-hal or kea-wgpu, which will be a more low-level implementation to support
+// vg-hal or vg-wgpu, which will be a more low-level implementation to support
 // Vulkan, DirectX and Metal enabled devices. Glium only uses OpenGL under the
 // hood, so its not as "cool" ;)
 // 
@@ -14,7 +14,7 @@
 pub use glium::glutin;
 use glium::implement_vertex;
 
-use kea::renderer::{Color, View, Transform, Scale, Size, Shading};
+use vg::renderer::{Color, View, Transform, Scale, Size, Shading};
 
 use std::rc::Rc;
 
@@ -60,7 +60,7 @@ impl Renderer {
                 let events = glutin::EventsLoop::new();
                 let window = glutin::WindowBuilder::new()
                     .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0))
-                    .with_title("Kea");
+                    .with_title("vg");
                 let context = glutin::ContextBuilder::new()
                     .with_gl(*api);
                 if let Ok(d) = glium::Display::new(window, context, &events) {
@@ -125,7 +125,7 @@ impl Renderer {
     }
 }
 
-impl kea::renderer::Renderer for Renderer {
+impl vg::renderer::Renderer for Renderer {
     const NAME: &'static str = "DEV (glium)";
 
     type Texture = Texture;
@@ -136,7 +136,7 @@ impl kea::renderer::Renderer for Renderer {
     }
 }
 
-impl kea::renderer::Texture<Renderer> for Texture {
+impl vg::renderer::Texture<Renderer> for Texture {
     fn new(renderer: &mut Renderer, size: &Size, color: &Color) -> Self {
         // create a buffer
         let img = (0..size[0] * size[1] * 4).map(|i| color[i % 4]);
@@ -179,7 +179,7 @@ impl kea::renderer::Texture<Renderer> for Texture {
     }
 }
 
-impl kea::renderer::Target<Renderer> for Texture {
+impl vg::renderer::Target<Renderer> for Texture {
     fn size(&self) -> Size {
         [
             self.tex.get_width() as _,
@@ -242,9 +242,9 @@ impl kea::renderer::Target<Renderer> for Texture {
     }
 }
 
-impl kea::renderer::Surface<Renderer> for Surface {
+impl vg::renderer::Surface<Renderer> for Surface {
     fn capture(&self) -> Texture {
-        use kea::renderer::Target;
+        use vg::renderer::Target;
         use glium::Surface;
         let size = self.size();
         let tex = glium::texture::Texture2d::empty(&*self.display, size[0] as u32, size[1] as u32).expect("Glium tex read failure");
@@ -283,7 +283,7 @@ impl kea::renderer::Surface<Renderer> for Surface {
     }
 }
 
-impl kea::renderer::Target<Renderer> for Surface {
+impl vg::renderer::Target<Renderer> for Surface {
     fn size(&self) -> Size {
         use glium::Surface;
 

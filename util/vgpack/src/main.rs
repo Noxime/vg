@@ -4,14 +4,14 @@ fn pack(folder: &str, target: &str) -> Result<(), Box<std::error::Error>> {
     let filename = if target.contains('.') {
         target.to_string()
     } else {
-        format!("{}.keapack", target)
+        format!("{}.vgpack", target)
     };
 
     println!("Packing `{}` into `{}`", folder, filename);
 
-    // bootstrap kea env var
+    // bootstrap vg env var
     std::env::set_var("OUT_DIR", ".");
-    kea::assets::generate_asset_pack(folder, &filename);
+    vg::assets::generate_asset_pack(folder, &filename);
 
     println!("Done ({})", b(std::fs::metadata(filename)?.len()));
     Ok(())
@@ -30,7 +30,7 @@ fn b(v: u64) -> String {
 
 fn unpack(source: &str, target: &str) -> Result<(), Box<std::error::Error>> {
     let bytes = std::fs::read(source)?;
-    use kea::assets::Assets;
+    use vg::assets::Assets;
     fn recurse(assets: Assets, path: &str) -> Result<(), Box<std::error::Error>> {
         let path = &format!("{}/{}", path, assets.name());
         println!("Unpacking `{}` into `{}`", assets.name(), path);
@@ -48,7 +48,7 @@ fn unpack(source: &str, target: &str) -> Result<(), Box<std::error::Error>> {
         Ok(())
     }
 
-    recurse(kea::assets::Assets { data: &bytes }, target)
+    recurse(vg::assets::Assets { data: &bytes }, target)
 }
 
 fn run(op: &str, source: &str, target: &str) -> Result<(), String> {
@@ -78,8 +78,8 @@ EXAMPLE:
 \t{} pack assets/
 
 COMMANDS:
-\tpack\tPack a source directory into a keapack
-\tunpack \tUnpack a keapack to a directory
+\tpack\tPack a source directory into a vgpack
+\tunpack \tUnpack a vgpack to a directory
 ",
                 env!("CARGO_PKG_NAME"),
                 env!("CARGO_PKG_VERSION"),
