@@ -39,16 +39,16 @@ pub struct Input {
     gilrs: Mutex<gilrs::Gilrs>,
     map: Mutex<std::collections::HashMap<input::Id, gilrs::GamepadId>>,
     mapping: input::KeyboardMapping,
-    kb: (SystemTime, KeyState),
+    kb: (f32, KeyState),
 }
 
 impl Input {
-    pub fn new() -> Input {
+    pub fn new(now: f32) -> Input {
         Input {
             gilrs: Mutex::new(gilrs::Gilrs::new().expect("Couldnt init gilrs")),
             map: Mutex::new(std::collections::HashMap::new()),
             mapping: input::KeyboardMapping::default(),
-            kb: (SystemTime::now(), KeyState::default()),
+            kb: (now, KeyState::default()),
         }
     }
 
@@ -64,7 +64,7 @@ impl Input {
         }
     }
 
-    pub fn event(&mut self, key: input::Key, state: bool) {
+    pub fn event(&mut self, key: input::Key, state: bool, now: f32) {
         if self.mapping.start.contains(&key) { self.kb.1.start = state }
         if self.mapping.select.contains(&key) { self.kb.1.select = state }
 
@@ -94,7 +94,7 @@ impl Input {
         if self.mapping.right_shoulder_trigger.contains(&key) { self.kb.1.rt = state }
         if self.mapping.right_shoulder_bumper.contains(&key) { self.kb.1.rb = state }
 
-        self.kb.0 = SystemTime::now();
+        self.kb.0 = now;
     }
 
 }
@@ -104,7 +104,7 @@ const KB_ID: input::Id = 1552525;
 impl vg::Input for Input {
     fn default(&self) -> Option<input::Id> {
         let gilrs = self.gilrs.lock().unwrap();
-        let mut latest = (std::time::SystemTime::UNIX_EPOCH, None);
+        let mut latest = (SystemTime::UNIX_EPOCH, None);
         let map = self.map.lock().unwrap();
         for (id, g) in map.iter() {
             for (_, data) in gilrs.gamepad(*g).state().buttons() {
@@ -120,7 +120,7 @@ impl vg::Input for Input {
         }
 
         // keyboard
-        if latest.0 < self.kb.0 {
+        if latest.0.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs_f32() < self.kb.0 {
             return Some(KB_ID)
         }
 

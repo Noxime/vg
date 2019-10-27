@@ -1,11 +1,10 @@
 use std::rc::Rc;
 use std::sync::Mutex;
-use std::task::Waker;
 
 pub use webgl::WebGLRenderingContext as Ctx;
 use webgl_stdweb as webgl;
 
-use stdweb::{console, js};
+use stdweb::console;
 
 mod surf;
 mod tex;
@@ -52,9 +51,8 @@ impl Gfx {
             varying vec2 v_tex;
 
             void main() {
-                // gl_Position = u_matrix * a_position;
                 v_tex = a_texcoord;
-                gl_Position = a_position;
+                gl_Position = u_matrix * a_position;
             }
         ",
         );
@@ -77,10 +75,12 @@ impl Gfx {
 
             varying vec2 v_tex;
 
-            uniform sampler2D u_tex;
+            uniform sampler2D u_texture;
+            uniform vec4 u_add;
+            uniform vec4 u_multiply;
             
             void main() {
-                gl_FragColor = vec4(1, 0, v_tex.s, 1);
+                gl_FragColor = pow(texture2D(u_texture, vec2(v_tex.s, 1.0 - v_tex.t)), vec4(vec3(1.0/2.2), 1)) * u_multiply + u_add;
             }
         ",
         );
@@ -116,20 +116,22 @@ impl Gfx {
         console!(log, format!("position: {}, texture: {}", a_pos, a_tex));
 
         let pos_buf = ctx.create_buffer();
+        assert!(pos_buf.is_some(), "Could not create position buffer");
         let tex_buf = ctx.create_buffer();
-        
+        assert!(pos_buf.is_some(), "Could not create texture coord buffer");
+
         // vertex positions
         ctx.bind_buffer(Ctx::ARRAY_BUFFER, pos_buf.as_ref());
 
         #[rustfmt::skip]
-        let points = vec![
+        let points: Vec<f32> = vec![
+            // 0.0, 0.0, 0.0, 1.0,
             0.0, 0.0, 0.0, 1.0,
             0.0, 1.0, 0.0, 1.0,
             1.0, 0.0, 0.0, 1.0,
-
-            1.0, 1.0, 0.0, 1.0,
-            1.0, 0.0, 0.0, 1.0,
             0.0, 1.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 1.0, 0.0, 1.0,
         ];
 
         // upload vertices
@@ -139,25 +141,25 @@ impl Gfx {
             Ctx::STATIC_DRAW,
         );
 
-        // // texture coords
-        // ctx.bind_buffer(Ctx::ARRAY_BUFFER, tex_buf.as_ref());
+        // texture coords
+        ctx.bind_buffer(Ctx::ARRAY_BUFFER, tex_buf.as_ref());
 
-        // #[rustfmt::skip]
-        // let texs = vec![
-        //     0.0, 0.0,
-        //     1.0, 0.0,
-        //     0.0, 1.0,
-        //     0.0, 0.0,
-        //     1.0, 0.0,
-        //     0.0, 1.0,
-        // ];
+        #[rustfmt::skip]
+        let texs: Vec<f32> = vec![
+            0.0, 0.0,
+            0.0, 1.0,
+            1.0, 0.0,
+            0.0, 1.0,
+            1.0, 0.0,
+            1.0, 1.0,
+        ];
 
-        // // // upload texture coords
-        // ctx.buffer_data_1(
-        //     Ctx::ARRAY_BUFFER,
-        //     Some(&stdweb::web::TypedArray::from(texs.as_slice()).buffer()),
-        //     Ctx::STATIC_DRAW,
-        // );
+        // upload texture coords
+        ctx.buffer_data_1(
+            Ctx::ARRAY_BUFFER,
+            Some(&stdweb::web::TypedArray::from(texs.as_slice()).buffer()),
+            Ctx::STATIC_DRAW,
+        );
 
         console!(log, "Uploaded vertex data");
 
@@ -169,11 +171,27 @@ impl Gfx {
 
         console!(log, "Bound position attributes");
 
-        // ctx.enable_vertex_attrib_array(a_tex);
-        // ctx.bind_buffer(Ctx::ARRAY_BUFFER, tex_buf.as_ref());
-        // ctx.vertex_attrib_pointer(a_tex, 2, Ctx::FLOAT, false, 0, 0);
+        ctx.enable_vertex_attrib_array(a_tex);
+        ctx.bind_buffer(Ctx::ARRAY_BUFFER, tex_buf.as_ref());
+        ctx.vertex_attrib_pointer(a_tex, 2, Ctx::FLOAT, false, 0, 0);
 
-        // console!(log, "Bound texture attributes");
+        console!(log, "Bound texture attributes");
+
+        let matrix = ctx
+            .get_uniform_location(&prog, "u_matrix")
+            .expect("no u_matrix");
+        let texture = ctx
+            .get_uniform_location(&prog, "u_texture")
+            .expect("no u_texture");
+
+        let add = ctx
+            .get_uniform_location(&prog, "u_add")
+            .expect("no u_add");
+        let multiply = ctx
+            .get_uniform_location(&prog, "u_multiply")
+            .expect("no u_multiply");
+
+        ctx.blend_func(Ctx::SRC_ALPHA, Ctx::ONE_MINUS_SRC_ALPHA);
 
         let waker = Rc::new(Mutex::new(None));
 
@@ -182,6 +200,10 @@ impl Gfx {
                 surface: Surf {
                     ctx: Rc::new(ctx),
                     waker: Rc::clone(&waker),
+                    matrix,
+                    texture,
+                    add,
+                    multiply,
                 },
             },
             waker,

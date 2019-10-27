@@ -1,4 +1,4 @@
-#![feature(set_stdio)]
+// #![feature(set_stdio)]
 
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -17,13 +17,14 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 struct Vg {
     gfx: gfx::Gfx,
     sfx: placeholder_audio::Audio,
-    input: placeholder_input::Input,
+    input: vg_gilrs::Input,
 }
 
 impl vg::Api for Vg {
     type R = gfx::Gfx;
-    type I = placeholder_input::Input;
+    type I = vg_gilrs::Input;
     type A = placeholder_audio::Audio;
+    type T = Time;
 
     fn poll(&mut self) {}
     fn exit(&self) -> bool {
@@ -40,6 +41,16 @@ impl vg::Api for Vg {
 
     fn renderer(&mut self) -> &mut Self::R {
         &mut self.gfx
+    }
+}
+
+struct Time(f64);
+impl vg::Time for Time {
+    fn new() -> Self {
+        Time(web::Date::now())
+    }
+    fn now(&self) -> f32 {
+        ((web::Date::now() - self.0) / 1000.0) as f32
     }
 }
 
@@ -65,7 +76,7 @@ pub fn main() {
     let vg = Vg {
         gfx,
         sfx: placeholder_audio::Audio::new(),
-        input: placeholder_input::Input
+        input: vg_gilrs::Input::new(0.0),
     };
 
     use futures::executor::LocalPool;

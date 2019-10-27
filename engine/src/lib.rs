@@ -32,10 +32,16 @@ pub use self::audio::Audio;
 pub use self::input::Input;
 pub use self::renderer::Renderer;
 
+pub trait Time {
+    fn new() -> Self;
+    fn now(&self) -> f32;
+}
+
 pub trait Api {
     type R: Renderer;
     type I: Input;
     type A: Audio;
+    type T: Time;
 
     /// Run internal vg systems, often things like input updates
     ///

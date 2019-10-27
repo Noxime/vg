@@ -7,12 +7,14 @@ struct Desktop {
     audio: vg_cpal::Audio,
     events: glutin::EventsLoop,
     closing: bool,
+    instant: std::time::Instant,
 }
 
 impl Api for Desktop {
     type R = vg_glium::Renderer;
     type I = vg_gilrs::Input;
     type A = vg_cpal::Audio;
+    type T = Time;
 
     fn poll(&mut self) {
         let mut closing = false;
@@ -104,7 +106,7 @@ impl Api for Desktop {
         self.closing = closing;
 
         for (c, s) in keys {
-            self.input.event(c, s)
+            self.input.event(c, s, self.instant.elapsed().as_secs_f32())
         }
         self.input.update()
     }
@@ -126,13 +128,25 @@ impl Api for Desktop {
     }
 }
 
+struct Time(std::time::Instant);
+impl vg::Time for Time {
+    fn new() -> Self {
+        Time(std::time::Instant::now())
+    }
+
+    fn now(&self) -> f32 {
+        self.0.elapsed().as_secs_f32()
+    }
+}
+
 fn main() {
     let (renderer, events) = vg_glium::Renderer::new();
     futures::executor::block_on(game::run(Desktop {
         renderer,
         events,
         closing: false,
-        input: vg_gilrs::Input::new(),
+        input: vg_gilrs::Input::new(0.0),
         audio: vg_cpal::Audio::new(),
+        instant: std::time::Instant::now()
     }));
 }

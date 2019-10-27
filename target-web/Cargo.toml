@@ -18,12 +18,13 @@ vg = { path = "../engine" }
 futures-preview = "0.3.0-alpha.19"
 stdweb = "0.4.12"
 webgl_stdweb = "0.3"
+vg-gilrs = { path = "../util/vg-gilrs" }
 
-placeholder-input = { path = "../util/placeholder-input" }
+# placeholder-input = { path = "../util/placeholder-input" }
 placeholder-audio = { path = "../util/placeholder-audio" }
 
 # wee-alloc is a bit slower than default one but 10x smaller
-# wee_alloc = "0.4.5"
+wee_alloc = "0.4.5"
 
 [profile.release]
 # Binary size is important on the web
