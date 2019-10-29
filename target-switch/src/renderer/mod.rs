@@ -1,4 +1,4 @@
-use kea::renderer::*;
+use vg::renderer::*;
 
 use libnx_rs::libnx;
 
@@ -61,7 +61,7 @@ impl Renderer for SwitchRenderer {
     }
 }
 
-impl kea::renderer::Texture<SwitchRenderer> for SwitchTexture {
+impl vg::renderer::Texture<SwitchRenderer> for SwitchTexture {
     fn new(renderer: &mut SwitchRenderer, size: &Size, color: &Color) -> Self {
         let mut data = Vec::new();
         data.resize(size[0] * size[1], *color);
@@ -85,7 +85,7 @@ impl kea::renderer::Texture<SwitchRenderer> for SwitchTexture {
     }
 }
 
-impl kea::renderer::Target<SwitchRenderer> for SwitchTexture {
+impl vg::renderer::Target<SwitchRenderer> for SwitchTexture {
     fn size(&self) -> Size {
         [self.width as usize, self.height as usize]
     }
@@ -154,7 +154,7 @@ impl kea::renderer::Target<SwitchRenderer> for SwitchTexture {
     }
 }
 
-impl kea::renderer::Surface<SwitchRenderer> for SwitchSurface {
+impl vg::renderer::Surface<SwitchRenderer> for SwitchSurface {
     fn capture(&self) -> SwitchTexture {
         self.buf.clone()
     }
@@ -182,7 +182,7 @@ impl kea::renderer::Surface<SwitchRenderer> for SwitchSurface {
     }
 }
 
-impl kea::renderer::Target<SwitchRenderer> for SwitchSurface {
+impl vg::renderer::Target<SwitchRenderer> for SwitchSurface {
     fn size(&self) -> Size {
         self.buf.size()
     }

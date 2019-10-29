@@ -14,7 +14,7 @@
 		54A84EA821E7D4BE00F7DC34 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54A84EA621E7D4BE00F7DC34 /* LaunchScreen.storyboard */; };
 		54A84EB321E7D53700F7DC34 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A84EB221E7D53700F7DC34 /* libresolv.tbd */; };
 		54A84EB721E7DD7200F7DC34 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A84EB621E7DD7200F7DC34 /* main.swift */; };
-		54A84EB921E7E39800F7DC34 /* libkea_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A84EB821E7E39800F7DC34 /* libkea_ios.a */; };
+		54A84EB921E7E39800F7DC34 /* libvg_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A84EB821E7E39800F7DC34 /* libvg_ios.a */; };
 		54A84EBC21E7E41D00F7DC34 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A84E9F21E7D4BE00F7DC34 /* ViewController.swift */; };
 		54A84EBD21E7E41D00F7DC34 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A84E9D21E7D4BE00F7DC34 /* AppDelegate.swift */; };
 		54A84EBE21E7E41D00F7DC34 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A84EB621E7DD7200F7DC34 /* main.swift */; };
@@ -22,25 +22,25 @@
 		54A84EC421E7E41D00F7DC34 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54A84EA421E7D4BE00F7DC34 /* Assets.xcassets */; };
 		54A84EC521E7E41D00F7DC34 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54A84EA121E7D4BE00F7DC34 /* Main.storyboard */; };
 		54A84ECB21E7E44500F7DC34 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A84EB221E7D53700F7DC34 /* libresolv.tbd */; };
-		54A84ECC21E7E45200F7DC34 /* libkea_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A84EB021E7D51E00F7DC34 /* libkea_ios.a */; };
+		54A84ECC21E7E45200F7DC34 /* libvg_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A84EB021E7D51E00F7DC34 /* libvg_ios.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		54A84E9A21E7D4BE00F7DC34 /* kea-release.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "kea-release.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		54A84E9A21E7D4BE00F7DC34 /* vg-release.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "vg-release.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54A84E9D21E7D4BE00F7DC34 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		54A84E9F21E7D4BE00F7DC34 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		54A84EA221E7D4BE00F7DC34 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		54A84EA421E7D4BE00F7DC34 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		54A84EA721E7D4BE00F7DC34 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		54A84EA921E7D4BE00F7DC34 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		54A84EB021E7D51E00F7DC34 /* libkea_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkea_ios.a; path = ../target/universal/debug/libkea_ios.a; sourceTree = "<group>"; };
+		54A84EB021E7D51E00F7DC34 /* libvg_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvg_ios.a; path = ../target/universal/debug/libvg_ios.a; sourceTree = "<group>"; };
 		54A84EB221E7D53700F7DC34 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
-		54A84EB421E7D55200F7DC34 /* kea.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kea.h; path = ../src/kea.h; sourceTree = "<group>"; };
-		54A84EB521E7D57B00F7DC34 /* Kea-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Kea-Bridging-Header.h"; sourceTree = "<group>"; };
+		54A84EB421E7D55200F7DC34 /* vg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vg.h; path = ../src/vg.h; sourceTree = "<group>"; };
+		54A84EB521E7D57B00F7DC34 /* vg-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "vg-Bridging-Header.h"; sourceTree = "<group>"; };
 		54A84EB621E7DD7200F7DC34 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		54A84EB821E7E39800F7DC34 /* libkea_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkea_ios.a; path = ../target/universal/release/libkea_ios.a; sourceTree = "<group>"; };
-		54A84EC921E7E41D00F7DC34 /* kea-debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "kea-debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		54A84ECA21E7E41E00F7DC34 /* kea copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "kea copy-Info.plist"; path = "/Users/noxim/repos/kea/target-ios/kea/kea copy-Info.plist"; sourceTree = "<absolute>"; };
+		54A84EB821E7E39800F7DC34 /* libvg_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvg_ios.a; path = ../target/universal/release/libvg_ios.a; sourceTree = "<group>"; };
+		54A84EC921E7E41D00F7DC34 /* vg-debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "vg-debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		54A84ECA21E7E41E00F7DC34 /* vg copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "vg copy-Info.plist"; path = "/Users/noxim/repos/vg/target-ios/vg/vg copy-Info.plist"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,7 +48,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54A84EB921E7E39800F7DC34 /* libkea_ios.a in Frameworks */,
+				54A84EB921E7E39800F7DC34 /* libvg_ios.a in Frameworks */,
 				54A84EB321E7D53700F7DC34 /* libresolv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -57,7 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54A84ECC21E7E45200F7DC34 /* libkea_ios.a in Frameworks */,
+				54A84ECC21E7E45200F7DC34 /* libvg_ios.a in Frameworks */,
 				54A84ECB21E7E44500F7DC34 /* libresolv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -68,25 +68,25 @@
 		54A84E9121E7D4BD00F7DC34 = {
 			isa = PBXGroup;
 			children = (
-				54A84EB521E7D57B00F7DC34 /* Kea-Bridging-Header.h */,
-				54A84EB421E7D55200F7DC34 /* kea.h */,
-				54A84E9C21E7D4BE00F7DC34 /* kea */,
+				54A84EB521E7D57B00F7DC34 /* vg-Bridging-Header.h */,
+				54A84EB421E7D55200F7DC34 /* vg.h */,
+				54A84E9C21E7D4BE00F7DC34 /* vg */,
 				54A84E9B21E7D4BE00F7DC34 /* Products */,
 				54A84EAF21E7D51D00F7DC34 /* Frameworks */,
-				54A84ECA21E7E41E00F7DC34 /* kea copy-Info.plist */,
+				54A84ECA21E7E41E00F7DC34 /* vg copy-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
 		54A84E9B21E7D4BE00F7DC34 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				54A84E9A21E7D4BE00F7DC34 /* kea-release.app */,
-				54A84EC921E7E41D00F7DC34 /* kea-debug.app */,
+				54A84E9A21E7D4BE00F7DC34 /* vg-release.app */,
+				54A84EC921E7E41D00F7DC34 /* vg-debug.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		54A84E9C21E7D4BE00F7DC34 /* kea */ = {
+		54A84E9C21E7D4BE00F7DC34 /* vg */ = {
 			isa = PBXGroup;
 			children = (
 				54A84E9D21E7D4BE00F7DC34 /* AppDelegate.swift */,
@@ -97,15 +97,15 @@
 				54A84EA921E7D4BE00F7DC34 /* Info.plist */,
 				54A84EB621E7DD7200F7DC34 /* main.swift */,
 			);
-			path = kea;
+			path = vg;
 			sourceTree = "<group>";
 		};
 		54A84EAF21E7D51D00F7DC34 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				54A84EB821E7E39800F7DC34 /* libkea_ios.a */,
+				54A84EB821E7E39800F7DC34 /* libvg_ios.a */,
 				54A84EB221E7D53700F7DC34 /* libresolv.tbd */,
-				54A84EB021E7D51E00F7DC34 /* libkea_ios.a */,
+				54A84EB021E7D51E00F7DC34 /* libvg_ios.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -113,9 +113,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		54A84E9921E7D4BE00F7DC34 /* kea-release */ = {
+		54A84E9921E7D4BE00F7DC34 /* vg-release */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 54A84EAC21E7D4BE00F7DC34 /* Build configuration list for PBXNativeTarget "kea-release" */;
+			buildConfigurationList = 54A84EAC21E7D4BE00F7DC34 /* Build configuration list for PBXNativeTarget "vg-release" */;
 			buildPhases = (
 				54A84E9621E7D4BE00F7DC34 /* Sources */,
 				54A84E9721E7D4BE00F7DC34 /* Frameworks */,
@@ -125,14 +125,14 @@
 			);
 			dependencies = (
 			);
-			name = "kea-release";
-			productName = kea;
-			productReference = 54A84E9A21E7D4BE00F7DC34 /* kea-release.app */;
+			name = "vg-release";
+			productName = vg;
+			productReference = 54A84E9A21E7D4BE00F7DC34 /* vg-release.app */;
 			productType = "com.apple.product-type.application";
 		};
-		54A84EBA21E7E41D00F7DC34 /* kea-debug */ = {
+		54A84EBA21E7E41D00F7DC34 /* vg-debug */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 54A84EC621E7E41D00F7DC34 /* Build configuration list for PBXNativeTarget "kea-debug" */;
+			buildConfigurationList = 54A84EC621E7E41D00F7DC34 /* Build configuration list for PBXNativeTarget "vg-debug" */;
 			buildPhases = (
 				54A84EBB21E7E41D00F7DC34 /* Sources */,
 				54A84EBF21E7E41D00F7DC34 /* Frameworks */,
@@ -142,9 +142,9 @@
 			);
 			dependencies = (
 			);
-			name = "kea-debug";
-			productName = kea;
-			productReference = 54A84EC921E7E41D00F7DC34 /* kea-debug.app */;
+			name = "vg-debug";
+			productName = vg;
+			productReference = 54A84EC921E7E41D00F7DC34 /* vg-debug.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -166,7 +166,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 54A84E9521E7D4BD00F7DC34 /* Build configuration list for PBXProject "kea" */;
+			buildConfigurationList = 54A84E9521E7D4BD00F7DC34 /* Build configuration list for PBXProject "vg" */;
 			compatibilityVersion = "Xcode 8.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -179,8 +179,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				54A84E9921E7D4BE00F7DC34 /* kea-release */,
-				54A84EBA21E7E41D00F7DC34 /* kea-debug */,
+				54A84E9921E7D4BE00F7DC34 /* vg-release */,
+				54A84EBA21E7E41D00F7DC34 /* vg-debug */,
 			);
 		};
 /* End PBXProject section */
@@ -365,12 +365,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = YP66SK7WJM;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = kea/Info.plist;
+				INFOPLIST_FILE = vg/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/universal/release";
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.kea;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.vg;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Kea-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/vg-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -383,12 +383,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = YP66SK7WJM;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = kea/Info.plist;
+				INFOPLIST_FILE = vg/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/universal/release";
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.kea;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.vg;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Kea-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/vg-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -401,12 +401,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = YP66SK7WJM;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = "kea copy-Info.plist";
+				INFOPLIST_FILE = "vg copy-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/universal/debug";
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.kea;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.vg;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Kea-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/vg-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -419,12 +419,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = YP66SK7WJM;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = "kea copy-Info.plist";
+				INFOPLIST_FILE = "vg copy-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/universal/debug";
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.kea;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.noxim.vg;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Kea-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/vg-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -433,7 +433,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		54A84E9521E7D4BD00F7DC34 /* Build configuration list for PBXProject "kea" */ = {
+		54A84E9521E7D4BD00F7DC34 /* Build configuration list for PBXProject "vg" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				54A84EAA21E7D4BE00F7DC34 /* Debug */,
@@ -442,7 +442,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		54A84EAC21E7D4BE00F7DC34 /* Build configuration list for PBXNativeTarget "kea-release" */ = {
+		54A84EAC21E7D4BE00F7DC34 /* Build configuration list for PBXNativeTarget "vg-release" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				54A84EAD21E7D4BE00F7DC34 /* Debug */,
@@ -451,7 +451,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		54A84EC621E7E41D00F7DC34 /* Build configuration list for PBXNativeTarget "kea-debug" */ = {
+		54A84EC621E7E41D00F7DC34 /* Build configuration list for PBXNativeTarget "vg-debug" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				54A84EC721E7E41D00F7DC34 /* Debug */,

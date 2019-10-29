@@ -1,9 +1,9 @@
 extern crate game;
-extern crate kea;
-extern crate kea_dev;
+extern crate vg;
+extern crate vg_dev;
 
 struct Api;
-impl kea::PlatformApi for Api {
+impl vg::PlatformApi for Api {
     fn print(&self, s: &str) {
         println!("{}", s);
     }
@@ -11,5 +11,5 @@ impl kea::PlatformApi for Api {
 
 #[no_mangle]
 pub extern "C" fn ios_main() {
-    kea::run(Api, kea_dev::Renderer::new(), &game::game);
+    vg::run(Api, vg_dev::Renderer::new(), &game::game);
 }

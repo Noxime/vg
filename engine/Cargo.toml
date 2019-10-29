@@ -1,9 +1,10 @@
 [package]
 name = "vg"
 version = "0.0.0"
+repository = "https://owo.codes/noxim/vg"
+homepage = "https://noxim.xyz/vg"
 authors = ["noxim <aaro.peramaa@gmail.com>"]
 license = "ISC"
-publish = false
 edition = "2018"
 
 [dependencies]

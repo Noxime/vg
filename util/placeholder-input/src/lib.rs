@@ -1,9 +1,9 @@
-use kea::input;
+use vg::input;
 
 /// Input handler implementation that always returns `None` or an empty `Vec`
 pub struct Input;
 
-impl kea::Input for Input {
+impl vg::Input for Input {
     fn default(&self) -> Option<input::Id> {
         None
     }

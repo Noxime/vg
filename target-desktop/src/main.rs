@@ -1,18 +1,20 @@
-use kea::Api;
-use kea_glium::glutin;
+use vg::Api;
+use vg_glium::glutin;
 
 struct Desktop {
-    renderer: kea_glium::Renderer,
-    input: kea_gilrs::Input,
-    audio: kea_cpal::Audio,
+    renderer: vg_glium::Renderer,
+    input: vg_gilrs::Input,
+    audio: vg_cpal::Audio,
     events: glutin::EventsLoop,
     closing: bool,
+    instant: std::time::Instant,
 }
 
 impl Api for Desktop {
-    type R = kea_glium::Renderer;
-    type I = kea_gilrs::Input;
-    type A = kea_cpal::Audio;
+    type R = vg_glium::Renderer;
+    type I = vg_gilrs::Input;
+    type A = vg_cpal::Audio;
+    type T = Time;
 
     fn poll(&mut self) {
         let mut closing = false;
@@ -23,7 +25,7 @@ impl Api for Desktop {
                 glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, .. } => closing = true,
                 glutin::Event::DeviceEvent { event: glutin::DeviceEvent::Key(glutin::KeyboardInput { virtual_keycode: Some(k), state, .. }), .. } => {
                     use glutin::VirtualKeyCode as Kc;
-                    use kea::input::Key;
+                    use vg::input::Key;
                     if let Some(k) = match k {
                         Kc::Key0 => Some(Key::Key0),
                         Kc::Key1 => Some(Key::Key1),
@@ -104,7 +106,7 @@ impl Api for Desktop {
         self.closing = closing;
 
         for (c, s) in keys {
-            self.input.event(c, s)
+            self.input.event(c, s, self.instant.elapsed().as_secs_f32())
         }
         self.input.update()
     }
@@ -113,26 +115,38 @@ impl Api for Desktop {
         self.closing
     }
 
-    fn renderer<'a>(&'a mut self) -> &'a mut kea_glium::Renderer {
+    fn renderer<'a>(&'a mut self) -> &'a mut vg_glium::Renderer {
         &mut self.renderer
     }
 
-    fn input<'a>(&'a mut self) -> &'a mut kea_gilrs::Input {
+    fn input<'a>(&'a mut self) -> &'a mut vg_gilrs::Input {
         &mut self.input
     }
 
-    fn audio<'a>(&'a mut self) -> &'a mut kea_cpal::Audio {
+    fn audio<'a>(&'a mut self) -> &'a mut vg_cpal::Audio {
         &mut self.audio
     }
 }
 
+struct Time(std::time::Instant);
+impl vg::Time for Time {
+    fn new() -> Self {
+        Time(std::time::Instant::now())
+    }
+
+    fn now(&self) -> f32 {
+        self.0.elapsed().as_secs_f32()
+    }
+}
+
 fn main() {
-    let (renderer, events) = kea_glium::Renderer::new();
-    game::run(Desktop {
+    let (renderer, events) = vg_glium::Renderer::new();
+    futures::executor::block_on(game::run(Desktop {
         renderer,
         events,
         closing: false,
-        input: kea_gilrs::Input::new(),
-        audio: kea_cpal::Audio::new(),
-    })
+        input: vg_gilrs::Input::new(0.0),
+        audio: vg_cpal::Audio::new(),
+        instant: std::time::Instant::now()
+    }));
 }

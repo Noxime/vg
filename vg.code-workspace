@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "target-desktop"
+		},
+		{
+			"path": "target-android"
+		},
+		{
+			"path": "target-switch"
+		},
+		{
+			"path": "target-ios"
+		},
+		{
+			"path": "target-web"
+		},
+		{
+			"path": "game"
+		},
+		{
+			"path": "engine"
+		},
+		{
+			"path": "util/"
+		}
+	]
+}

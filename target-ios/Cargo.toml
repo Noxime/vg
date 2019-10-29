@@ -5,13 +5,13 @@ authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
 [lib]
-name = "kea_ios"
+name = "vg_ios"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 game = { path = "../game", package = "game" }
-kea = { path = "../engine" }
-kea-dev = { path = "../util/kea-dev" }
+vg = { path = "../engine" }
+vg-dev = { path = "../util/vg-dev" }
 
 [patch.crates-io]
 glutin = { git = "https://github.com/noxime/glutin", rev = "015b09e" }

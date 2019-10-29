@@ -1,4 +1,4 @@
-use kea::renderer::*;
+use vg::renderer::*;
 
 use libnx_rs::libnx;
 

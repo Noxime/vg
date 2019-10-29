@@ -19,7 +19,7 @@ then
     exit 1
 fi
 
-echo "Configuring kea to use '$name'"
+echo "Configuring vg to use '$name'"
 
 if [[ "$OSTYPE" == "darwin" ]]; then
     sed -i "" "s/game.*}/game = { path = \"..\/$rel\", package = \"$name\" }/g" target-desktop/Cargo.toml

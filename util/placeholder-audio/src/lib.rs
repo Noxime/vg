@@ -1,26 +1,23 @@
-use kea::audio;
+use vg::audio;
 
 pub struct Sound;
 
 impl audio::Sound for Sound {
     fn playing(&self) -> bool {
-        unimplemented!()
+        false
     }
 
     fn play(&mut self) {
-        unimplemented!()
     }
 
     fn pause(&mut self) {
-        unimplemented!()
     }
 
     fn repeating(&self) -> bool {
-        unimplemented!()
+        false
     }
 
     fn set_repeating(&mut self, repeating: bool) {
-        unimplemented!()
     }
 }
 
@@ -30,33 +27,32 @@ impl audio::Audio for Audio {
     type Sound = Sound;
 
     fn ogg(&mut self, bytes: Vec<u8>) -> Self::Sound {
-        unimplemented!()
+        Sound
     }
 
     fn output(&self) -> Option<audio::Output> {
-        unimplemented!()
+        None
     }
 
     fn outputs(&self) -> Vec<audio::Output> {
-        unimplemented!()
+        vec![]
     }
 
     fn set_output(&mut self, output: &audio::Output) -> Result<(), String> {
-        unimplemented!()
+        Ok(())
     }
 
     fn volume(&self) -> f32 {
-        unimplemented!()
+        1.0
     }
     fn set_volume(&mut self, volume: f32) {
-        unimplemented!()
+        
     }
 
     fn pan(&self) -> f32 {
-        unimplemented!()
+        0.0
     }
     fn set_pan(&self, pan: f32) {
-        unimplemented!()
     }
 }
 

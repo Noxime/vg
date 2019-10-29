@@ -6,15 +6,15 @@ edition = "2018"
 
 [package.metadata.android]
 android_version = 26
-package_name = "xyz.noxim.kea"
-label = "Kea"
+package_name = "xyz.noxim.vg"
+label = "vg"
 fullscreen = true
 res = "../game/res"
 icon = "@mipmap/icon"
 
 [dependencies]
 game = { path = "../game", package = "game" }
-kea = { path = "../engine" }
-kea-glium = { path = "../util/kea-glium" }
+vg = { path = "../engine" }
+vg-glium = { path = "../util/vg-glium" }
 android_glue = "0.2.3"
 placeholder-input = { path = "../util/placeholder-input" }
