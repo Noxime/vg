@@ -32,7 +32,8 @@ pub trait Api: gfx::Gfx {
         std::time::Duration::from_secs_f64(self.now() - since)
     }
 
-    fn assert(&self, path: &str) -> Option<Asset>;
+    /// load an asset from a path
+    fn asset(&self, path: &str) -> Option<Asset>;
 }
 
 pub struct Icon;
