@@ -46,10 +46,10 @@ impl vg::Api for Vg {
 
 struct Time(f64);
 impl vg::Time for Time {
-    fn new() -> Self {
+    fn now() -> Self {
         Time(web::Date::now())
     }
-    fn now(&self) -> f32 {
+    fn elapsed(&self) -> f32 {
         ((web::Date::now() - self.0) / 1000.0) as f32
     }
 }

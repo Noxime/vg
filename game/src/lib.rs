@@ -9,10 +9,9 @@ pub async fn run<A: Api>(mut api: A) {
 
     let tex = <<A as Api>::R as Renderer>::Texture::new(api.renderer(), &[1, 1], &[0.5, 0.2, 0.8, 1.0]);
 
-    let mut t = 0.0;
+    let t = A::T::now();
 
     while !api.exit() {
-        t += 1.0 / 60.0;
         api.poll();
         // let id = api.input().default().unwrap();
 
@@ -20,7 +19,7 @@ pub async fn run<A: Api>(mut api: A) {
         api.renderer().surface().draw(&tex, &Default::default(), &vg::renderer::View {
             x: 0.0,
             y: 0.0,
-            rotation: t,
+            rotation: t.elapsed(),
             scale: vg::renderer::Scale::Horizontal(1.0),
             pixels_per_unit: 64.0,
         }, &Default::default());

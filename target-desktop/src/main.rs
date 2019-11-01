@@ -130,11 +130,12 @@ impl Api for Desktop {
 
 struct Time(std::time::Instant);
 impl vg::Time for Time {
-    fn new() -> Self {
+    fn now() -> Time {
+        // self.0.elapsed().as_secs_f32()
         Time(std::time::Instant::now())
     }
 
-    fn now(&self) -> f32 {
+    fn elapsed(&self) -> f32 {
         self.0.elapsed().as_secs_f32()
     }
 }
@@ -147,6 +148,6 @@ fn main() {
         closing: false,
         input: vg_gilrs::Input::new(0.0),
         audio: vg_cpal::Audio::new(),
-        instant: std::time::Instant::now()
+        instant: std::time::Instant::now(),
     }));
 }

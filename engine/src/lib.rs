@@ -33,8 +33,8 @@ pub use self::input::Input;
 pub use self::renderer::Renderer;
 
 pub trait Time {
-    fn new() -> Self;
-    fn now(&self) -> f32;
+    fn now() -> Self;
+    fn elapsed(&self) -> f32;
 }
 
 pub trait Api {
