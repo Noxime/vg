@@ -5,7 +5,7 @@ authors = ["noxim <aaro.peramaa@gmail.com>"]
 edition = "2018"
 
 [package.metadata.android]
-android_version = 26
+android_version = 29
 package_name = "xyz.noxim.vg"
 label = "vg"
 fullscreen = true
@@ -17,4 +17,12 @@ game = { path = "../game", package = "game" }
 vg = { path = "../engine" }
 vg-glium = { path = "../util/vg-glium" }
 android_glue = "0.2.3"
-placeholder-input = { path = "../util/placeholder-input" }
+#placeholder-input = { path = "../util/placeholder-input" }
+vg-gilrs = { path = "../util/vg-gilrs" }
+#vg-cpal = { path = "../util/vg-cpal" }
+placeholder-audio = { path = "../util/placeholder-audio" }
+futures-preview = "0.3.0-alpha.19"
+
+
+[patch.crates-io]
+winit = { path = "winit-winit-legacy" }

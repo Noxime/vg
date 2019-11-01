@@ -2,7 +2,7 @@ extern crate android_glue;
 extern crate game;
 extern crate vg;
 extern crate vg_glium;
-extern crate placeholder_input;
+// extern crate placeholder_input;
 
 use vg::Api;
 
@@ -25,22 +25,23 @@ impl android_glue::SyncEventHandler for AndroidHandler {
 struct Android {
     renderer: vg_glium::Renderer,
     input: vg_gilrs::Input,
-    audio: vg_cpal::Audio,
-    events: glutin::EventsLoop,
+    audio: placeholder_audio::Audio,
+    events: vg_glium::glutin::EventsLoop,
     closing: bool,
 }
 
 impl Api for Android {
     type R = vg_glium::Renderer;
     type I = vg_gilrs::Input;
-    type A = vg_cpal::Audio;
+    type A = placeholder_audio::Audio;
+    type T = Time;
 
     fn poll(&mut self) {
         let mut closing = false;
 
         self.events.poll_events(|event| {
             match event {
-                glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, .. } => closing = true,
+                vg_glium::glutin::Event::WindowEvent { event: vg_glium::glutin::WindowEvent::CloseRequested, .. } => closing = true,
                 _ => (),
             }
         });
@@ -62,18 +63,29 @@ impl Api for Android {
         &mut self.input
     }
 
-    fn audio<'a>(&'a mut self) -> &'a mut vg_cpal::Audio {
+    fn audio<'a>(&'a mut self) -> &'a mut placeholder_audio::Audio {
         &mut self.audio
+    }
+}
+
+struct Time(std::time::Instant);
+impl vg::Time for Time {
+    fn now() -> Time {
+        Time(std::time::Instant::now())
+    }
+
+    fn elapsed(&self) -> f32 {
+        self.0.elapsed().as_secs_f32()
     }
 }
 
 fn main() {
     let (renderer, events) = vg_glium::Renderer::new();
-    game::run(Android {
+    futures::executor::block_on(game::run(Android {
         renderer,
         events,
         closing: false,
-        input: placeholder_input::Input,
-        audio: vg_cpal::Audio::new(),
-    })
+        input: vg_gilrs::Input::new(0.0),
+        audio: placeholder_audio::Audio,
+    }));
 }
