@@ -46,33 +46,37 @@ pub struct Surface {
 
 impl Renderer {
     pub fn new() -> (Renderer, glutin::EventsLoop) {
-        println!("GLIUM: new");
+        println!("Initializing glium");
         // Iterate through various GL versions to find a compatible one
         let (display, events) = {
             let mut res = None;
             for api in &[
-                glutin::GlRequest::Latest,
+                // glutin::GlRequest::Latest,
                 glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 0)),
                 glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0)),
                 glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)),
                 glutin::GlRequest::Specific(glutin::Api::WebGl, (1, 0)),
             ] {
+                println!("\ttrying {:?}", api);
                 let events = glutin::EventsLoop::new();
+                println!("\tevents work");
                 let window = glutin::WindowBuilder::new()
                     .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0))
                     .with_title("vg");
+                println!("\twindow works");
                 let context = glutin::ContextBuilder::new()
                     .with_gl(*api);
+                println!("\tcontext works");
                 if let Ok(d) = glium::Display::new(window, context, &events) {
                     println!("Renderer: {}", d.get_opengl_version_string());
                     res = Some((Rc::new(d), events));
                     break;
                 }
+                println!("\tdisplay :shrug:");
             }
 
             res.expect("No graphics api support found")
         };
-
 
         // upload a vertex quad for our rendering ops
         let vertex1 = Vertex {
@@ -95,6 +99,8 @@ impl Renderer {
 
         let vertices = Rc::new(glium::VertexBuffer::new(&*display, &shape).unwrap());
 
+        println!("uploaded quad");
+
         // default "identity" shaders
         let program = Rc::new(
             glium::Program::from_source(
@@ -105,6 +111,8 @@ impl Renderer {
             )
             .unwrap(),
         );
+
+        println!("uploaded program");
 
         let surface = Surface {
             display: display.clone(),
@@ -139,29 +147,26 @@ impl vg::renderer::Renderer for Renderer {
 impl vg::renderer::Texture<Renderer> for Texture {
     fn new(renderer: &mut Renderer, size: &Size, color: &Color) -> Self {
         // create a buffer
-        let img = (0..size[0] * size[1] * 4).map(|i| color[i % 4]);
-        let raw = glium::texture::RawImage2d::from_raw_rgba(
-            img.collect(),
-            (size[0] as u32, size[1] as u32),
-        );
-        let tex = glium::texture::Texture2d::new(&*renderer.display, raw).unwrap();
-
-        Texture {
-            tex,
-            verts: renderer.verts.clone(),
-            program: renderer.program.clone(),
-        }
+        let img = (0..size[0] * size[1]).map(|_| *color).collect();
+        Self::from_data(renderer, size, &img)
     }
 
     fn from_data(renderer: &mut Renderer, size: &Size, data: &Vec<Color>) -> Self {
+
+        // GLES does not seem to gamma correct the textures so do it manually
+        let gamma = match renderer.display.get_opengl_version().0 {
+            glium::Api::GlEs => 2.2,
+            glium::Api::Gl => 1.0,
+        };
+        
         // turn the data into a linear buffer
         let mut img = Vec::new();
         img.reserve(size[0] * size[1] * 4);
         for i in 0..size[0] * size[1] {
-            img.push(data[i][0]);
-            img.push(data[i][1]);
-            img.push(data[i][2]);
-            img.push(data[i][3]);
+            img.push(data[i][0].powf(1.0/gamma));
+            img.push(data[i][1].powf(1.0/gamma));
+            img.push(data[i][2].powf(1.0/gamma));
+            img.push(data[i][3].powf(1.0/gamma));
         }
         let raw = glium::texture::RawImage2d::from_raw_rgba(img, (size[0] as u32, size[1] as u32));
         let tex = glium::texture::Texture2d::new(&*renderer.display, raw).unwrap();
@@ -223,7 +228,8 @@ impl vg::renderer::Target<Renderer> for Texture {
                 [0.0f32, 0.0, 1.0, 0.0],
                 [x * vsx, y * vsy, 0.0, 1.0],
             ],
-            tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            //tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            tex: &texture.tex
         };
 
         self.tex
@@ -326,7 +332,8 @@ impl vg::renderer::Target<Renderer> for Surface {
                 [0.0f32, 0.0, 1.0, 0.0],
                 [x * vsx, y * vsy, 0.0, 1.0],
             ],
-            tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            //tex: texture.tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+            tex: &texture.tex
         };
 
         self.frame

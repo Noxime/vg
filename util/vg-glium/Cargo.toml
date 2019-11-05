@@ -7,4 +7,3 @@ edition = "2018"
 [dependencies]
 vg = { path = "../../engine" }
 glium = "0.25.1"
-# glium = { git = "https://github.com/glium/glium/" }
