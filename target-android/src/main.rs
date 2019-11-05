@@ -10,7 +10,7 @@ struct AndroidHandler {}
 
 impl android_glue::SyncEventHandler for AndroidHandler {
     fn handle(&mut self, event: &android_glue::Event) {
-        println!("{:#?}", event);
+        println!("Android event: {:#?}", event);
         match event {
             android_glue::Event::LostFocus => {
                 println!("FOCUS LOST: Save game state");
@@ -24,7 +24,7 @@ impl android_glue::SyncEventHandler for AndroidHandler {
 
 struct Android {
     renderer: vg_glium::Renderer,
-    input: vg_gilrs::Input,
+    input: placeholder_input::Input,
     audio: placeholder_audio::Audio,
     events: vg_glium::glutin::EventsLoop,
     closing: bool,
@@ -32,7 +32,7 @@ struct Android {
 
 impl Api for Android {
     type R = vg_glium::Renderer;
-    type I = vg_gilrs::Input;
+    type I = placeholder_input::Input;
     type A = placeholder_audio::Audio;
     type T = Time;
 
@@ -48,7 +48,7 @@ impl Api for Android {
 
         self.closing = closing;
 
-        self.input.update()
+        // self.input.update()
     }
 
     fn exit(&self) -> bool {
@@ -59,7 +59,7 @@ impl Api for Android {
         &mut self.renderer
     }
 
-    fn input<'a>(&'a mut self) -> &'a mut vg_gilrs::Input {
+    fn input<'a>(&'a mut self) -> &'a mut placeholder_input::Input {
         &mut self.input
     }
 
@@ -79,13 +79,19 @@ impl vg::Time for Time {
     }
 }
 
+
 fn main() {
+    std::panic::set_hook(Box::new(|info| println!("{}", info)));
+    std::env::set_var("RUST_BACKTRACE", "1");
+    println!("RUST_BACKTRACE={:?}", std::env::var("RUST_BACKTRACE"));
+    android_glue::add_sync_event_handler(Box::new(AndroidHandler {}));
+
     let (renderer, events) = vg_glium::Renderer::new();
     futures::executor::block_on(game::run(Android {
         renderer,
         events,
         closing: false,
-        input: vg_gilrs::Input::new(0.0),
+        input: placeholder_input::Input,
         audio: placeholder_audio::Audio,
     }));
 }

@@ -17,12 +17,9 @@ game = { path = "../game", package = "game" }
 vg = { path = "../engine" }
 vg-glium = { path = "../util/vg-glium" }
 android_glue = "0.2.3"
-#placeholder-input = { path = "../util/placeholder-input" }
-vg-gilrs = { path = "../util/vg-gilrs" }
+placeholder-input = { path = "../util/placeholder-input" }
+# vg-gilrs = { path = "../util/vg-gilrs" }
 #vg-cpal = { path = "../util/vg-cpal" }
 placeholder-audio = { path = "../util/placeholder-audio" }
 futures-preview = "0.3.0-alpha.19"
-
-
-[patch.crates-io]
-winit = { path = "winit-winit-legacy" }
+# glutin = "0.19"

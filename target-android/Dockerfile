@@ -7,7 +7,7 @@ RUN apt-get install -yq sudo curl file build-essential wget git g++ cmake pkg-co
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH /root/.cargo/bin:$PATH
 
-RUN rustup default nightly-2019-07-31
+RUN rustup default nightly
 RUN rustup target add armv7-linux-androideabi
 
 ENV ANDROID_HOME /opt/android-sdk-linux
