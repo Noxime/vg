@@ -21,10 +21,10 @@ impl vg::Input for Input {
     }
 
     fn mapping(&self) -> input::KeyboardMapping {
-        unimplemented!()
+        input::KeyboardMapping::default()
     }
 
     fn set_mapping(&mut self, _: input::KeyboardMapping) {
-        unimplemented!()
+        
     }
 }

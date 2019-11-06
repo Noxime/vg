@@ -2,6 +2,7 @@ image: "rust:latest"
 
 stages: 
 - core
+- builders
 - tier1
 - tier2
 - tier3

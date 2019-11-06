@@ -11,7 +11,12 @@ crate-type = ["staticlib", "cdylib"]
 [dependencies]
 game = { path = "../game", package = "game" }
 vg = { path = "../engine" }
-vg-dev = { path = "../util/vg-dev" }
+vg-glium = { path = "../util/vg-glium" }
+placeholder-input = { path = "../util/placeholder-input" }
+# vg-gilrs = { path = "../util/vg-gilrs" }
+#vg-cpal = { path = "../util/vg-cpal" }
+placeholder-audio = { path = "../util/placeholder-audio" }
+futures-preview = "0.3.0-alpha.19"
 
 [patch.crates-io]
 glutin = { git = "https://github.com/noxime/glutin", rev = "015b09e" }

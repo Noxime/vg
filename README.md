@@ -1,4 +1,4 @@
-# vg Engine
+# vg Engine [![Build status](https://github.com/noxime/vg/workflows/core/badge.svg)](https://github.com/Noxime/vg/actions?query=workflow%3Acore)
 
 vg engine is a cross-platform, cross-api lightweight game engine for 2D 
 games. It is mostly written to support my own game projects, but it 
@@ -13,9 +13,9 @@ game called [Grab](https://noxim.itch.io/grab) that I made for the GMTK Game
 Jam 2019, to test a beta version of vg.
 
 ## Supported platform tiers
-1. Windows, MacOS, Linux
-2. Android, iOS, Web
-3. Xbox One, PS4, Nintendo Switch
+1. Windows, MacOS, Linux [![Tier 1 build status](https://github.com/noxime/vg/workflows/tier1/badge.svg)](https://github.com/Noxime/vg/actions?query=workflow%3Atier1)
+2. Android, iOS, Web [![Tier 2 build status](https://github.com/noxime/vg/workflows/tier2/badge.svg)](https://github.com/Noxime/vg/actions?query=workflow%3Atier2)
+3. Xbox One, PS4, Nintendo Switch [![Tier 3 build status](https://github.com/noxime/vg/workflows/tier3/badge.svg)](https://github.com/Noxime/vg/actions?query=workflow%3Atier3)
 
 Tier one platforms will always be working, tier two are mostly working but
 might have some `unimplemented`s or bugs in them. Tier 3 are experiment and

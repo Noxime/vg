@@ -1,0 +1,39 @@
+name: tier2
+
+on: [push]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      run: |
+        sudo apt update && sudo apt install -y libasound2-dev libudev-dev
+        cd target-web
+        cargo install --force cargo-web
+        cargo web build --verbose
+        
+  drd:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      run: |
+        cd target-android/android-rs-glue
+        docker build . -t cargo-apk
+        cd ..
+        echo $(pwd)
+        make build
+  ios:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: build
+        run: |
+          brew update && brew install rustup
+          rustup-init -y && source $HOME/.cargo/env
+          cd target-ios
+          cargo install cargo-lipo --force
+          rustup target add aarch64-apple-ios x86_64-apple-ios armv7-apple-ios i386-apple-ios
+          make build

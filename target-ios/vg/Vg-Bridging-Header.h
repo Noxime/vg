@@ -6,8 +6,8 @@
 //  Copyright © 2019 noxim. All rights reserved.
 //
 
-#ifndef vg_Bridging_Header_h
-#define vg_Bridging_Header_h
+#ifndef Vg_Bridging_Header_h
+#define Vg_Bridging_Header_h
 
 #import "vg.h"
 

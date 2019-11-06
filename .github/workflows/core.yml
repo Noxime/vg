@@ -1,0 +1,13 @@
+name: core
+
+on: [push]
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      run: |
+        cd engine
+        cargo build --verbose
