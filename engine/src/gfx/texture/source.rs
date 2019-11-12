@@ -1,12 +1,14 @@
-use crate::{Size, Color, Time};
+use crate::{Size, Color};
 
 mod raw;
-mod lazy;
 pub use raw::RawSource;
-pub use lazy::LazySource;
 
 /// Anything that can be used as a source for a texture
+#[crate::async_trait]
 pub trait Source {
-    fn load(&self) -> (Size, Vec<Color>);
-    fn changed(&self) -> Time;
+    /// Load the texture data from disk
+    async fn load(&self) -> (Size, Vec<Color>);
+
+    /// Check if the data has changed, and load it if it has
+    async fn changed(&self) -> Option<(Size, Vec<Color>)>;
 }

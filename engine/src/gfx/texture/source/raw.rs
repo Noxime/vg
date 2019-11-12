@@ -1,4 +1,4 @@
-use crate::{gfx::texture::Source, Color, Size, Time, EPOCH};
+use crate::{gfx::texture::Source, Color, Size};
 
 /// Raw, in memory texture source
 pub struct RawSource(Size, Vec<Color>);
@@ -10,13 +10,14 @@ impl RawSource {
     }
 }
 
+#[crate::async_trait]
 impl Source for RawSource {
-    fn load(&self) -> (Size, Vec<Color>) {
+    async fn load(&self) -> (Size, Vec<Color>) {
         (self.0, self.1.clone())
     }
 
-    fn changed(&self) -> Time {
-        EPOCH
+    async fn changed(&self) -> Option<(Size, Vec<Color>)> {
+        None
     }
 }
 

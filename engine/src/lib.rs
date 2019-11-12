@@ -21,6 +21,8 @@
 //! }
 //! ```
 
+#![deny(where_clauses_object_safety)]
+
 pub use async_trait::async_trait;
 
 pub type Size = [usize; 2];
@@ -37,19 +39,19 @@ pub use asset::Asset;
 pub struct Vg(Box<dyn Api>);
 
 pub trait Api: gfx::Gfx {
-    /// set the window title
+    /// Set the window title
     fn title(&mut self, title: String);
-    /// resize the window
+    /// Resize the window
     fn size(&mut self, size: Size);
-    /// set the window icon
+    /// Set the window icon
     fn icon(&mut self, icon: Icon);
-    /// set fullscreen
+    /// Set fullscreen
     fn fullscreen(&mut self, fullscreen: bool);
+    /// Set vsync
+    fn vsync(&mut self, vsync: bool);
 
+    /// Get the current time
     fn now(&self) -> Time;
-    fn elapsed(&self, since: Time) -> std::time::Duration {
-        std::time::Duration::from_secs_f64(self.now() - since)
-    }
 
     /// load an asset from a path
     fn asset(&self, path: &str) -> Option<Asset>;
