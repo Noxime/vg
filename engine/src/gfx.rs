@@ -1,3 +1,5 @@
+//! Graphics
+
 use crate::{Color, Matrix, Size};
 
 pub mod texture;
@@ -20,9 +22,9 @@ pub trait Target {
     /// Fill the target with a solid color
     fn fill(&mut self, color: Color);
     /// Draw a texture instanced by the transform matrices provided
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// The following code will draw `ferris` filling the whole `Target`
     /// ```rust
     /// vg.draw(&ferris, &[Matrix::IDENTITY]);

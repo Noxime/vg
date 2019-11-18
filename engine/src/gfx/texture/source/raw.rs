@@ -12,11 +12,11 @@ impl RawSource {
 
 #[crate::async_trait]
 impl Source for RawSource {
-    async fn load(&self) -> (Size, Vec<Color>) {
+    async fn load(&mut self) -> (Size, Vec<Color>) {
         (self.0, self.1.clone())
     }
 
-    async fn changed(&self) -> Option<(Size, Vec<Color>)> {
+    async fn changed(&mut self) -> Option<(Size, Vec<Color>)> {
         None
     }
 }

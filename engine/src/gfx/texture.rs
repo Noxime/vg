@@ -1,7 +1,7 @@
 use crate::{gfx::Target, Color, Matrix, Size};
 
 mod source;
-pub use source::{Source, RawSource};
+pub use source::{RawSource, Source};
 
 pub struct Texture {
     sampling: Sampling,

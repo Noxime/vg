@@ -1,4 +1,4 @@
-use crate::{Size, Color};
+use crate::{Color, Size};
 
 mod raw;
 pub use raw::RawSource;
@@ -7,8 +7,8 @@ pub use raw::RawSource;
 #[crate::async_trait]
 pub trait Source {
     /// Load the texture data from disk
-    async fn load(&self) -> (Size, Vec<Color>);
+    async fn load(&mut self) -> (Size, Vec<Color>);
 
     /// Check if the data has changed, and load it if it has
-    async fn changed(&self) -> Option<(Size, Vec<Color>)>;
+    async fn changed(&mut self) -> Option<(Size, Vec<Color>)>;
 }
