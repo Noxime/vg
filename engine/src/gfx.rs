@@ -32,4 +32,6 @@ pub trait Target {
     fn draw(&mut self, texture: &Texture, matrices: &[Matrix]);
 }
 
-pub struct Present(#[doc(hidden)] pub Box<dyn std::future::Future<Output = ()>>);
+pub struct Present(
+    #[doc(hidden)] pub Box<dyn std::future::Future<Output = ()>>,
+);

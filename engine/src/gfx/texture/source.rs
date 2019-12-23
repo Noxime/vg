@@ -7,8 +7,9 @@ pub use raw::RawSource;
 #[crate::async_trait]
 pub trait Source {
     /// Load the texture data from disk
+    ///
+    /// This function must be callable multiple times, since on some platforms
+    /// (like mobile) the graphics context is lost on app switch and all
+    /// resources must be reloaded
     async fn load(&mut self) -> (Size, Vec<Color>);
-
-    /// Check if the data has changed, and load it if it has
-    async fn changed(&mut self) -> Option<(Size, Vec<Color>)>;
 }

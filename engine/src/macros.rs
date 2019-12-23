@@ -1,9 +1,9 @@
 /// Tell vg about your game
-/// 
+///
 /// # Usage
 /// ```rust
 /// game!(my_game);
-/// 
+///
 /// async fn my_game(vg: Vg) {
 ///     // ...
 /// }

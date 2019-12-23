@@ -5,6 +5,8 @@ pub struct RawSource(Size, Vec<Color>);
 
 impl RawSource {
     /// Create a new source from raw size and data
+    ///
+    /// The length of `data` must be `4 * size[0] * size[1]`
     pub fn new(size: Size, data: Vec<Color>) -> RawSource {
         RawSource(size, data)
     }
@@ -14,10 +16,6 @@ impl RawSource {
 impl Source for RawSource {
     async fn load(&mut self) -> (Size, Vec<Color>) {
         (self.0, self.1.clone())
-    }
-
-    async fn changed(&mut self) -> Option<(Size, Vec<Color>)> {
-        None
     }
 }
 
