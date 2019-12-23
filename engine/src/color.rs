@@ -8,6 +8,13 @@ pub type Color = [f32; 4];
 
 /// Extension methods for color
 pub trait ColorExt {
+    const WHITE: Color = [1.0, 1.0, 1.0, 1.0];
+    const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
+    const RED: Color = [1.0, 0.0, 0.0, 1.0];
+    const GREEN: Color = [0.0, 1.0, 0.0, 1.0];
+    const BLUE: Color = [0.0, 0.0, 1.0, 1.0];
+    const TRANSPARENT: Color = [0.0, 0.0, 0.0, 0.0];
+
     /// Create a color from a hex triplet and an alpha of 100%
     fn hex(int: u32) -> Color;
 }

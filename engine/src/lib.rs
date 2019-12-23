@@ -29,8 +29,11 @@
 
 pub use async_trait::async_trait;
 
+/// Typedef around [usize; 2] representing the size of something, usually in pixels
 pub type Size = [usize; 2];
+/// A 4x4 matrix
 pub type Matrix = [f32; 16];
+/// A timestamp
 pub type Time = f64;
 
 pub const EPOCH: Time = 0.0;
@@ -42,7 +45,7 @@ pub mod gfx;
 mod macros;
 pub mod sfx;
 pub use asset::Asset;
-mod input;
+pub mod input;
 
 /// Main handle to vg for comfort
 pub struct Vg(Box<dyn Api>);
