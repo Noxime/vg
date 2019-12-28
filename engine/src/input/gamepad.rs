@@ -153,6 +153,12 @@ impl Digital {
             _ => false,
         }
     }
+
+    /// A convenience function that returns `true` if the input is considered to
+    /// be lifted
+    pub fn up(&self) -> bool {
+        !self.down()
+    }
 }
 
 /// An analog state of an axis on a gamepad

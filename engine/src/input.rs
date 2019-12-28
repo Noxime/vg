@@ -4,14 +4,21 @@ use gamepad::{
     State as GamepadState,
 };
 
+pub mod keyboard;
+use keyboard::Event as KeyboardEvent;
+
+type MouseEvent = ();
+type TouchEvent = ();
+type TouchId = ();
+
 /// An input event
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Event {
     /// Event coming from a gamepad, identified by its `id`
     Gamepad { id: GamepadId, ev: GamepadEvent },
-    Keyboard,
-    Mouse,
-    Touch,
+    Keyboard { ev: KeyboardEvent },
+    Mouse { ev: MouseEvent },
+    Touch { id: TouchId, ev: TouchEvent },
 }
 
 /// The input API
