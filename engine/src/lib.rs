@@ -29,12 +29,15 @@
 
 pub use async_trait::async_trait;
 
-/// Typedef around [usize; 2] representing the size of something, usually in pixels
+/// Typedef around [usize; 2] representing the size of something, usually in
+/// pixels
 pub type Size = [usize; 2];
 /// A 4x4 matrix
 pub type Matrix = [f32; 16];
 /// A timestamp
 pub type Time = f64;
+/// A 2D coordinate
+pub type Coord = [f32; 2];
 
 pub const EPOCH: Time = 0.0;
 
