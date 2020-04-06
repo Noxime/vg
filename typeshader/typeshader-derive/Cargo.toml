@@ -1,0 +1,24 @@
+[package]
+name = "typeshader-derive"
+version = "0.1.0"
+authors = ["Aaro Perämaa <aaro.peramaa@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[features]
+default = []
+# this is used to signal that typeshader supports lists > 16
+64 = []
+
+[dependencies]
+proc-macro2 = "1"
+syn = { version = "1", features = ["extra-traits"] }
+quote = "1"
+shaderc = "0.6"
+spirv_cross = { path = "spirv_cross/spirv_cross", features = ["glsl", "hlsl", "msl"] }
+#spirv_cross = { version = "0.18", features = ["glsl", "hlsl", "msl"] }
+
+[patch.crates-io]
+spirv_cross = { path = "spirv_cross/spirv_cross/" }
