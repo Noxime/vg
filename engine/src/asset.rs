@@ -1,4 +1,4 @@
-pub struct Asset(#[doc(hidden)] Box<dyn AssetTrait>);
+pub struct Asset(Box<dyn AssetTrait>);
 
 impl Asset {
     /// Load bytes
@@ -7,7 +7,7 @@ impl Asset {
     }
 }
 
-#[doc(hidden)]
+#[cfg_attr(not(feature = "dev-docs"), doc(hidden))]
 #[crate::async_trait]
 pub trait AssetTrait {
     async fn load(&self) -> Vec<u8>;

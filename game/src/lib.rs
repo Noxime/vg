@@ -1,30 +1,20 @@
-use vg::renderer::{Renderer, Texture, Surface, Target};
-// use audio::Clip;
 use vg::*;
+use gfx::Target;
 
-const ASSETS: assets::Assets = asset_pack!("assets.vgpack");
+// const ASSETS: assets::Assets = asset_pack!("assets.vgpack");
 
-pub async fn run<A: Api>(mut api: A) {
-    println!("assets.pack contains {} bytes of data", ASSETS.size());
+pub async fn run(mut vg: Vg, mut gfx: Gfx, mut sfx: Sfx) {
 
-    let tex = <<A as Api>::R as Renderer>::Texture::new(api.renderer(), &[1, 1], &[0.5, 0.2, 0.8, 1.0]);
+    loop {
+        while let Some(event) = vg.poll_event() {
+            println!("{:?}", event);
+            match event {
+                Event::Exit => return,
+                _ => ()
+            }
+        }
 
-    let mut t = 0.0;
-
-    while !api.exit() {
-        t += 1.0 / 60.0;
-        api.poll();
-        // let id = api.input().default().unwrap();
-
-        api.renderer().surface().set(&[0.65, 0.87, 0.91, 1.0]);
-        api.renderer().surface().draw(&tex, &Default::default(), &vg::renderer::View {
-            x: 0.0,
-            y: 0.0,
-            rotation: t,
-            scale: vg::renderer::Scale::Horizontal(1.0),
-            pixels_per_unit: 64.0,
-        }, &Default::default());
-
-        api.renderer().surface().present(true).await;
+        gfx.fill(Color::GREEN);
+        gfx.present().await;
     }
 }

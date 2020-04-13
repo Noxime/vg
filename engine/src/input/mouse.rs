@@ -6,16 +6,16 @@ use crate::Coord;
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Event {
     /// Cursor moved
-    /// 
-    /// [`Coord`] is in range `-1.0` - `1.0` with 0 0 being center of the screen
-    /// and `[1, 1]` being top right
+    ///
+    /// [`Coord`] is in range `-1.0` - `1.0` with 0 0 being center of the
+    /// screen and `[1, 1]` being top right
     Moved(Coord),
     /// Mouse button released
     Up(Button),
     /// Mouse button pressed
     Down(Button),
     /// Mouse scroll
-    /// 
+    ///
     /// Positive means upwards and negative means downwards
     Scroll(f32),
     /// Mouse entered the window
@@ -26,9 +26,9 @@ pub enum Event {
 
 /// Mouse button
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[repr(u8)]
 pub enum Button {
-    Left,
-    Right,
-    Middle,
-    Other(u8),
+    Left = 0,
+    Right = 1,
+    Middle = 2,
 }

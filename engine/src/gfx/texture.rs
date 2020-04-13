@@ -4,11 +4,20 @@ mod source;
 pub use source::{RawSource, Source};
 
 pub struct Texture {
-    sampling: Sampling,
-    inner: Box<dyn TextureTrait>,
+    pub sampling: Sampling,
+    // TODO: Figure out a better data structure and get rid of locks
+    #[cfg_attr(not(feature = "dev-docs"), doc(hidden))]
+    pub tex: Box<dyn TextureTrait>,
 }
 
 impl Texture {
+    pub(crate) fn new(tex: Box<dyn TextureTrait>) -> Texture {
+        Texture {
+            tex,
+            sampling: Sampling::Nearest,
+        }
+    }
+
     pub fn sampling(&self) -> Sampling {
         self.sampling
     }
@@ -20,13 +29,13 @@ impl Texture {
 
 impl Target for Texture {
     fn size(&self) -> Size {
-        self.inner.size()
+        self.tex.size()
     }
     fn fill(&mut self, color: Color) {
-        self.inner.fill(color)
+        self.tex.fill(color)
     }
     fn draw(&mut self, texture: &Texture, matrices: &[Matrix]) {
-        self.inner.draw(texture, matrices)
+        self.tex.draw(texture, matrices)
     }
 }
 
@@ -36,4 +45,10 @@ pub enum Sampling {
     Nearest,
 }
 
+#[cfg_attr(not(feature = "dev-docs"), doc(hidden))] 
+/// Represents a texture thats been uploaded to the GPU
+/// 
+/// Obtained through [`Gfx::upload_texture`]
 pub trait TextureTrait: Target {}
+
+// impl std::any::Any for dyn TextureTrait {}
