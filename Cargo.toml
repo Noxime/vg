@@ -1,0 +1,33 @@
+[package]
+name = "vg"
+version = "0.0.0"
+authors = ["noxim <aaro.peramaa@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+vg-derive = { path = "vg-derive" }
+vek = "0.10"
+log = "0.4"
+async-trait = "0.1"
+zip = { version = "0.5", default-features = false, features = ["deflate"] }
+png = "0.16"
+
+# non-web deps
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+futures = { version = "0.3", features = ["thread-pool"] }
+emoji-logger = "0.1"
+wgpu = "0.5"
+winit = "0.22"
+
+# web deps
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+futures = { version = "0.3", features = [] }
+stdweb = "0.4"
+stdweb-logger = "0.1"
+webgl_stdweb = "0.3"
+
+[profile.dev]
+# asset packing is painfully slow without _some_ optimizations, also audio
+# stutters like crazy
+opt-level = 1

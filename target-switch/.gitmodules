@@ -1,4 +1,0 @@
-[submodule "libc"]
-	path = libc
-	url = https://github.com/rust-lang/libc
-
