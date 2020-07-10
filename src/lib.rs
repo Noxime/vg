@@ -123,6 +123,10 @@ impl Vg {
         // update keyboard state
         self.input.frame();
     }
+
+    pub fn audio(&mut self, f: impl Fn(&mut [u16])) {
+
+    }
 }
 
 // main entrypoint, handles executors

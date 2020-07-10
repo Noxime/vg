@@ -2,7 +2,7 @@ use vg::*;
 
 #[game(assets = "examples/assets/")]
 async fn main(mut vg: Vg) {
-    vg.title("VG - Sprite");
+    vg.title("VG - Input");
 
     let ferris = asset::png(vg.asset("ferris.png").unwrap());
     let tex = vg.texture(ferris).await;

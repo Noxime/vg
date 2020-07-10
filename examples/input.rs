@@ -1,4 +1,4 @@
-use vg::{gfx::WindowMode::*, input::gamepad::Axis, *};
+use vg::{input::gamepad::Axis, *};
 
 #[game(assets = "examples/assets/")]
 async fn main(mut vg: Vg) {

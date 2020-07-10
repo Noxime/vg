@@ -1,7 +1,5 @@
 // rendering impl
 
-use crate::Size;
-
 mod texture;
 pub use texture::{Source, Texture};
 
