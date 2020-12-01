@@ -6,26 +6,30 @@ edition = "2018"
 publish = false
 
 [dependencies]
-vg-derive = { path = "vg-derive" }
-vek = "0.10"
 log = "0.4"
-async-trait = "0.1"
-zip = { version = "0.5", default-features = false, features = ["deflate"] }
-png = "0.16"
-
-# non-web deps
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-futures = { version = "0.3", features = ["thread-pool"] }
 emoji-logger = "0.1"
-wgpu = "0.5"
-winit = "0.22"
+tokio = { version = "0.3", features = ["rt", "net", "time"] }
+tokio-tungstenite = "0.12"
+futures = "0.3"
+# websocket = "0.26"
+bytemuck = "1"
+ultraviolet = { version = "0.7", features = ["bytemuck", "serde"] }
+fxhash = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+winit = { version = "0.23", features = ["serde"] }
+wgpu = "0.6"
+egui = { version = "0.3", features = ["serde"] }
+egui_wgpu_backend = "0.2"
+egui_winit_platform = "0.2"
+image = "0.23"
 
-# web deps
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-futures = { version = "0.3", features = [] }
-stdweb = "0.4"
-stdweb-logger = "0.1"
-webgl_stdweb = "0.3"
+
+[build-dependencies]
+anyhow = "1.0"
+fs_extra = "1"
+glob = "0.3"
+shaderc = "0.5"
 
 [profile.dev]
 # asset packing is painfully slow without _some_ optimizations, also audio
