@@ -7,8 +7,11 @@
     // associated_type_defaults,
 )]
 
+use assets::AssetLoader;
+use event::InputCache;
 use log::*;
 pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use ultraviolet::{Mat4, Rotor3, Similarity3, Vec3};
 use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
@@ -19,23 +22,38 @@ use std::time::{Duration, Instant};
 mod network;
 use network::Network;
 mod event;
-pub use event::{Event, EventKind, PlayerId};
+pub use event::{Event, EventKind, Key, KeyEvent, PlayerId};
 // mod serde_hash; TODO
-mod gfx;
-pub use gfx::Model;
 pub mod assets;
+pub mod gfx;
+pub use gfx::{Model, Sprite};
 
-pub use ultraviolet::transform::Similarity3 as Transform;
+// pub use ultraviolet::transform::Similarity3 as Transform;
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct Transform {
+    pub position: Vec3,
+    pub rotation: Rotor3,
+    pub scale: f32,
+}
+
+impl Transform {
+    pub fn to_mat(&self) -> Mat4 {
+        Similarity3::new(self.position, self.rotation, self.scale).into_homogeneous_matrix()
+    }
+}
+
+impl Default for Transform {
+    fn default() -> Self {
+        Self {
+            position: Vec3::zero(),
+            rotation: Rotor3::identity(),
+            scale: 1.0,
+        }
+    }
+}
 
 pub trait Game: Sized + Serialize + DeserializeOwned {
     fn update(self: &mut Vg<Self>);
-}
-
-fn dupe_state<G: Game>(state: &G) -> G {
-    let start = Instant::now();
-    let state = serde_json::from_slice(&serde_json::to_vec(&state).unwrap()).unwrap();
-    trace!("Game state duplication took {:.2?}", start.elapsed());
-    state
 }
 
 #[derive(Debug)]
@@ -59,21 +77,43 @@ enum Tick {
     Prediction,
 }
 
+
 pub struct Vg<G> {
-    state: G,
-    prediction_state: G,
+    real: Universe<G>,
+    prediction: Universe<G>,
     // are we real or prediction tick
     tick: Tick,
     options: Options,
     network: Network,
     // events queued up for next tick
     event_queue: Vec<EventKind>,
+
+    local_player: PlayerId,
+    players: Vec<Option<PlayerId>>,
+    assets: AssetLoader,
+    // debug_menu: gfx::ui::Ui,
+}
+
+struct Universe<G> {
+    // game state
+    state: G,
     // events for this tick
     events: Vec<Event>,
-    // events that are used during prediction ticks
-    predict_events: Vec<Event>,
-    my_id: PlayerId,
-    debug_menu: gfx::ui::Ui,
+    // the current state of game inputs
+    input_cache: InputCache,
+}
+
+impl<G: Game> Clone for Universe<G> {
+    fn clone(&self) -> Self {
+        let bin = bincode::serialize(&self.state).unwrap();
+        let state = bincode::deserialize(&bin).unwrap();
+
+        Self {
+            state,
+            events: self.events.clone(),
+            input_cache: self.input_cache.clone(),
+        }
+    }
 }
 
 impl<G: Game> Vg<G> {
@@ -81,24 +121,30 @@ impl<G: Game> Vg<G> {
     where
         G: 'static,
     {
-        let rt = tokio::runtime::Builder::new_current_thread()
+        let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
-            .thread_name("vg-runtime")
+            .thread_name("vg-")
             .build()
             .unwrap();
 
         let vg = rt.block_on(async {
-            Vg {
-                prediction_state: dupe_state(&state),
+            let state = Universe {
                 state,
+                events: vec![],
+                input_cache: InputCache::new(),
+            };
+
+            Vg {
+                real: state.clone(),
+                prediction: state,
                 tick: Tick::Real,
                 options: Default::default(),
                 network: Network::new().await.unwrap(),
                 event_queue: vec![],
-                predict_events: vec![],
-                events: vec![],
-                my_id: PlayerId(0),
-                debug_menu: Default::default(),
+                local_player: PlayerId(0),
+                players: vec![],
+                assets: AssetLoader::new(),
+                // debug_menu: Default::default(),
             }
         });
 
@@ -117,13 +163,13 @@ impl<G: Game> Vg<G> {
         let mut last_predict = Instant::now();
 
         let ev = EventLoop::new();
-        // let window = WindowBuilder::new()
-        //     .with_title("VG")
-        //     .with_inner_size(winit::dpi::PhysicalSize::new(480, 360))
-        //     .build(&ev)
-        //     .unwrap();
+        let window = WindowBuilder::new()
+            .with_title("VG")
+            .with_inner_size(winit::dpi::PhysicalSize::new(800, 600))
+            .build(&ev)
+            .unwrap();
 
-        let mut g = rt.block_on(gfx::Gfx::new(&ev));
+        let mut gfx = rt.block_on(gfx::Gfx::new(&window));
 
         ev.run(move |event, _, flow| {
             use winit::event::{
@@ -131,7 +177,7 @@ impl<G: Game> Vg<G> {
             };
             *flow = ControlFlow::Poll;
 
-            g.egui_platform.handle_event(&event);
+            // g.egui_platform.handle_event(&event);
 
             if let Some(ev) = EventKind::new(&event) {
                 self.queue_event(ev);
@@ -145,24 +191,30 @@ impl<G: Game> Vg<G> {
                             (1.0 / last_predict.elapsed().as_secs_f32()) as usize;
                         last_predict = Instant::now();
 
-                        if self.debug_menu.state.is_none() {
-                            if self.update_network().await.unwrap() {
-                                self.run_real_tick();
+                        window.set_title(&format!(
+                            "VG {} | {:.2}pred/s | Player {}",
+                            if self.network.is_host() {
+                                "host"
                             } else {
-                                self.run_prediction_tick();
-                            }
+                                "client"
+                            },
+                            self.options.predict_rate,
+                            self.local_player,
+                        ));
+
+                        // if self.debug_menu.state.is_none() {
+                        if self.update_network().await.unwrap() {
+                            self.run_real_tick();
                         } else {
-                            self.tick = Tick::Real;
                             self.run_prediction_tick();
                         }
+                        // } else {
+                        // self.tick = Tick::Real;
+                        // self.run_prediction_tick();
+                        // }
 
                         // do render
-                        g.present(
-                            &mut self,
-                            gfx::Graph::new(),
-                            gfx::Camera::new(Default::default(), Default::default(), 90.0),
-                        )
-                        .await;
+                        gfx.draw(&mut self).await.unwrap();
                     });
                 }
                 WEvent::WindowEvent {
@@ -178,7 +230,14 @@ impl<G: Game> Vg<G> {
                         },
                     ..
                 } => {
-                    self.debug_menu.visible = !self.debug_menu.visible;
+                    // self.debug_menu.visible = !self.debug_menu.visible;
+                }
+                // Respond to framebuffer resize
+                WEvent::WindowEvent {
+                    event: WindowEvent::Resized(size),
+                    ..
+                } => {
+                    gfx.resize(size.width, size.height);
                 }
                 // Clean exit
                 WEvent::WindowEvent {
@@ -206,8 +265,8 @@ impl<G: Game> Vg<G> {
 
     fn queue_event(&mut self, kind: EventKind) {
         self.event_queue.push(kind.clone());
-        self.predict_events.push(Event {
-            player: self.i_am(),
+        self.prediction.events.push(Event {
+            player: self.local_player,
             kind,
         });
     }
@@ -215,6 +274,12 @@ impl<G: Game> Vg<G> {
     // run actual game logic
     fn run_real_tick(&mut self) {
         self.tick = Tick::Real;
+
+        self.real.input_cache.tick();
+        for ev in self.events() {
+            self.real.input_cache.event(&ev);
+        }
+
         Game::update(self);
     }
 
@@ -223,8 +288,7 @@ impl<G: Game> Vg<G> {
         if self.tick == Tick::Real {
             self.tick = Tick::Prediction;
             // Copy real state so we can do prediction
-            self.prediction_state = dupe_state(&self.state);
-            self.predict_events = vec![];
+            self.prediction = self.real.clone();
 
             // skip into future by latency
             // this is a remedy to problems like having to lead your aim in FPS's
@@ -233,22 +297,71 @@ impl<G: Game> Vg<G> {
             Game::update(self);
             self.options.predict_rate = old;
         }
+
+        self.prediction.input_cache.tick();
+        for ev in self.events() {
+            self.prediction.input_cache.event(&ev);
+        }
+
         Game::update(self);
+    }
+
+    // prediction/reality accessors
+    fn universe(&self) -> &Universe<G> {
+        match self.tick {
+            Tick::Real => &self.real,
+            Tick::Prediction => &self.prediction,
+        }
+    }
+
+    fn universe_mut(&mut self) -> &mut Universe<G> {
+        match self.tick {
+            Tick::Real => &mut self.real,
+            Tick::Prediction => &mut self.prediction,
+        }
     }
 
     /* public API */
 
     /// Get all the events for this update
     pub fn events(&self) -> Vec<Event> {
-        match self.tick {
-            Tick::Real => self.events.clone(),
-            Tick::Prediction => self.predict_events.clone(),
-        }
+        self.universe().events.clone()
     }
 
-    /// Get the local player ID
-    pub fn i_am(&self) -> PlayerId {
-        self.my_id
+    /// Get the latest state of a key
+    pub fn key(&self, player: PlayerId, key: event::Key) -> event::Digital {
+        self.input().key(player, key)
+    }
+
+    /// Get the cached state of all inputs
+    pub fn input(&self) -> &InputCache {
+        &self.universe().input_cache
+    }
+
+    /// Access connected players through a player slot
+    ///
+    /// Think of this of how multiple controllers behave on consoles; New controllers get added to the end, but
+    /// removing a controller does not shift other controllers down, instead leaving an empty position that might
+    /// get filled later
+    pub fn player_id(&self, slot: usize) -> Option<PlayerId> {
+        self.players.get(slot).copied().flatten()
+    }
+
+    /// Get the player slot based on a player Id, the inverse of [player_id]. None if the player is not connected
+    pub fn player_slot(&self, id: PlayerId) -> Option<usize> {
+        self.players
+            .iter()
+            .enumerate()
+            .find_map(|(i, x)| if *x == Some(id) { Some(i) } else { None })
+    }
+
+    /// Get all currently connected players
+    pub fn players(&self) -> Vec<PlayerId> {
+        self.players
+            .iter()
+            .copied()
+            .filter_map(std::convert::identity)
+            .collect()
     }
 
     /// Get current game tick
@@ -283,21 +396,15 @@ impl<G: Game> Vg<G> {
     }
 }
 
-impl<S> std::ops::Deref for Vg<S> {
-    type Target = S;
+impl<G: Game> std::ops::Deref for Vg<G> {
+    type Target = G;
     fn deref(&self) -> &Self::Target {
-        match self.tick {
-            Tick::Real => &self.state,
-            Tick::Prediction => &self.prediction_state,
-        }
+        &self.universe().state
     }
 }
 
-impl<S> std::ops::DerefMut for Vg<S> {
+impl<G: Game> std::ops::DerefMut for Vg<G> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        match self.tick {
-            Tick::Real => &mut self.state,
-            Tick::Prediction => &mut self.prediction_state,
-        }
+        &mut self.universe_mut().state
     }
 }

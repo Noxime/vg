@@ -1,18 +1,36 @@
+use std::{collections::HashMap, fmt::Display};
+
 use serde::{Deserialize, Serialize};
 use winit::event::Event as WEvent;
 
 mod input;
-use input::{Analog, Digital, GamepadEvent, KeyEvent, MouseEvent, TouchEvent};
+pub use input::{Analog, Digital, GamepadEvent, Key, KeyEvent, MouseEvent, TouchEvent};
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct PlayerId(pub(crate) u64);
 
-impl<H: std::hash::Hash> From<H> for PlayerId {
-    fn from(hash: H) -> PlayerId {
+// impl<H: std::hash::Hash> From<H> for PlayerId {
+//     fn from(hash: H) -> PlayerId {
+//         use std::hash::Hasher;
+//         let mut hasher = std::collections::hash_map::DefaultHasher::new();
+//         hash.hash(&mut hasher);
+//         PlayerId(hasher.finish())
+//     }
+// }
+
+impl PlayerId {
+    pub const ALL: PlayerId = PlayerId(0);
+    pub fn from_hash(hash: impl std::hash::Hash) -> PlayerId {
         use std::hash::Hasher;
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         hash.hash(&mut hasher);
         PlayerId(hasher.finish())
+    }
+}
+
+impl Display for PlayerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#X}", self.0)
     }
 }
 
@@ -68,5 +86,55 @@ impl EventKind {
             }
         }
         None
+    }
+}
+
+#[derive(Clone)]
+pub struct InputCache {
+    keys: HashMap<PlayerId, HashMap<Key, Digital>>,
+}
+
+impl InputCache {
+    pub fn new() -> InputCache {
+        InputCache {
+            keys: HashMap::new(),
+        }
+    }
+
+    pub fn event(&mut self, event: &Event) {
+        match event.kind {
+            EventKind::Key(KeyEvent { key, state }) => {
+                self.keys
+                    .entry(event.player)
+                    .or_default()
+                    .insert(key, state);
+                self.keys
+                    .entry(PlayerId::ALL)
+                    .or_default()
+                    .insert(key, state);
+            }
+            _ => (),
+        }
+    }
+
+    pub fn tick(&mut self) {
+        for (_, m) in self.keys.iter_mut() {
+            for k in m.values_mut() {
+                match k {
+                    Digital::Pressed => *k = Digital::Down,
+                    Digital::Released => *k = Digital::Up,
+                    _ => (),
+                }
+            }
+        }
+    }
+
+    pub fn key(&self, player: PlayerId, key: Key) -> Digital {
+        self.keys
+            .get(&player)
+            .unwrap_or(&HashMap::new())
+            .get(&key)
+            .copied()
+            .unwrap_or_default()
     }
 }

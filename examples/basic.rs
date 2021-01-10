@@ -3,22 +3,29 @@
 use vg::*;
 
 #[derive(Serialize, Deserialize)]
-struct MyGame {
-    tick_number: usize,
+struct MonkeyGame {
+    time: f32,
     monky: Model,
+    ferris: Sprite,
 }
 
-impl Game for MyGame {
+impl Game for MonkeyGame {
     fn update(self: &mut Vg<Self>) {
+        self.time += self.delta_time().as_secs_f32();
+        self.monky.transform.position.x = (self.time * 2.0).sin();
 
-        self.tick_number += 1;
+        self.monky.enabled = self
+            .player_id(0)
+            .map(|id| self.key(id, Key::Space).up())
+            .unwrap_or(true);
     }
 }
 
 fn main() {
     emoji_logger::init();
-    Vg::run(MyGame {
-        tick_number: 0,
-        monky: "suzanne.obj".into()
+    Vg::run(MonkeyGame {
+        time: 1.0,
+        monky: "suzanne.obj".into(),
+        ferris: "ferris.png".into(),
     })
 }

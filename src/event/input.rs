@@ -20,7 +20,7 @@ pub struct MouseEvent {}
 pub struct TouchEvent {}
 
 /// A digital state of a button or a key
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Digital {
     /// The input was released on this frame
     Released,
@@ -47,10 +47,15 @@ impl Digital {
     pub fn up(&self) -> bool {
         !self.down()
     }
+
+    /// Get this digital input as a simulated analog input
+    pub fn analog(&self) -> Analog {
+        (*self).into()
+    }
 }
 
 /// An analog input, like the joysticks of a gamepad
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct Analog(f32);
 
 impl Analog {
@@ -63,6 +68,11 @@ impl Analog {
     /// Get the raw joystick value with no deadzone and calibration added
     pub fn raw(&self) -> f32 {
         self.0
+    }
+
+    /// Get this analog input as a simulated digital input
+    pub fn digital(&self) -> Digital {
+        (*self).into()
     }
 }
 

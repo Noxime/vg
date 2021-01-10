@@ -25,10 +25,10 @@ enum MessageC2S {
 
 #[derive(Debug, Serialize, Deserialize)]
 enum MessageS2C {
-    // Server ran an update tick, with hash and accepted events
-    Tick(u64, Vec<Event>),
+    // Server ran an update tick, with hash, accepted events and players
+    Tick(u64, Vec<Event>, Vec<Option<PlayerId>>),
     // Force client into given state, usually because of C2S::Desync
-    SetState { state: Vec<u8> },
+    SetState { state: Vec<u8>, id: PlayerId },
 }
 
 pub(crate) struct Peer {
@@ -40,7 +40,7 @@ pub(crate) struct Peer {
 impl Peer {
     fn new(ws: Ws) -> Peer {
         Peer {
-            id: PlayerId::from(ws.get_ref().peer_addr().unwrap()),
+            id: PlayerId::from_hash(ws.get_ref().peer_addr().unwrap()),
             ws,
             events: vec![EventKind::Connected],
         }
@@ -111,7 +111,7 @@ impl<G: Game> Vg<G> {
     /// Accept any new pending connections or perform client bookkeeping
     // TODO: Break all of this up
     pub(crate) async fn update_network(&mut self) -> Result<bool, NetError> {
-        let i_am = self.i_am();
+        let i_am = self.local_player;
 
         match &mut self.network {
             Network::Host {
@@ -123,23 +123,35 @@ impl<G: Game> Vg<G> {
                 // Accept any new connections that might be pending
                 match timeout(Duration::default(), socket.accept()).await {
                     Ok(Ok((stream, addr))) => {
-                        let mut ws = handshake(stream, addr).await?;
-                        let state = serde_json::to_vec(&self.state)?;
-                        ws.send(Message::Binary(serde_json::to_vec(
-                            &MessageS2C::SetState { state },
-                        )?))
-                        .await?;
-                        peers.push(Peer::new(ws));
+                        let ws = handshake(stream, addr).await?;
+                        let mut peer = Peer::new(ws);
+                        let state = serde_json::to_vec(&self.real.state)?;
+                        peer.ws
+                            .send(Message::Binary(serde_json::to_vec(
+                                &MessageS2C::SetState { state, id: peer.id },
+                            )?))
+                            .await?;
+
+                        if let Some(s) = self.players.iter_mut().find(|x| x.is_none()) {
+                            *s = Some(peer.id);
+                        } else {
+                            self.players.push(Some(peer.id));
+                        }
+                        peers.push(peer);
                     }
                     _ => (), // timeout or connection error
                 }
 
                 // Grab the websockets
                 for mut peer in std::mem::replace(peers, vec![]) {
-                    let addr = peer.ws.get_ref().peer_addr()?;
+                    let addr = if let Ok(a) = peer.ws.get_ref().peer_addr() {
+                        a
+                    } else {
+                        continue;
+                    };
                     while let Ok(Some(msg)) = timeout(Duration::default(), peer.ws.next()).await {
-                        match msg? {
-                            Message::Binary(msg) => match serde_json::from_slice(&msg)? {
+                        match msg {
+                            Ok(Message::Binary(msg)) => match serde_json::from_slice(&msg)? {
                                 MessageC2S::Event(mut client_events) => {
                                     trace!("Client '{}' events: {:?}", addr, client_events);
                                     peer.events.append(&mut client_events);
@@ -149,12 +161,13 @@ impl<G: Game> Vg<G> {
                                         "Client '{}' got desynced, their hash: {:016X}",
                                         addr, their_hash
                                     );
-                                    let state = serde_json::to_vec(&self.state)?;
-                                    peer.ws
+                                    let state = serde_json::to_vec(&self.real.state)?;
+                                    let _ = peer
+                                        .ws
                                         .send(Message::Binary(serde_json::to_vec(
-                                            &MessageS2C::SetState { state },
+                                            &MessageS2C::SetState { state, id: peer.id },
                                         )?))
-                                        .await?;
+                                        .await;
                                 }
                             },
                             msg => {
@@ -189,18 +202,22 @@ impl<G: Game> Vg<G> {
 
                     trace!("Tick events: {}", all_events.len());
 
-                    let hash = hash_state(&self.state);
+                    let hash = hash_state(&self.real.state);
 
                     // Broadcast the tick to all clients
-                    let msg = serde_json::to_vec(&MessageS2C::Tick(hash, all_events.clone()))?;
-                    futures::future::try_join_all(
+                    let msg = serde_json::to_vec(&MessageS2C::Tick(
+                        hash,
+                        all_events.clone(),
+                        self.players.clone(),
+                    ))?;
+                    let _ = futures::future::try_join_all(
                         peers
                             .iter_mut()
                             .map(|p| p.ws.send(Message::binary(msg.clone()))),
                     )
-                    .await?;
+                    .await;
 
-                    self.events = all_events;
+                    self.real.events = all_events;
                     return Ok(true); // run game tick
                 }
             }
@@ -238,9 +255,9 @@ impl<G: Game> Vg<G> {
                             }
                         }
                         Message::Binary(msg) => match serde_json::from_slice(&msg)? {
-                            MessageS2C::Tick(hash, events) => {
+                            MessageS2C::Tick(hash, events, players) => {
                                 // Make sure we are still synchronized
-                                let my_hash = hash_state(&self.state);
+                                let my_hash = hash_state(&self.real.state);
                                 if my_hash != hash {
                                     warn!(
                                         "Desync! Server/Local: {:016X} != {:016X}",
@@ -254,12 +271,14 @@ impl<G: Game> Vg<G> {
                                 }
 
                                 debug!("Tick! ({} events)", events.len());
-                                self.events = events;
+                                self.real.events = events;
+                                self.players = players;
                                 return Ok(true); // run game tick
                             }
-                            MessageS2C::SetState { state } => {
+                            MessageS2C::SetState { state, id } => {
                                 debug!("Synced state from server ({} bytes)", state.len());
-                                self.state = serde_json::from_slice(&state)?;
+                                self.real.state = serde_json::from_slice(&state)?;
+                                self.local_player = id;
                             }
                         },
                         msg => {
