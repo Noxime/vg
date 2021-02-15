@@ -4,28 +4,40 @@ use vg::*;
 
 #[derive(Serialize, Deserialize)]
 struct MonkeyGame {
-    time: f32,
-    monky: Model,
+    buddha: Model,
+}
+
+#[derive(Serialize, Deserialize)]
+struct MonkeyPlayer {
     ferris: Sprite,
 }
 
-impl Game for MonkeyGame {
-    fn update(self: &mut Vg<Self>) {
-        self.time += self.delta_time().as_secs_f32();
-        self.monky.transform.position.x = (self.time * 2.0).sin();
+impl Player<MonkeyGame> for MonkeyPlayer {
+    fn connected(_: &mut Vg<MonkeyGame>, _: PlayerId) -> Self {
+        Self {
+            ferris: "ferris.png".into()
+        }
+    }
+}
 
-        self.monky.enabled = self
-            .player_id(0)
-            .map(|id| self.key(id, Key::Space).up())
-            .unwrap_or(true);
+impl Game for MonkeyGame {
+    type Player = MonkeyPlayer;
+
+    fn update(self: &mut Vg<Self>) {
+        self.buddha.transform.position.y = self.run_time().as_secs_f32().sin().signum();
+
+        let speed = self.delta_time().as_secs_f32();
+
+        for p in self.players_mut() {
+            let movement = p.wasd_arrows() * speed;
+            p.ferris.transform.position += movement;
+        }
     }
 }
 
 fn main() {
     emoji_logger::init();
-    Vg::run(MonkeyGame {
-        time: 1.0,
-        monky: "suzanne.obj".into(),
-        ferris: "ferris.png".into(),
+    vg::run(MonkeyGame {
+        buddha: "suzanne.obj".into(),
     })
 }

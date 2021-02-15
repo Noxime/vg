@@ -21,6 +21,7 @@ pub struct TouchEvent {}
 
 /// A digital state of a button or a key
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[repr(u8)]
 pub enum Digital {
     /// The input was released on this frame
     Released,

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
+use ultraviolet::Vec3;
 use winit::event::Event as WEvent;
 
 mod input;
@@ -19,12 +20,17 @@ pub struct PlayerId(pub(crate) u64);
 // }
 
 impl PlayerId {
-    pub const ALL: PlayerId = PlayerId(0);
+    pub const HOST: PlayerId = PlayerId(0);
+
     pub fn from_hash(hash: impl std::hash::Hash) -> PlayerId {
         use std::hash::Hasher;
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         hash.hash(&mut hasher);
         PlayerId(hasher.finish())
+    }
+
+    pub fn is_host(&self) -> bool {
+        Self::HOST == *self
     }
 }
 
@@ -35,13 +41,14 @@ impl Display for PlayerId {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Event {
+pub struct PlayerEvent {
     pub player: PlayerId,
-    pub kind: EventKind,
+    pub kind: Event,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum EventKind {
+#[repr(u8)]
+pub enum Event {
     /// A player has connected to this game
     Connected,
     /// A player has disconnected from this game
@@ -58,8 +65,8 @@ pub enum EventKind {
     Gamepad(GamepadEvent),
 }
 
-impl EventKind {
-    pub(crate) fn new(ev: &WEvent<()>) -> Option<EventKind> {
+impl Event {
+    pub(crate) fn new(ev: &WEvent<()>) -> Option<Event> {
         use winit::event::{ElementState, KeyboardInput, WindowEvent};
         if let WEvent::WindowEvent { event, .. } = ev {
             match event {
@@ -72,7 +79,7 @@ impl EventKind {
                         },
                     ..
                 } => {
-                    return Some(EventKind::Key(KeyEvent {
+                    return Some(Event::Key(KeyEvent {
                         key: *key,
                         state: if let ElementState::Pressed = state {
                             Digital::Pressed
@@ -81,7 +88,7 @@ impl EventKind {
                         },
                     }))
                 }
-                WindowEvent::ReceivedCharacter(char) => return Some(EventKind::Text(*char)),
+                WindowEvent::ReceivedCharacter(char) => return Some(Event::Text(*char)),
                 _ => (),
             }
         }
@@ -89,9 +96,9 @@ impl EventKind {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct InputCache {
-    keys: HashMap<PlayerId, HashMap<Key, Digital>>,
+    keys: HashMap<Key, Digital>,
 }
 
 impl InputCache {
@@ -102,39 +109,43 @@ impl InputCache {
     }
 
     pub fn event(&mut self, event: &Event) {
-        match event.kind {
-            EventKind::Key(KeyEvent { key, state }) => {
-                self.keys
-                    .entry(event.player)
-                    .or_default()
-                    .insert(key, state);
-                self.keys
-                    .entry(PlayerId::ALL)
-                    .or_default()
-                    .insert(key, state);
+        match event {
+            Event::Key(KeyEvent { key, state }) => {
+                self.keys.insert(*key, *state);
             }
             _ => (),
         }
     }
 
     pub fn tick(&mut self) {
-        for (_, m) in self.keys.iter_mut() {
-            for k in m.values_mut() {
-                match k {
-                    Digital::Pressed => *k = Digital::Down,
-                    Digital::Released => *k = Digital::Up,
-                    _ => (),
-                }
+        for k in self.keys.values_mut() {
+            match k {
+                Digital::Pressed => *k = Digital::Down,
+                Digital::Released => *k = Digital::Up,
+                _ => (),
             }
         }
     }
 
-    pub fn key(&self, player: PlayerId, key: Key) -> Digital {
-        self.keys
-            .get(&player)
-            .unwrap_or(&HashMap::new())
-            .get(&key)
-            .copied()
-            .unwrap_or_default()
+    pub fn key(&self, key: Key) -> Digital {
+        self.keys.get(&key).copied().unwrap_or_default()
+    }
+
+    /// Get the state of WASD and Arrow keys as a Vec3, so you can apply this easily a Transform.position
+    pub fn wasd_arrows(&self) -> Vec3 {
+        let mut res = Vec3::zero();
+        if self.key(Key::W).down() || self.key(Key::Up).down() {
+            res.y += 1.0;
+        }
+        if self.key(Key::S).down() || self.key(Key::Down).down() {
+            res.y -= 1.0;
+        }
+        if self.key(Key::D).down() || self.key(Key::Right).down() {
+            res.x += 1.0;
+        }
+        if self.key(Key::A).down() || self.key(Key::Left).down() {
+            res.x -= 1.0;
+        }
+        res
     }
 }

@@ -254,24 +254,34 @@ impl Gfx {
         self.renderer.set_options(self.options.clone());
     }
 
-    pub(crate) async fn draw<G>(&mut self, vg: &mut Vg<G>) -> Result<(), Box<dyn std::error::Error>>
+    pub(crate) async fn draw<G>(
+        &mut self,
+        vg: &Vg<G>,
+        assets: &mut AssetLoader,
+    ) -> Result<(), Box<dyn std::error::Error>>
     where
         G: Game,
     {
         *RENDER_LIST.lock()? = Some(vec![]);
-        let _ = serde_json::to_vec(&vg.universe().state);
+        let _ = bincode::serialize(&vg.state);
+        for player in vg.players() {
+            let _ = bincode::serialize(&player.state);
+        }
+
         let drawables = RENDER_LIST.lock()?.take().unwrap_or_default();
+
+        if drawables.is_empty() {
+            return Ok(())
+        }
 
         let mut objects = vec![];
         let mut materials = vec![];
 
         for model in drawables {
-            let mesh = self.cached_mesh(&mut vg.assets, model.mesh);
+            let mesh = self.cached_mesh(assets, model.mesh);
             let albedo = match model.color {
                 Color::Value(c) => AlbedoComponent::Value(c),
-                Color::Texture(tex) => {
-                    AlbedoComponent::Texture(self.cached_texture(&mut vg.assets, tex))
-                }
+                Color::Texture(tex) => AlbedoComponent::Texture(self.cached_texture(assets, tex)),
             };
 
             let material = self.renderer.add_material(Material {
