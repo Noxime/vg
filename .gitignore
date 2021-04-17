@@ -1,5 +1,3 @@
-.vscode
-target/
-Cargo.lock
-/Makefile
-**/*.vgpack
+target/*
+rust/target/*
+test/target/*

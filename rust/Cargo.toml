@@ -1,0 +1,14 @@
+[package]
+name = "vg"
+version = "0.1.0"
+authors = ["noxim"]
+edition = "2018"
+
+[dependencies]
+# vg-derive = { path = "derive" }
+# futures = { version = "0.3", default-features = false, features = ["alloc", "executor"] }
+# wasm-bindgen = "0.2"
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+vg-native = { path = "../native" }

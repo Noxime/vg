@@ -1,3 +1,0 @@
-[submodule "target-switch/libc"]
-	path = target-switch/libc
-	url = https://github.com/rust-lang/libc

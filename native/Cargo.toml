@@ -1,0 +1,12 @@
+[package]
+name = "vg-native"
+version = "0.1.0"
+authors = ["noxim"]
+edition = "2018"
+
+[features]
+default = ["wasm"]
+wasm = []
+
+[dependencies]
+wasmer = "1"
