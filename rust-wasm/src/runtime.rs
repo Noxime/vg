@@ -1,6 +1,7 @@
 use ast;
 use types;
 use values;
+use Store;
 
 use std::rc::Rc;
 use std::ops::{Index, IndexMut};
@@ -37,7 +38,7 @@ pub struct GlobalInst {
 }
 
 pub type HostFunctionError = String;
-pub type HostFunc = Rc<dyn Fn(&[values::Value], &mut [values::Value]) -> Option<HostFunctionError>>;
+pub type HostFunc = Rc<dyn Fn(&mut [u8], &[values::Value], &mut [values::Value]) -> Option<HostFunctionError>>;
 
 #[derive(Clone)]
 pub struct HostFuncInst {
@@ -75,7 +76,7 @@ pub struct ExportInst {
 #[derive(Clone)]
 pub struct FuncInstStore(Vec<FuncInst>);
 #[derive(Clone)]
-pub struct MemInstStore(Vec<MemInst>);
+pub struct MemInstStore(pub Vec<MemInst>);
 #[derive(Clone)]
 pub struct TableInstStore(Vec<TableInst>);
 #[derive(Clone)]

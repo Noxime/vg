@@ -636,12 +636,12 @@ impl Interpreter {
 		_funcs: &FuncInstStore,
 		_tables: &TableInstStore,
 		_globals: &mut GlobalInstStore,
-		_mems: &mut MemInstStore
+		mems: &mut MemInstStore
 	) -> IntResult {
 		let args_start = self.stack.len() - f_inst.type_.args.len();
 		self.return_buffer.resize(f_inst.type_.result.len(), Value::false_());
 
-		if let Some(err) = (f_inst.hostcode)(&self.stack[args_start..], &mut self.return_buffer) {
+		if let Some(err) = (f_inst.hostcode)(&mut mems.0[0].data, &self.stack[args_start..], &mut self.return_buffer) {
 			return Err(Trap { origin: TrapOrigin::HostFunction(err) });
 		}
 

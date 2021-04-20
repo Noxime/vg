@@ -1,11 +1,8 @@
-use fluid_let::fluid_let;
 use std::rc::Rc;
 
 use super::{super::Engine, Error, Runtime};
 
 use rust_wasm::*;
-
-fluid_let!(static STORE: &'static Store);
 
 pub struct Wasm {
     instance: Rc<ModuleInst>,
@@ -28,23 +25,12 @@ impl Runtime for Wasm {
             args: vec![types::I32, types::I32],
             result: vec![],
         };
-        let print_wrap = |args: &[values::Value], _res: &mut [values::Value]| {
+        let print_wrap = |mem: &mut [u8], args: &[values::Value], _res: &mut [values::Value]| {
             if let (Some(values::Value::I32(ptr)), Some(values::Value::I32(len))) =
                 (args.get(0), args.get(1))
             {
-                STORE.get(|store| {
-                    let store = store.unwrap();
-
-                    let mut buf = Vec::with_capacity(*len as usize);
-                    for i in 0..*len {
-                        let byte = read_mem(store, MemAddr::new(0), (ptr + i) as usize).unwrap();
-                        buf.push(byte);
-                    }
-
-                    let str = std::str::from_utf8(&buf).unwrap();
-
-                    println!("Print ptr: {:#X}, len: {}: {}", ptr, len, str);
-                })
+                let str = std::str::from_utf8(&mem[*ptr as usize..][..*len as usize]).unwrap();
+                println!("Print ptr: {:#X}, len: {}: {}", ptr, len, str);
             } else {
                 eprintln!("Invalid use of env:print(i32, i32): {:?}", args);
             }
@@ -94,12 +80,7 @@ impl Runtime for Wasm {
             }
         };
 
-        // fuck it, its not like the codebase isnt cursed already
-        let mems: &'static Store = unsafe { std::mem::transmute(&self.store) };
-
-        STORE.set(mems, || {
-            invoke_func(&mut self.store, func, vec![]).unwrap();
-        });
+        invoke_func(&mut self.store, func, vec![]).unwrap();
 
         Ok(())
     }

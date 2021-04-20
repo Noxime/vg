@@ -75,12 +75,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fluid-let"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2622b0e317b2e1ca60d53e51495fbf5c4c9c9c0ac8748319fe7234ae5e16ecd5"
-
-[[package]]
 name = "fsevent"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -132,6 +126,12 @@ checksum = "322f4de77956e22ed0e5032c359a0f1273f1f7f0d79bfa3b8ffbc730d7fbcc5c"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "hexf-parse"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79296f72d53a89096cbc9a88c9547ee8dfe793388674620e2207593d370550ac"
 
 [[package]]
 name = "inotify"
@@ -325,6 +325,9 @@ dependencies = [
 [[package]]
 name = "rust-wasm"
 version = "0.1.0"
+dependencies = [
+ "hexf-parse",
+]
 
 [[package]]
 name = "same-file"
@@ -440,7 +443,6 @@ dependencies = [
 name = "vg-native"
 version = "0.1.0"
 dependencies = [
- "fluid-let",
  "rust-wasm",
 ]
 

@@ -9,5 +9,4 @@ default = ["wasm"]
 wasm = ["rust-wasm"]
 
 [dependencies]
-rust-wasm = { path = "../../rust-wasm", optional = true }
-fluid-let = "0.1"
+rust-wasm = { path = "../rust-wasm", optional = true }
