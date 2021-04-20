@@ -6,7 +6,8 @@ edition = "2018"
 
 [features]
 default = ["wasm"]
-wasm = []
+wasm = ["rust-wasm"]
 
 [dependencies]
-wasmer = "1"
+rust-wasm = { path = "../../rust-wasm", optional = true }
+fluid-let = "0.1"

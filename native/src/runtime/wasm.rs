@@ -1,115 +1,105 @@
+use fluid_let::fluid_let;
+use std::rc::Rc;
+
 use super::{super::Engine, Error, Runtime};
 
-use wasmer::{
-    imports, Extern, ExternType, Function, Global, Instance, Memory, MemoryType, Module,
-    NativeFunc, Store,
-};
+use rust_wasm::*;
+
+fluid_let!(static STORE: &'static Store);
+
 pub struct Wasm {
-    instance: Instance,
-    memory: Memory,
-    code: Vec<u8>,
-}
-
-fn load(code: &[u8], from: Option<(&Memory, &Instance)>) -> Result<Wasm, Error> {
-    let store = Store::default();
-    let module = Module::new(&store, code)?;
-
-    let memory = if let Some((mem, _)) = from.clone() {
-        let new = Memory::new(&store, *mem.ty())?;
-
-        new.grow(mem.size() - new.size())?;
-        assert_eq!(new.data_size(), mem.data_size());
-
-        for (new, old) in new.view::<u8>().iter().zip(mem.view().iter()) {
-            new.set(old.get())
-        }
-
-        assert!(!new.same(mem));
-
-        new
-    } else {
-        Memory::new(&store, MemoryType::new(32, None, false))?
-    };
-
-    let imports = imports! {
-        "env" => {
-            "print" => Function::new_native(&store, print),
-            "memory" => memory.clone(),
-        }
-    };
-
-    let mut instance = Instance::new(&module, &imports)?;
-
-    if let Some((_, old)) = from {
-        for (name, ext) in old.exports.iter() {
-            match ext {
-                Extern::Global(val) => {
-                    let new = if val.ty().mutability.is_mutable() {
-                        Global::new_mut(&store, val.get())
-                    } else {
-                        Global::new(&store, val.get())
-                    };
-
-                    instance.exports.insert(name,Extern::Global(new));
-                    println!("Set {}", name);
-                },
-                _ => {}
-            }
-        }
-        // for (name, ext) in instance.exports.iter() {
-        //     if let Some(old) = old.exports.get_extern(name) {
-        //         match (ext, old) {
-        //             (Extern::Global(new), Extern::Global(old)) => {
-        //                 if new.ty().mutability.is_mutable() {
-        //                     new.set(old.get())?
-        //                 }
-        //             }
-        //             (Extern::Function(_), Extern::Function(_)) => {}
-        //             (Extern::Table(new), Extern::Table(old)) => {
-        //                 for i in 0..new.size() {
-        //                     new.set(i, old.get(i).unwrap())?;
-        //                 }
-        //             }
-        //             (Extern::Memory(_), Extern::Memory(_)) => {}
-        //             (new, old) => panic!(
-        //                 "The extern signature changed at runtime {:?} -> {:?}",
-        //                 old, new
-        //             ),
-        //         }
-        //     }
-        // }
-    }
-    // Register and bootstrap the runtime on WASM side.
-    // if from.is_none() {
-    //     let func: NativeFunc<(i32, i32), i32> = instance.exports.get_native_function("main")?;
-    //     func.call(0, 0)?;
-    // }
-
-    for (name, extrn) in instance.exports.iter() {
-        println!("Export: {}: {:?}", name, extrn);
-    }
-
-    Ok(Wasm {
-        instance,
-        memory,
-        code: code.to_vec(),
-    })
-}
-
-fn print(s: i32) {
-    println!("WASM: {}", s);
+    instance: Rc<ModuleInst>,
+    store: Store,
 }
 
 impl Runtime for Wasm {
     fn load(code: &[u8]) -> Result<Self, Error> {
-        load(code, None)
+        let mut store = init_store();
+        let module = decode_module(std::io::Cursor::new(code)).unwrap();
+
+        // let memory = alloc_mem(
+        //     &mut store,
+        //     &types::Memory {
+        //         limits: types::Limits { min: 17, max: None },
+        //     },
+        // );
+
+        let print_type = types::Func {
+            args: vec![types::I32, types::I32],
+            result: vec![],
+        };
+        let print_wrap = |args: &[values::Value], _res: &mut [values::Value]| {
+            if let (Some(values::Value::I32(ptr)), Some(values::Value::I32(len))) =
+                (args.get(0), args.get(1))
+            {
+                STORE.get(|store| {
+                    let store = store.unwrap();
+
+                    let mut buf = Vec::with_capacity(*len as usize);
+                    for i in 0..*len {
+                        let byte = read_mem(store, MemAddr::new(0), (ptr + i) as usize).unwrap();
+                        buf.push(byte);
+                    }
+
+                    let str = std::str::from_utf8(&buf).unwrap();
+
+                    println!("Print ptr: {:#X}, len: {}: {}", ptr, len, str);
+                })
+            } else {
+                eprintln!("Invalid use of env:print(i32, i32): {:?}", args);
+            }
+            None
+        };
+
+        let print = alloc_func(&mut store, &print_type, Rc::new(print_wrap));
+
+        println!("Module imports");
+        for (ns, n, val) in module_imports(&module) {
+            println!("\t{}: {} => {:?}", ns, n, val);
+        }
+        println!("Module exports");
+        for (name, val) in module_exports(&module) {
+            println!("\t{} => {:?}", name, val);
+        }
+
+        let instance = instantiate_module(&mut store, module, &[ExternVal::Func(print)]).unwrap();
+
+        let func = match get_export(&instance, "main") {
+            Ok(ExternVal::Func(func)) => func,
+            e => {
+                panic!("Couldn't get main: {:?}", e)
+            }
+        };
+
+        invoke_func(
+            &mut store,
+            func,
+            vec![values::Value::I32(0), values::Value::I32(0)],
+        )
+        .unwrap();
+
+        Ok(Wasm { instance, store })
     }
 
     fn run_tick(&mut self, _engine: &mut Engine) -> Result<(), Error> {
         println!("Tick");
 
-        let func: NativeFunc<(), ()> = self.instance.exports.get_native_function("__vg_tick")?;
-        func.call()?;
+        // let func: NativeFunc<(), ()> = self.instance.exports.get_native_function("__vg_tick")?;
+        // func.call()?;
+
+        let func = match get_export(&self.instance, "__vg_tick") {
+            Ok(ExternVal::Func(func)) => func,
+            e => {
+                panic!("Couldn't get __vg_tick: {:?}", e)
+            }
+        };
+
+        // fuck it, its not like the codebase isnt cursed already
+        let mems: &'static Store = unsafe { std::mem::transmute(&self.store) };
+
+        STORE.set(mems, || {
+            invoke_func(&mut self.store, func, vec![]).unwrap();
+        });
 
         Ok(())
     }
@@ -123,6 +113,9 @@ impl Runtime for Wasm {
     }
 
     fn duplicate(&self) -> Result<Self, Error> {
-        load(&self.code, Some((&self.memory, &self.instance)))
+        let instance = Rc::new(ModuleInst::clone(&self.instance));
+        let store = self.store.clone();
+
+        Ok(Wasm { instance, store })
     }
 }

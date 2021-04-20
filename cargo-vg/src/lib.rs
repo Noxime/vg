@@ -9,7 +9,6 @@ pub enum Args {
     Vg(Opts),
 }
 
-
 #[derive(Debug, Clone, StructOpt)]
 pub struct Opts {
     #[structopt(default_value = "Cargo.toml")]
@@ -55,8 +54,8 @@ fn run_engine() -> bool {
 }
 
 pub fn run(opts: Opts) {
-    let existing = std::env::var("RUSTFLAGS").unwrap_or_default();
-    std::env::set_var("RUSTFLAGS", "-C link-arg=--import-memory");
+    // let existing = std::env::var("RUSTFLAGS").unwrap_or_default();
+    // std::env::set_var("RUSTFLAGS", "-C link-arg=--import-memory");
 
     match opts.cmd {
         None | Some(Cmd::Run) => {
@@ -106,5 +105,5 @@ pub fn run(opts: Opts) {
         }
     }
 
-    std::env::set_var("RUSTFLAGS", existing);
+    // std::env::set_var("RUSTFLAGS", existing);
 }

@@ -27,9 +27,9 @@ fn build_wasm() {
         .arg(manifest_path)
         .arg("--target-dir")
         .arg(&build_path)
-        .arg("--")
-        .arg("-C")
-        .arg("link-arg=--import-memory")
+        // .arg("--")
+        // .arg("-C")
+        // .arg("link-arg=--import-memory")
         .status()
         .unwrap()
         .success());

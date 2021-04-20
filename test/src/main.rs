@@ -1,8 +1,8 @@
 use vg::*;
 
-game! {
-    for i in 0.. {
-        foo(i);
+game! {{
+    loop {
+        print_str("hello world 😳");
         present().await;
     }
-}
+}}
