@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [current, next]
+
+obs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-10.15, ubuntu-18.04, windows-2019]
+        channel: [stable, nightly]
+        include:
+          - name: MacOS Stable
+            channel: stable
+            os: macos-10.15
+            prepare_command:
+          - name: MacOS Nightly
+            os: macos-10.15
+            channel: nightly
+            prepare_command:
+          - name: Ubuntu Stable
+            os: ubuntu-18.04
+            channel: stable
+            prepare_command:
+          - name: Ubuntu Nightly
+            os: ubuntu-18.04
+            channel: nightly
+            prepare_command: |
+              echo "Installing Vulkan"
+              sudo apt-get update -y -qq
+              sudo add-apt-repository ppa:kisak/kisak-mesa -y
+              sudo apt-get update
+              sudo apt install -y libxcb-xfixes0-dev mesa-vulkan-drivers
+          - name: Windows Stable
+            os: windows-2019
+            channel: stable
+            prepare_command: rustup default stable-msvc
+          - name: Windows Nightly
+            os: windows-2019
+            channel: nightly
+            prepare_command: rustup default nightly-msvc
+    steps:
+      - uses: actions/checkout@v2
+      - if: matrix.channel == 'nightly'
+        name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - if: matrix.channel == 'stable'
+        run: rustup component add clippy
+        # prepare
+      - if: matrix.prepare_command != ''
+        run: ${{ matrix.prepare_command }}
+        # build with no features first
+      - run: cargo check --manifest-path native/Cargo.toml
+      - run: cargo check --manifest-path native/Cargo.toml --features debug
+      - run: cargo check --manifest-path test/Cargo.toml
+      - run: cargo check --manifest-path rust/Cargo.toml
+      - if: matrix.channel == 'stable'
+        run: cargo clippy
+
+  lint:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
