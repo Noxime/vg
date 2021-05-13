@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 use structopt::StructOpt;
 use vg_native::runtime::wasm::Wasm;
 
@@ -47,10 +50,9 @@ fn run_cargo(manifest: impl AsRef<Path>, build: Option<PathBuf>, step: impl AsRe
     cmd.status().unwrap().success()
 }
 
-fn run_engine() -> bool {
+fn run_engine(idle_task: impl Fn() -> bool + 'static) {
     let wasm = std::fs::read("target/wasm32-unknown-unknown/debug/rust-test.wasm").unwrap();
-
-    vg_native::run::<Wasm>(&wasm);
+    vg_native::Engine::run::<Wasm, _>(&wasm, idle_task)
 }
 
 pub fn run(opts: Opts) {
@@ -59,8 +61,9 @@ pub fn run(opts: Opts) {
 
     match opts.cmd {
         None | Some(Cmd::Run) => {
-            if run_cargo(&opts.manifest_path, opts.build_path, "build") && run_engine() {
+            if run_cargo(&opts.manifest_path, opts.build_path, "build") {
                 println!("Running project");
+                run_engine(|| true);
             }
         }
         Some(Cmd::Watch) => {
@@ -71,6 +74,7 @@ pub fn run(opts: Opts) {
             use std::time::Duration;
 
             let (tx, rx) = channel();
+            let rx = Rc::new(rx);
 
             let mut watcher = watcher(tx, Duration::from_secs(2)).unwrap();
 
@@ -84,14 +88,18 @@ pub fn run(opts: Opts) {
                 )
                 .unwrap();
 
-            while {
-                run(Opts {
-                    cmd: Some(Cmd::Run),
-                    ..opts.clone()
-                });
+            loop {
+                let local_rx = Rc::clone(&rx);
+                if run_cargo(&opts.manifest_path, opts.build_path.clone(), "build") {
+                    println!("Running project");
+                    run_engine(move || {
+                        matches!(
+                            local_rx.try_recv(),
+                            Err(std::sync::mpsc::TryRecvError::Empty)
+                        )
+                    });
+                }
 
-                rx.recv().is_ok()
-            } {
                 println!("Reloading")
             }
         }
@@ -104,6 +112,4 @@ pub fn run(opts: Opts) {
             run_cargo(opts.manifest_path, opts.build_path, "clean");
         }
     }
-
-    // std::env::set_var("RUSTFLAGS", existing);
 }

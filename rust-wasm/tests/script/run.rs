@@ -214,7 +214,7 @@ fn init_spectest(store: &mut Store, registry: &mut Registry) {
 	));
 
 	fn print(store: &mut Store, args_types: Vec<types::Value>) -> ExternVal {
-		let func = move |args: &[values::Value], _ret: &mut[values::Value]| {
+		let func = move |_, args: &[values::Value], _ret: &mut[values::Value]| {
 			for val in args {
 				println!("{:?}", val);
 			}

@@ -7,6 +7,7 @@ const TARGET: &'static str = "wasm32-unknown-unknown";
 fn root_manifest() -> PathBuf {
     let mut path: PathBuf = var("OUT_DIR").unwrap().parse().unwrap();
     while !path.with_file_name("Cargo.toml").exists() && path.pop() {}
+    println!("cargo:rerun-if-changed={}", path.display());
     path.with_file_name("Cargo.toml")
 }
 

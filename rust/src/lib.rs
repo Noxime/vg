@@ -1,15 +1,19 @@
 // pub use vg_derive::game;
 // use wasm_bindgen::prelude::*;
 
-use std::future::Future;
+use std::{collections::VecDeque, future::Future};
 mod executor;
+pub mod gfx;
 
 #[macro_export]
 macro_rules! game {
-    ($e: expr) => {
+    ($($e: stmt);*) => {
         fn main() {
+            #[allow(redundant_semicolons)]
             async fn __vg_wrapper() {
-                $e
+                $(
+                    $e
+                );*
             }
 
             __vg_start(__vg_wrapper)
@@ -18,38 +22,32 @@ macro_rules! game {
 }
 
 // #[no_mangle]
-static mut STATE: Option<State> = None;
 
 #[cfg(target_arch = "wasm32")]
 fn ensure() -> &'static mut State {
-    unsafe {
-        STATE.get_or_insert_with(|| {
-            let exec = executor::Executor::new(async {});
-            let tick = 0;
-
-            State { exec, tick }
-        })
-    }
+    unsafe { STATE.get_or_insert_with(|| unreachable!()) }
 }
 
 // This is what happens when you don't use cargo-vg
 #[cfg(not(target_arch = "wasm32"))]
 fn ensure() -> &'static mut State {
-    const WASM: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "/magic-build/out.wasm"));
-
-    let _engine = vg_native::run::<vg_native::runtime::wasm::Wasm>(WASM);
-    // run is -> ! so we should be in WASM now
+    vg_native::Engine::run::<vg_native::runtime::wasm::Wasm, _>(vg_builder::WASM, || true);
+    // The wrapped wasm game has quit, so just exit
+    std::process::exit(0)
 }
+
+static mut STATE: Option<State> = None;
 
 pub struct State {
     tick: usize,
     exec: executor::Executor,
+    responses: VecDeque<Vec<u8>>,
 }
 
 #[allow(unused)]
 #[link(wasm_import_module = "env")]
 extern "C" {
-    fn print(ptr: u32, len: u32);
+    fn call(ptr: u64, len: u64);
 }
 
 pub fn __vg_start<F, Fut>(f: F)
@@ -61,17 +59,17 @@ where
         STATE.get_or_insert_with(|| {
             let exec = executor::Executor::new(f());
             let tick = 0;
+            let responses = VecDeque::new();
 
-            State { exec, tick }
+            State {
+                exec,
+                tick,
+                responses,
+            }
         });
     }
 
     ensure();
-
-    // let exec = executor::Executor::new(f());
-    // let tick = 0;
-
-    // unsafe { STATE = Some(State { exec, tick }) };
 }
 
 #[no_mangle]
@@ -87,18 +85,54 @@ pub extern "C" fn __vg_tick() {
     // rt.run_until(async { rx.next().await });
 }
 
+/// Give the host some way to allocate new memory in the client
+#[no_mangle]
+pub extern "C" fn __vg_allocate(len: u64) -> u64 {
+    let resp = &mut ensure().responses;
+
+    resp.push_back(vec![0; len as usize]);
+    resp.back().unwrap().as_ptr() as u64
+}
+
+#[allow(unused)]
+fn call_host(val: impl vg_types::SerBin) {
+    #[cfg(target_arch = "wasm32")]
+    unsafe {
+        let bytes = val.serialize_bin();
+        call(bytes.as_ptr() as u64, bytes.len() as u64)
+    }
+}
+
+pub trait Position {
+    fn to_vec3(self) -> [f32; 3];
+}
+
+impl<T: Into<f64>> Position for [T; 2] {
+    fn to_vec3(self) -> [f32; 3] {
+        let [x, y] = self;
+        [x.into() as f32, y.into() as f32, 0.0]
+    }
+}
+
+impl<T: Into<f64>> Position for [T; 3] {
+    fn to_vec3(self) -> [f32; 3] {
+        let [x, y, z] = self;
+        [x.into() as f32, y.into() as f32, z.into() as f32]
+    }
+}
+
 #[allow(unused)]
 pub fn print_str(s: &str) {
     ensure();
     #[cfg(target_arch = "wasm32")]
     unsafe {
-        let ptr = s.as_ptr() as u32;
+        let ptr = s.as_ptr() as u64;
 
-        print(ptr, s.len() as u32);
+        call(ptr, s.len() as u64);
     }
 }
 
-pub async fn present() {
-    println!("Present");
+pub async fn frame() {
+    call_host(vg_types::Call::Present);
     ensure().exec.halt().await;
 }

@@ -1,7 +1,6 @@
 use ast;
 use types;
 use values;
-use Store;
 
 use std::rc::Rc;
 use std::ops::{Index, IndexMut};

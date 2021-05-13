@@ -1,12 +1,10 @@
 [package]
-name = "cargo-vg"
+name = "vg-types"
 version = "0.1.0"
-authors = ["noxim"]
+authors = ["Aaro Perämaa <peramaa@soramitsu.co.jp>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-vg-native = { path = "../native", features = ["debug"] }
-structopt = "0.3"
-notify = "4"
+nanoserde = "0.1"
