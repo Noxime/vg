@@ -4,7 +4,7 @@ on:
   push:
     branches: [current, next]
 
-obs:
+jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
