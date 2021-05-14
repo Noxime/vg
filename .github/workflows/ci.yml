@@ -61,7 +61,6 @@ jobs:
       - run: cargo check --manifest-path native/Cargo.toml
       - run: cargo check --manifest-path native/Cargo.toml --features debug
       - run: cargo check --manifest-path test/Cargo.toml
-      - run: cargo check --manifest-path rust/Cargo.toml
       - if: matrix.channel == 'stable'
         run: cargo clippy
 
