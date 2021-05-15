@@ -45,17 +45,13 @@ jobs:
             prepare_command: rustup default nightly-msvc
     steps:
       - uses: actions/checkout@v2
+      - uses: seanmiddleditch/gha-setup-ninja@master
       - if: matrix.channel == 'nightly'
         name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
-      - name: Setup Ninja
-        uses: ashutoshvarma/setup-ninja@master
-        with:
-          # ninja version to download. Default: 1.10.0
-          version: 1.10.0
       - if: matrix.channel == 'stable'
         run: rustup component add clippy
         # prepare
