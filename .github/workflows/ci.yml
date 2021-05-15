@@ -51,6 +51,11 @@ jobs:
         with:
           toolchain: nightly
           override: true
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        with:
+          # ninja version to download. Default: 1.10.0
+          version: 1.10.0
       - if: matrix.channel == 'stable'
         run: rustup component add clippy
         # prepare
@@ -61,8 +66,6 @@ jobs:
       - run: cargo check --manifest-path native/Cargo.toml
       - run: cargo check --manifest-path native/Cargo.toml --features debug
       - run: cargo check --manifest-path test/Cargo.toml
-      - if: matrix.channel == 'stable'
-        run: cargo clippy
 
   lint:
     name: Clippy
