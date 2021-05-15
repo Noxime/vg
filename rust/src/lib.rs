@@ -31,9 +31,8 @@ fn ensure() -> &'static mut State {
 // This is what happens when you don't use cargo-vg
 #[cfg(not(target_arch = "wasm32"))]
 fn ensure() -> &'static mut State {
-    vg_native::Engine::run::<vg_native::runtime::wasm::Wasm, _>(vg_builder::WASM, || true);
-    // The wrapped wasm game has quit, so just exit
-    std::process::exit(0)
+    let mut code = Some(vg_builder::WASM.to_vec());
+    vg_native::Engine::run::<vg_native::runtime::wasm::Wasm, _>(move || code.take())
 }
 
 static mut STATE: Option<State> = None;
@@ -96,6 +95,7 @@ pub extern "C" fn __vg_allocate(len: u64) -> u64 {
 
 #[allow(unused)]
 fn call_host(val: impl vg_types::SerBin) {
+    ensure();
     #[cfg(target_arch = "wasm32")]
     unsafe {
         let bytes = val.serialize_bin();
@@ -122,14 +122,8 @@ impl<T: Into<f64>> Position for [T; 3] {
 }
 
 #[allow(unused)]
-pub fn print_str(s: &str) {
-    ensure();
-    #[cfg(target_arch = "wasm32")]
-    unsafe {
-        let ptr = s.as_ptr() as u64;
-
-        call(ptr, s.len() as u64);
-    }
+pub fn print(s: impl ToString) {
+    call_host(vg_types::Call::Print(s.to_string()))
 }
 
 pub async fn frame() {

@@ -1,13 +1,20 @@
-use std::{sync::Arc, time::Instant};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use log::*;
+use glam::Mat4;
 use rend3::{
-    datatypes::{AffineTransform, Mesh, Object},
+    datatypes::{
+        AffineTransform, AlbedoComponent, Camera, Material, MaterialHandle, Mesh, MeshBuilder,
+        MeshHandle, Object, ObjectHandle, RendererTextureFormat, TextureHandle,
+    },
     CustomDevice, Renderer, RendererBuilder, RendererOptions, RendererOutput, VSyncMode,
 };
 use rend3_list::{DefaultPipelines, DefaultShaders};
+use tracing::*;
+use vg_types::Transform;
 use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
+
+use crate::assets::Image;
 
 const PREFERRED_FORMAT: TextureFormat = TextureFormat::Bgra8Unorm;
 // const PREFERRED_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
@@ -25,6 +32,10 @@ pub struct Gfx {
     pipelines: DefaultPipelines,
     #[cfg(feature = "debug")]
     pub egui_pass: egui_wgpu_backend::RenderPass,
+    objects: Vec<ObjectHandle>,
+    materials: Vec<MaterialHandle>,
+    textures: HashMap<Image, TextureHandle>,
+    sprite_mesh: MeshHandle,
 }
 
 impl Gfx {
@@ -113,6 +124,16 @@ impl Gfx {
         .await
         .expect("Failed to initialize rend3 renderer");
 
+        renderer.set_camera_data(Camera {
+            projection: rend3::datatypes::CameraProjection::Projection {
+                vfov: 90.0,
+                near: 0.1,
+                pitch: 0.0,
+                yaw: 0.0,
+            },
+            location: (0.0, 0.0, -5.0).into(),
+        });
+
         let shaders = DefaultShaders::new(&renderer).await;
         let pipelines = DefaultPipelines::new(&renderer, &shaders).await;
 
@@ -138,6 +159,22 @@ impl Gfx {
             });
         }
 
+        let sprite_mesh = MeshBuilder::new(vec![
+            (0.0, 0.0, 0.0).into(),
+            (1.0, 0.0, 0.0).into(),
+            (1.0, 1.0, 0.0).into(),
+            (0.0, 1.0, 0.0).into(),
+        ])
+        .with_vertex_uvs(vec![
+            (0.0, 1.0).into(),
+            (1.0, 1.0).into(),
+            (1.0, 0.0).into(),
+            (0.0, 0.0).into(),
+        ])
+        .with_indices(vec![2, 1, 0, 0, 3, 2])
+        .build();
+        let sprite_mesh = renderer.add_mesh(sprite_mesh);
+
         #[cfg(feature = "debug")]
         let egui_pass = {
             use egui_wgpu_backend::RenderPass;
@@ -155,6 +192,10 @@ impl Gfx {
             swapchain,
             renderer,
             pipelines,
+            objects: vec![],
+            materials: vec![],
+            textures: HashMap::new(),
+            sprite_mesh,
             #[cfg(feature = "debug")]
             egui_pass,
         }
@@ -178,7 +219,44 @@ impl Gfx {
         })
     }
 
+    pub fn draw_sprite(&mut self, image: &Image, transform: Transform) {
+        puffin::profile_function!();
+
+        if !self.textures.contains_key(image) {
+            let tex = self.renderer.add_texture_2d(rend3::datatypes::Texture {
+                data: image.data.clone(),
+                format: RendererTextureFormat::Rgba8Srgb,
+                width: image.width as _,
+                height: image.height as _,
+                label: None,
+                mip_levels: 1,
+            });
+
+            self.textures.insert(image.clone(), tex);
+            debug!("Uploading texture");
+        }
+
+        let texture = *self.textures.get(image).unwrap();
+
+        let material = self.renderer.add_material(Material {
+            albedo: AlbedoComponent::Texture(texture),
+            unlit: true,
+            nearest: (image.width * image.height) < 64 * 64,
+            ..Default::default()
+        });
+        let obj = self.renderer.add_object(Object {
+            mesh: self.sprite_mesh,
+            material,
+            transform: trans2mat(transform),
+        });
+
+        self.materials.push(material);
+        self.objects.push(obj);
+    }
+
     pub fn present(&mut self, #[cfg(feature = "debug")] debug: &mut crate::debug::DebugData) {
+        puffin::profile_function!();
+
         self.device.poll(Maintain::Poll);
 
         let frame = Arc::new(self.swapchain.get_current_frame().unwrap_or_else(|e| {
@@ -200,8 +278,17 @@ impl Gfx {
             RendererOutput::ExternalSwapchain(frame.clone()),
         );
 
+        // Complete rend3 drawing
         pollster::block_on(handle);
 
+        // Remove objects added this frame
+        for mat in self.materials.drain(..) {
+            self.renderer.remove_material(mat);
+        }
+
+        for obj in self.objects.drain(..) {
+            self.renderer.remove_object(obj);
+        }
 
         #[cfg(feature = "debug")]
         if debug.visible {
@@ -270,5 +357,17 @@ impl Gfx {
             self.queue.submit(Some(enc.finish()));
         }
 
+        // Done with the frame, record it on the profiler
+        puffin::GlobalProfiler::lock().new_frame();
+    }
+}
+
+fn trans2mat(trans: Transform) -> AffineTransform {
+    AffineTransform {
+        transform: Mat4::from_scale_rotation_translation(
+            trans.scale.into(),
+            trans.rotation.into(),
+            trans.position.into(),
+        ),
     }
 }

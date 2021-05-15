@@ -7,19 +7,30 @@ edition = "2018"
 [features]
 default = ["wasm"]
 wasm = ["rust-wasm"]
-debug = ["egui", "epi", "egui_wgpu_backend", "egui_winit_platform"]
+debug = ["egui", "epi", "egui_wgpu_backend", "egui_winit_platform", "puffin_egui"]
 
 [dependencies]
 rust-wasm = { path = "../rust-wasm", optional = true }
 vg-types = { path = "../rust/vg-types" }
-log = "0.4"
-emoji-logger = "0.1"
+
+anymap = "0.12"
+glam = "0.13"
+
+tracing = "0.1"
+tracing-subscriber = "0.2"
+puffin = "0.4"
+
 pollster = "0.2"
+
 winit = "0.24"
 wgpu = "0.7"
 rend3 = "0.0.5"
 rend3-list = "0.0.5"
+
+image = "0.23"
+
 egui = { version = "0.11", optional = true }
 epi = { version = "0.11", optional = true }
 egui_wgpu_backend = { version = "0.6", optional = true }
 egui_winit_platform = { version = "0.6", optional = true }
+puffin_egui = { version = "0.1", optional = true }

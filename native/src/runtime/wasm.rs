@@ -1,5 +1,5 @@
-use log::*;
 use std::{cell::Cell, rc::Rc};
+use tracing::*;
 
 use super::{super::Engine, Error, Runtime};
 
@@ -49,7 +49,7 @@ impl Runtime for Wasm {
         for (ns, n, val) in module_imports(&module) {
             debug!("  {}: {} => {:?}", ns, n, val);
         }
-        println!("Module exports");
+        debug!("Module exports");
         for (name, val) in module_exports(&module) {
             debug!("  {} => {:?}", name, val);
         }
@@ -78,6 +78,8 @@ impl Runtime for Wasm {
     }
 
     fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error> {
+        puffin::profile_function!();
+
         let func = match get_export(&self.instance, "__vg_tick") {
             Ok(ExternVal::Func(func)) => func,
             e => {

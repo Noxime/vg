@@ -1,6 +1,7 @@
 use std::{
     path::{Path, PathBuf},
     rc::Rc,
+    sync::mpsc::TryRecvError,
 };
 use structopt::StructOpt;
 use vg_native::runtime::wasm::Wasm;
@@ -50,9 +51,8 @@ fn run_cargo(manifest: impl AsRef<Path>, build: Option<PathBuf>, step: impl AsRe
     cmd.status().unwrap().success()
 }
 
-fn run_engine(idle_task: impl Fn() -> bool + 'static) {
-    let wasm = std::fs::read("target/wasm32-unknown-unknown/debug/rust-test.wasm").unwrap();
-    vg_native::Engine::run::<Wasm, _>(&wasm, idle_task)
+fn read_wasm() -> Vec<u8> {
+    std::fs::read("target/wasm32-unknown-unknown/debug/rust-test.wasm").unwrap()
 }
 
 pub fn run(opts: Opts) {
@@ -63,7 +63,8 @@ pub fn run(opts: Opts) {
         None | Some(Cmd::Run) => {
             if run_cargo(&opts.manifest_path, opts.build_path, "build") {
                 println!("Running project");
-                run_engine(|| true);
+                let mut wasm = Some(read_wasm());
+                vg_native::Engine::run::<Wasm, _>(move || wasm.take());
             }
         }
         Some(Cmd::Watch) => {
@@ -88,20 +89,18 @@ pub fn run(opts: Opts) {
                 )
                 .unwrap();
 
-            loop {
-                let local_rx = Rc::clone(&rx);
-                if run_cargo(&opts.manifest_path, opts.build_path.clone(), "build") {
-                    println!("Running project");
-                    run_engine(move || {
-                        matches!(
-                            local_rx.try_recv(),
-                            Err(std::sync::mpsc::TryRecvError::Empty)
-                        )
-                    });
+            vg_native::Engine::run::<Wasm, _>(move || match rx.try_recv() {
+                Ok(_) => {
+                    assert!(run_cargo(
+                        &opts.manifest_path,
+                        opts.build_path.clone(),
+                        "build"
+                    ));
+                    Some(read_wasm())
                 }
-
-                println!("Reloading")
-            }
+                Err(TryRecvError::Empty) => None,
+                Err(TryRecvError::Disconnected) => panic!("File notification channel closed"),
+            })
         }
         Some(Cmd::Build) => {
             println!("Building project");
