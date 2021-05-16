@@ -160,10 +160,10 @@ impl Gfx {
         }
 
         let sprite_mesh = MeshBuilder::new(vec![
-            (0.0, 0.0, 0.0).into(),
-            (1.0, 0.0, 0.0).into(),
-            (1.0, 1.0, 0.0).into(),
-            (0.0, 1.0, 0.0).into(),
+            (-0.5, -0.5, 0.0).into(),
+            (0.5, -0.5, 0.0).into(),
+            (0.5, 0.5, 0.0).into(),
+            (-0.5, 0.5, 0.0).into(),
         ])
         .with_vertex_uvs(vec![
             (0.0, 1.0).into(),

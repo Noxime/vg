@@ -1,4 +1,4 @@
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, rc::Rc, time::Duration};
 use tracing::*;
 
 use super::{super::Engine, Error, Runtime};
@@ -77,7 +77,7 @@ impl Runtime for Wasm {
         })
     }
 
-    fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error> {
+    fn run_tick(&mut self, engine: &mut Engine, dur: Duration) -> Result<(), Error> {
         puffin::profile_function!();
 
         let func = match get_export(&self.instance, "__vg_tick") {
@@ -88,7 +88,12 @@ impl Runtime for Wasm {
         };
 
         self.engine.set(engine as *mut _);
-        invoke_func(&mut self.store, func, vec![]).unwrap();
+        invoke_func(
+            &mut self.store,
+            func,
+            vec![values::Value::F64(dur.as_secs_f64())],
+        )
+        .unwrap();
         self.engine.set(std::ptr::null_mut());
 
         Ok(())
@@ -103,9 +108,12 @@ impl Runtime for Wasm {
     }
 
     fn duplicate(&self) -> Result<Self, Error> {
+        puffin::profile_function!();
+
         let instance = Rc::new(ModuleInst::clone(&self.instance));
         let store = self.store.clone();
-        let engine = Rc::new(Cell::new(std::ptr::null_mut()));
+        // let engine = Rc::new(Cell::new(std::ptr::null_mut()));
+        let engine = Rc::clone(&self.engine);
 
         Ok(Wasm {
             instance,

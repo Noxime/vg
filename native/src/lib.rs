@@ -4,7 +4,10 @@ mod debug;
 mod gfx;
 pub mod runtime;
 
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use assets::Assets;
 use gfx::Gfx;
@@ -33,6 +36,7 @@ impl Engine {
         F: FnMut() -> Option<Vec<u8>> + 'static,
     {
         let mut runtime = None;
+        let mut tick_runtime = None;
 
         let events = EventLoop::new();
         let window = Arc::new(
@@ -59,20 +63,33 @@ impl Engine {
             start_time: Instant::now(),
         };
 
+        let tick = Duration::from_millis(50);
+        let mut next_tick = Instant::now();
+
+        let mut last_frame = Instant::now();
+
         events.run(move |ev, _, flow| {
             *flow = ControlFlow::Poll;
 
             // hosting process has decided it is time for us to die
             if let Some(code) = idle_task() {
                 debug!("Idle task reloaded code");
-                runtime = Some(RT::load(&code).expect("Loading the runtime failed"));
+                tick_runtime = Some(RT::load(&code).expect("Loading the runtime failed"));
+                runtime = None;
                 return;
             }
 
-            let runtime = if let Some(ref mut rt) = runtime {
+            let tick_runtime = if let Some(ref mut rt) = tick_runtime {
                 rt
             } else {
                 return;
+            };
+
+            let frame_runtime = if let Some(ref mut rt) = runtime {
+                rt
+            } else {
+                runtime = Some(tick_runtime.duplicate().unwrap());
+                runtime.as_mut().unwrap()
             };
 
             #[cfg(feature = "debug")]
@@ -99,7 +116,19 @@ impl Engine {
                 }
                 // all events for an update handled
                 Event::MainEventsCleared => {
-                    runtime.run_tick(&mut engine).unwrap();
+                    let now = Instant::now();
+                    frame_runtime
+                        .run_tick(&mut engine, now - last_frame)
+                        .unwrap();
+                    last_frame = now;
+
+                    if next_tick < Instant::now() {
+                        trace!("Tick");
+                        next_tick += tick;
+                        runtime = None;
+
+                        tick_runtime.run_tick(&mut engine, tick).unwrap();
+                    }
                 }
                 _ => (),
             }

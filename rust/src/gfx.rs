@@ -1,6 +1,6 @@
 use vg_types::Transform;
 
-use crate::Position;
+use crate::{Position, Rotation};
 
 pub struct Draw {
     asset: String,
@@ -15,8 +15,13 @@ pub fn draw(asset: impl AsRef<str>) -> Draw {
 }
 
 impl Draw {
-    pub fn at(mut self, pos: impl Position) -> Draw {
+    pub fn pos(mut self, pos: impl Position) -> Draw {
         self.transform.position = pos.to_vec3();
+        self
+    }
+
+    pub fn rot(mut self, rot: impl Rotation) -> Draw {
+        self.transform.rotation = rot.to_quat();
         self
     }
 }

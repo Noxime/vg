@@ -1,8 +1,10 @@
 // pub use vg_derive::game;
 // use wasm_bindgen::prelude::*;
 
-use std::{collections::VecDeque, future::Future};
+use std::{collections::VecDeque, future::Future, time::Duration};
+mod conversions;
 mod executor;
+pub use conversions::{Position, Rotation};
 pub mod gfx;
 
 #[macro_export]
@@ -41,6 +43,7 @@ pub struct State {
     tick: usize,
     exec: executor::Executor,
     responses: VecDeque<Vec<u8>>,
+    runtime: Duration,
 }
 
 #[allow(unused)]
@@ -64,6 +67,7 @@ where
                 exec,
                 tick,
                 responses,
+                runtime: Duration::from_secs(0),
             }
         });
     }
@@ -72,16 +76,12 @@ where
 }
 
 #[no_mangle]
-pub extern "C" fn __vg_tick() {
+pub extern "C" fn __vg_tick(time: f64) {
     let state = ensure();
     state.tick += 1;
-    // foo(state.tick as _);
+    state.runtime += Duration::from_secs_f64(time);
 
-    // let State { exec, .. } = unsafe { STATE.as_mut() }.unwrap();
     state.exec.run();
-
-    // exec.run();
-    // rt.run_until(async { rx.next().await });
 }
 
 /// Give the host some way to allocate new memory in the client
@@ -103,22 +103,11 @@ fn call_host(val: impl vg_types::SerBin) {
     }
 }
 
-pub trait Position {
-    fn to_vec3(self) -> [f32; 3];
-}
+// Public api
 
-impl<T: Into<f64>> Position for [T; 2] {
-    fn to_vec3(self) -> [f32; 3] {
-        let [x, y] = self;
-        [x.into() as f32, y.into() as f32, 0.0]
-    }
-}
-
-impl<T: Into<f64>> Position for [T; 3] {
-    fn to_vec3(self) -> [f32; 3] {
-        let [x, y, z] = self;
-        [x.into() as f32, y.into() as f32, z.into() as f32]
-    }
+#[allow(unused)]
+pub fn time() -> f64 {
+    ensure().runtime.as_secs_f64()
 }
 
 #[allow(unused)]

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use super::Engine;
 
 #[cfg(feature = "wasm")]
@@ -10,7 +12,7 @@ where
     Self: Sized,
 {
     fn load(code: &[u8]) -> Result<Self, Error>;
-    fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error>;
+    fn run_tick(&mut self, engine: &mut Engine, dur: Duration) -> Result<(), Error>;
 
     fn serialize(&self) -> Result<Vec<u8>, Error>;
     fn deserialize(bytes: &[u8]) -> Result<Self, Error>;

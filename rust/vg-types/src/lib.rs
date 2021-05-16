@@ -31,6 +31,8 @@ pub enum Call {
         asset: String,
         trans: Transform,
     },
+
+    // Debugging
     /// Print a log message
     Print(String),
 }
