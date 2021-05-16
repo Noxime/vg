@@ -36,3 +36,8 @@ pub enum Call {
     /// Print a log message
     Print(String),
 }
+
+#[derive(SerBin, DeBin, Debug)]
+pub enum Response {
+    Time(f64)
+}

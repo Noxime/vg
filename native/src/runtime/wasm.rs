@@ -77,7 +77,7 @@ impl Runtime for Wasm {
         })
     }
 
-    fn run_tick(&mut self, engine: &mut Engine, dur: Duration) -> Result<(), Error> {
+    fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error> {
         puffin::profile_function!();
 
         let func = match get_export(&self.instance, "__vg_tick") {
@@ -88,15 +88,55 @@ impl Runtime for Wasm {
         };
 
         self.engine.set(engine as *mut _);
-        invoke_func(
-            &mut self.store,
-            func,
-            vec![values::Value::F64(dur.as_secs_f64())],
-        )
-        .unwrap();
+        invoke_func(&mut self.store, func, vec![]).unwrap();
         self.engine.set(std::ptr::null_mut());
 
         Ok(())
+    }
+
+    fn send(&mut self, value: vg_types::Response) {
+        puffin::profile_function!();
+
+        trace!("Sending {:#?} to runtime", value);
+        let bytes = value.serialize_bin();
+
+        let func = match get_export(&self.instance, "__vg_allocate") {
+            Ok(ExternVal::Func(func)) => func,
+            e => {
+                panic!("Couldn't get __vg_allocate: {:?}", e)
+            }
+        };
+
+        let len = bytes.len();
+
+        let ptr =
+            invoke_func(&mut self.store, func, vec![values::Value::I64(len as u64)]).unwrap()[0];
+
+        let ptr = if let values::Value::I64(ptr) = ptr {
+            ptr as usize
+        } else {
+            panic!()
+        };
+
+        let mem = match get_export(&self.instance, "memory") {
+            Ok(ExternVal::Memory(mem)) => mem,
+            e => {
+                panic!("Couldn't get __vg_allocate: {:?}", e)
+            }
+        };
+
+        for (off, byte) in bytes.iter().enumerate() {
+            assert!(rust_wasm::write_mem(&mut self.store, mem, ptr + off, *byte).is_none());
+        }
+
+        let func = match get_export(&self.instance, "__vg_consume") {
+            Ok(ExternVal::Func(func)) => func,
+            e => {
+                panic!("Couldn't get __vg_consume: {:?}", e)
+            }
+        };
+
+        invoke_func(&mut self.store, func, vec![]).unwrap();
     }
 
     fn serialize(&self) -> Result<Vec<u8>, Error> {

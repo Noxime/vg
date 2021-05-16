@@ -5,6 +5,7 @@ use std::{collections::VecDeque, future::Future, time::Duration};
 mod conversions;
 mod executor;
 pub use conversions::{Position, Rotation};
+use vg_types::DeBin;
 pub mod gfx;
 
 #[macro_export]
@@ -76,10 +77,9 @@ where
 }
 
 #[no_mangle]
-pub extern "C" fn __vg_tick(time: f64) {
+pub extern "C" fn __vg_tick() {
     let state = ensure();
     state.tick += 1;
-    state.runtime += Duration::from_secs_f64(time);
 
     state.exec.run();
 }
@@ -91,6 +91,18 @@ pub extern "C" fn __vg_allocate(len: u64) -> u64 {
 
     resp.push_back(vec![0; len as usize]);
     resp.back().unwrap().as_ptr() as u64
+}
+
+#[no_mangle]
+pub extern "C" fn __vg_consume() {
+    let state = ensure();
+    let bytes = state.responses.pop_front().unwrap();
+
+    match vg_types::Response::deserialize_bin(&bytes).unwrap() {
+        vg_types::Response::Time(step) => {
+            state.runtime += Duration::from_secs_f64(step);
+        }
+    }
 }
 
 #[allow(unused)]

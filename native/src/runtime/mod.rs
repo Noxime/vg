@@ -12,7 +12,8 @@ where
     Self: Sized,
 {
     fn load(code: &[u8]) -> Result<Self, Error>;
-    fn run_tick(&mut self, engine: &mut Engine, dur: Duration) -> Result<(), Error>;
+    fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error>;
+    fn send(&mut self, value: vg_types::Response);
 
     fn serialize(&self) -> Result<Vec<u8>, Error>;
     fn deserialize(bytes: &[u8]) -> Result<Self, Error>;

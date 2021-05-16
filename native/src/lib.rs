@@ -27,6 +27,8 @@ pub struct Engine {
     assets: Assets,
     #[cfg(feature = "debug")]
     debug: debug::DebugData,
+    presented: bool,
+    mask: bool,
 }
 
 impl Engine {
@@ -61,11 +63,12 @@ impl Engine {
             assets: Assets::new(),
             window,
             start_time: Instant::now(),
+            presented: false,
+            mask: false,
         };
 
-        let tick = Duration::from_millis(50);
+        let time_tick = Duration::from_millis(500);
         let mut next_tick = Instant::now();
-
         let mut last_frame = Instant::now();
 
         events.run(move |ev, _, flow| {
@@ -116,18 +119,27 @@ impl Engine {
                 }
                 // all events for an update handled
                 Event::MainEventsCleared => {
-                    let now = Instant::now();
-                    frame_runtime
-                        .run_tick(&mut engine, now - last_frame)
-                        .unwrap();
-                    last_frame = now;
+                    engine.presented = false;
 
                     if next_tick < Instant::now() {
                         trace!("Tick");
-                        next_tick += tick;
+                        next_tick += time_tick;
                         runtime = None;
 
-                        tick_runtime.run_tick(&mut engine, tick).unwrap();
+                        engine.mask = true;
+                        while !engine.presented {
+                            tick_runtime.run_tick(&mut engine).unwrap();
+                        }
+                        tick_runtime.send(vg_types::Response::Time(time_tick.as_secs_f64()));
+                    } else {
+                        engine.mask = false;
+                        while !engine.presented {
+                            frame_runtime.run_tick(&mut engine).unwrap();
+                        }
+                        let elapsed = last_frame.elapsed();
+                        frame_runtime
+                            .send(vg_types::Response::Time(elapsed.as_secs_f64()));
+                        last_frame += elapsed;
                     }
                 }
                 _ => (),
@@ -140,6 +152,11 @@ impl Engine {
 
         match call {
             vg_types::Call::Present => {
+                self.presented = true;
+                if self.mask {
+                    return
+                }
+
                 let runtime = self.start_time.elapsed();
 
                 #[cfg(feature = "debug")]
@@ -149,8 +166,13 @@ impl Engine {
                     #[cfg(feature = "debug")]
                     &mut self.debug,
                 );
+
             }
             vg_types::Call::Draw { asset, trans } => {
+                if self.mask {
+                    return
+                }
+
                 let img = self.assets.load(&asset);
                 self.gfx.draw_sprite(img, trans);
             }
