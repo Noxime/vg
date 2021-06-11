@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-use super::Engine;
+use vg_types::Call;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
@@ -12,7 +10,7 @@ where
     Self: Sized,
 {
     fn load(code: &[u8]) -> Result<Self, Error>;
-    fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error>;
+    fn run_tick(&mut self) -> Result<Vec<Call>, Error>;
     fn send(&mut self, value: vg_types::Response);
 
     fn serialize(&self) -> Result<Vec<u8>, Error>;

@@ -1,5 +1,6 @@
 use std::{
     path::{Path, PathBuf},
+    process::Command,
     rc::Rc,
     sync::mpsc::TryRecvError,
 };
@@ -33,26 +34,49 @@ pub enum Cmd {
     Build,
     /// Clean the project build files
     Clean,
+    /// Build the game for web deployment
+    Web,
 }
 
-fn run_cargo(manifest: impl AsRef<Path>, build: Option<PathBuf>, step: impl AsRef<str>) -> bool {
+fn run_cargo(
+    manifest: impl AsRef<Path>,
+    build: Option<PathBuf>,
+    step: impl AsRef<str>,
+    rustflags: Option<&str>,
+) -> bool {
     let mut cmd = std::process::Command::new("cargo");
+
+    let restore = rustflags.and_then(|_| std::env::var("RUSTFLAGS").ok());
+
+    std::env::set_var(
+        "RUSTFLAGS",
+        format!(
+            "{} --cfg=web_sys_unstable_apis",
+            restore.clone().unwrap_or_default()
+        ),
+    );
 
     cmd.arg(step.as_ref())
         .arg("--manifest-path")
         .arg(manifest.as_ref())
         .arg("--target")
-        .arg("wasm32-unknown-unknown");
+        .arg("wasm32-wasi");
 
     if let Some(path) = build {
         cmd.arg("--target-dir").arg(path);
     }
 
-    cmd.status().unwrap().success()
+    let ok = cmd.status().unwrap().success();
+
+    if let Some(r) = restore {
+        std::env::set_var("RUSTFLAGS", r);
+    }
+
+    ok
 }
 
 fn read_wasm() -> Vec<u8> {
-    std::fs::read("target/wasm32-unknown-unknown/debug/rust-test.wasm").unwrap()
+    std::fs::read("target/wasm32-wasi/debug/rust-test.wasm").unwrap()
 }
 
 pub fn run(opts: Opts) {
@@ -61,7 +85,7 @@ pub fn run(opts: Opts) {
 
     match opts.cmd {
         None | Some(Cmd::Run) => {
-            if run_cargo(&opts.manifest_path, opts.build_path, "build") {
+            if run_cargo(&opts.manifest_path, opts.build_path, "build", None) {
                 println!("Running project");
                 let mut wasm = Some(read_wasm());
                 vg_native::Engine::run::<Wasm, _>(move || wasm.take());
@@ -94,7 +118,8 @@ pub fn run(opts: Opts) {
                     assert!(run_cargo(
                         &opts.manifest_path,
                         opts.build_path.clone(),
-                        "build"
+                        "build",
+                        None,
                     ));
                     Some(read_wasm())
                 }
@@ -104,11 +129,21 @@ pub fn run(opts: Opts) {
         }
         Some(Cmd::Build) => {
             println!("Building project");
-            run_cargo(opts.manifest_path, opts.build_path, "build");
+            run_cargo(opts.manifest_path, opts.build_path, "build", None);
+        }
+        Some(Cmd::Web) => {
+            println!("Building project");
+            run_cargo(opts.manifest_path, opts.build_path, "build", Some(""));
+            assert!(Command::new("wasm-bindgen")
+                .arg("--web")
+                .arg("--out-dir=target/generated")
+                .arg("--out-name=vg-game")
+                .status()
+                .is_ok());
         }
         Some(Cmd::Clean) => {
             println!("Cleaning project");
-            run_cargo(opts.manifest_path, opts.build_path, "clean");
+            run_cargo(opts.manifest_path, opts.build_path, "clean", None);
         }
     }
 }

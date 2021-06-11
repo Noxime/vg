@@ -7,32 +7,26 @@ mod executor;
 pub use conversions::{Position, Rotation};
 use vg_types::DeBin;
 pub mod gfx;
+mod input;
+pub mod sfx;
+pub use input::*;
 
 #[macro_export]
 macro_rules! game {
-    ($($e: stmt);*) => {
+    ($i:ident) => {
         fn main() {
-            #[allow(redundant_semicolons)]
-            async fn __vg_wrapper() {
-                $(
-                    $e
-                );*
-            }
-
-            __vg_start(__vg_wrapper)
+            __vg_start($i)
         }
     };
 }
 
-// #[no_mangle]
-
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_os = "wasi")]
 fn ensure() -> &'static mut State {
     unsafe { STATE.get_or_insert_with(|| unreachable!()) }
 }
 
 // This is what happens when you don't use cargo-vg
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_os = "wasi"))]
 fn ensure() -> &'static mut State {
     let mut code = Some(vg_builder::WASM.to_vec());
     vg_native::Engine::run::<vg_native::runtime::wasm::Wasm, _>(move || code.take())
@@ -45,9 +39,10 @@ pub struct State {
     exec: executor::Executor,
     responses: VecDeque<Vec<u8>>,
     runtime: Duration,
+    deltatime: Duration,
+    input: Input,
 }
 
-#[allow(unused)]
 #[link(wasm_import_module = "env")]
 extern "C" {
     fn call(ptr: u64, len: u64);
@@ -69,6 +64,8 @@ where
                 tick,
                 responses,
                 runtime: Duration::from_secs(0),
+                deltatime: Duration::from_secs(0),
+                input: Input::default(),
             }
         });
     }
@@ -79,8 +76,8 @@ where
 #[no_mangle]
 pub extern "C" fn __vg_tick() {
     let state = ensure();
-    state.tick += 1;
 
+    state.tick += 1;
     state.exec.run();
 }
 
@@ -93,22 +90,33 @@ pub extern "C" fn __vg_allocate(len: u64) -> u64 {
     resp.back().unwrap().as_ptr() as u64
 }
 
-#[no_mangle]
-pub extern "C" fn __vg_consume() {
-    let state = ensure();
-    let bytes = state.responses.pop_front().unwrap();
+/// Take a host-pushed Response and apply it to local state
+// #[no_mangle]
+// pub extern "C" fn __vg_consume() {
+//     let state = ensure();
 
-    match vg_types::Response::deserialize_bin(&bytes).unwrap() {
-        vg_types::Response::Time(step) => {
-            state.runtime += Duration::from_secs_f64(step);
-        }
-    }
-}
+//     while let Some(bytes) = state.responses.pop_front() {
+//         match vg_types::Response::deserialize_bin(&bytes).unwrap() {
+//             vg_types::Response::Time(step) => {
+//                 state.deltatime = Duration::from_secs_f64(step);
+//                 state.runtime += state.deltatime;
+//             }
+//             vg_types::Response::Up(key) => {
+//                 state.input.set(key, Digital::Raised)
+//             },
+//             vg_types::Response::Down(key) => {
+//                 state.input.set(key, Digital::Pressed)
+//             },
+//             vg_types::Response::Tick => {
+//                 // state.input.tick();
+//             }
+//         }
+//     }
+// }
 
-#[allow(unused)]
 fn call_host(val: impl vg_types::SerBin) {
     ensure();
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(target_os = "wasi")]
     unsafe {
         let bytes = val.serialize_bin();
         call(bytes.as_ptr() as u64, bytes.len() as u64)
@@ -117,17 +125,35 @@ fn call_host(val: impl vg_types::SerBin) {
 
 // Public api
 
-#[allow(unused)]
 pub fn time() -> f64 {
     ensure().runtime.as_secs_f64()
 }
 
-#[allow(unused)]
+pub fn delta() -> f64 {
+    ensure().deltatime.as_secs_f64()
+}
+
 pub fn print(s: impl ToString) {
     call_host(vg_types::Call::Print(s.to_string()))
 }
 
 pub async fn frame() {
     call_host(vg_types::Call::Present);
-    ensure().exec.halt().await;
+    let state = ensure();
+    state.exec.halt().await;
+    state.input.step_states();
+
+    while let Some(bytes) = state.responses.pop_front() {
+        match vg_types::Response::deserialize_bin(&bytes).unwrap() {
+            vg_types::Response::Time(step) => {
+                state.deltatime = Duration::from_secs_f64(step);
+                state.runtime += state.deltatime;
+            }
+            vg_types::Response::Up(key) => state.input.set(key, Digital::Raised),
+            vg_types::Response::Down(key) => state.input.set(key, Digital::Pressed),
+            vg_types::Response::Tick => {
+                // state.input.tick();
+            }
+        }
+    }
 }

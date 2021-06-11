@@ -1,7 +1,7 @@
 use std::env::var;
 use std::path::PathBuf;
 
-const TARGET: &'static str = "wasm32-unknown-unknown";
+const TARGET: &'static str = "wasm32-wasi";
 
 // Find Cargo.toml in parent directory
 fn root_manifest() -> PathBuf {
@@ -28,6 +28,9 @@ fn build_wasm() {
         .arg(manifest_path)
         .arg("--target-dir")
         .arg(&build_path)
+        .arg("--")
+        .arg("-C")
+        .arg("opt-level=3")
         // .arg("--")
         // .arg("-C")
         // .arg("link-arg=--import-memory")

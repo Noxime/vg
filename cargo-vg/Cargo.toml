@@ -10,3 +10,4 @@ edition = "2018"
 vg-native = { path = "../native", features = ["debug"] }
 structopt = "0.3"
 notify = "4"
+wasm-bindgen-cli = "0.2"

@@ -24,13 +24,18 @@ impl Draw {
         self.transform.rotation = rot.to_quat();
         self
     }
+
+    pub fn scale(mut self, scale: impl Position) -> Draw {
+        self.transform.scale = scale.to_vec3();
+        self
+    }
 }
 
 impl Drop for Draw {
     fn drop(&mut self) {
-        super::call_host(vg_types::Call::Draw {
+        super::call_host(vg_types::Call::Draw(vg_types::DrawCall {
             asset: self.asset.clone(),
             trans: self.transform.clone(),
-        })
+        }))
     }
 }

@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 pub use nanoserde::{DeBin, SerBin};
 
 type Vec3 = [f32; 3];
@@ -18,7 +20,7 @@ impl Transform {
     };
 }
 
-#[derive(SerBin, DeBin, Debug)]
+#[derive(SerBin, DeBin, Debug, Clone)]
 pub enum Call {
     /// Exit the game
     Exit,
@@ -27,17 +29,99 @@ pub enum Call {
     /// Finish a single frame of the game and return to host
     Present,
     /// Draw an asset with specified transform
-    Draw {
-        asset: String,
-        trans: Transform,
-    },
+    Draw(DrawCall),
+
+    // Sound
+    Play(PlayCall),
 
     // Debugging
     /// Print a log message
     Print(String),
 }
 
+#[derive(SerBin, DeBin, Debug, Clone)]
+pub struct DrawCall {
+    pub asset: String,
+    pub trans: Transform,
+}
+
+#[derive(SerBin, DeBin, Debug, Clone)]
+pub struct PlayCall {
+    pub asset: String,
+}
+
 #[derive(SerBin, DeBin, Debug)]
 pub enum Response {
-    Time(f64)
+    Time(f64),
+    Up(Key),
+    Down(Key),
+    Tick,
+}
+
+#[derive(SerBin, DeBin, Debug, Hash, Eq, PartialEq, Clone, Copy)]
+pub enum Key {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+    Left,
+    Right,
+    Up,
+    Down,
+    Space,
+    Shift,
+    Control,
+    Tab,
+    Num1,
+    Num2,
+    Num3,
+    Num4,
+    Num5,
+    Num6,
+    Num7,
+    Num8,
+    Num9,
+    Num0,
+    Escape,
+}
+
+#[derive(SerBin, DeBin, Debug, Copy, Clone)]
+pub enum Digital {
+    Up,
+    Down,
+    Pressed,
+    Raised,
+}
+
+impl Deref for Digital {
+    type Target = bool;
+
+    fn deref(&self) -> &bool {
+        match self {
+            Digital::Up | Digital::Raised => &false,
+            Digital::Down | Digital::Pressed => &true,
+        }
+    }
 }

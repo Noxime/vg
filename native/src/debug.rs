@@ -4,7 +4,7 @@ use std::{
         atomic::{AtomicUsize, Ordering::Relaxed},
         Arc,
     },
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -29,6 +29,8 @@ pub struct DebugData {
     pub log: Vec<String>,
     pub logger: bool,
     pub last_draw: Instant,
+    pub tick_time: Duration,
+    pub force_smooth: bool,
 }
 
 impl DebugData {
@@ -55,6 +57,8 @@ impl DebugData {
             last_dealloc: 0,
             log: vec![],
             last_draw: Instant::now(),
+            tick_time: Duration::from_millis(1),
+            force_smooth: false,
         }
     }
 
@@ -72,9 +76,14 @@ impl epi::App for DebugData {
         egui::Window::new("VG").show(ctx, |ui| {
             let last_draw = self.last_draw.elapsed();
             ui.label(format!(
-                "Framerate: {:.2}fps / {:?}",
+                "Framerate: {:.2}fps / {:.2?}",
                 1.0 / last_draw.as_secs_f32(),
                 last_draw,
+            ));
+            ui.label(format!(
+                "Tickrate: {:.2}tps / {:.2?}",
+                1.0 / self.tick_time.as_secs_f32(),
+                self.tick_time,
             ));
 
             ui.spacing();
@@ -92,6 +101,10 @@ impl epi::App for DebugData {
 
             self.last_alloc = alloc;
             self.last_dealloc = dealloc;
+
+            ui.checkbox(&mut self.force_smooth, "Force smooth framerate");
+
+            ui.spacing();
 
             ui.checkbox(&mut self.logger, "Game log");
             if ui.checkbox(&mut self.profiler, "Engine profiler").changed() {

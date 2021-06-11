@@ -1,3 +1,4 @@
 target/*
 rust/target/*
 test/target/*
+.DS_Store

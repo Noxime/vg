@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Instant};
+use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc, time::Instant};
 
 use glam::Mat4;
 use rend3::{
@@ -14,7 +14,7 @@ use vg_types::Transform;
 use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
 
-use crate::assets::Image;
+use crate::assets::Cache;
 
 const PREFERRED_FORMAT: TextureFormat = TextureFormat::Bgra8Unorm;
 // const PREFERRED_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
@@ -34,7 +34,7 @@ pub struct Gfx {
     pub egui_pass: egui_wgpu_backend::RenderPass,
     objects: Vec<ObjectHandle>,
     materials: Vec<MaterialHandle>,
-    textures: HashMap<Image, TextureHandle>,
+    textures: HashMap<PathBuf, TextureHandle>,
     sprite_mesh: MeshHandle,
 }
 
@@ -55,13 +55,13 @@ impl Gfx {
             .expect("Could not find suitable adapter");
 
         debug!("Using: {}", adapter.get_info().name);
-        for adapter in instance.enumerate_adapters(backends) {
-            let info = adapter.get_info();
-            debug!(
-                "  {} ({:?}, {:?})",
-                info.name, info.device_type, info.backend
-            );
-        }
+        // for adapter in instance.enumerate_adapters(backends) {
+        //     let info = adapter.get_info();
+        //     debug!(
+        //         "  {} ({:?}, {:?})",
+        //         info.name, info.device_type, info.backend
+        //     );
+        // }
 
         let present_mode = PresentMode::Mailbox;
         let format = adapter
@@ -219,29 +219,34 @@ impl Gfx {
         })
     }
 
-    pub fn draw_sprite(&mut self, image: &Image, transform: Transform) {
+    pub async fn draw_sprite(&mut self, asset: Rc<Cache>, transform: Transform) {
         puffin::profile_function!();
 
-        if !self.textures.contains_key(image) {
+        if !self.textures.contains_key(&asset.path) {
+            let bytes = asset.load_all().await;
+
+            let img = image::load_from_memory(&bytes).unwrap();
+            let img = img.to_rgba8();
+
             let tex = self.renderer.add_texture_2d(rend3::datatypes::Texture {
-                data: image.data.clone(),
+                width: img.width(),
+                height: img.height(),
+                data: img.into_raw(),
                 format: RendererTextureFormat::Rgba8Srgb,
-                width: image.width as _,
-                height: image.height as _,
                 label: None,
                 mip_levels: 1,
             });
 
-            self.textures.insert(image.clone(), tex);
-            debug!("Uploading texture");
+            self.textures.insert(asset.path.clone(), tex);
+            debug!("Texture uploaded");
         }
 
-        let texture = *self.textures.get(image).unwrap();
+        let tex = *self.textures.get(&asset.path).unwrap();
 
         let material = self.renderer.add_material(Material {
-            albedo: AlbedoComponent::Texture(texture),
+            albedo: AlbedoComponent::Texture(tex),
             unlit: true,
-            nearest: (image.width * image.height) < 64 * 64,
+            nearest: asset.len <= 128 * 128 * 4, // TODO: Pick sampling better than this
             ..Default::default()
         });
         let obj = self.renderer.add_object(Object {
@@ -254,32 +259,75 @@ impl Gfx {
         self.objects.push(obj);
     }
 
-    pub fn present(&mut self, #[cfg(feature = "debug")] debug: &mut crate::debug::DebugData) {
+    // pub fn draw_sprite(&mut self, image: &Image, transform: Transform) {
+    //     puffin::profile_function!();
+
+    //     if !self.textures.contains_key(image) {
+    //         let tex = self.renderer.add_texture_2d(rend3::datatypes::Texture {
+    //             data: image.data.clone(),
+    //             format: RendererTextureFormat::Rgba8Srgb,
+    //             width: image.width as _,
+    //             height: image.height as _,
+    //             label: None,
+    //             mip_levels: 1,
+    //         });
+
+    //         self.textures.insert(image.clone(), tex);
+    //         debug!("Uploading texture");
+    //     }
+
+    //     let texture = *self.textures.get(image).unwrap();
+
+    //     let material = self.renderer.add_material(Material {
+    //         albedo: AlbedoComponent::Texture(texture),
+    //         unlit: true,
+    //         nearest: (image.width * image.height) <= 128 * 128,
+    //         ..Default::default()
+    //     });
+    //     let obj = self.renderer.add_object(Object {
+    //         mesh: self.sprite_mesh,
+    //         material,
+    //         transform: trans2mat(transform),
+    //     });
+
+    //     self.materials.push(material);
+    //     self.objects.push(obj);
+    // }
+
+    pub async fn present(&mut self, #[cfg(feature = "debug")] debug: &mut crate::debug::DebugData) {
         puffin::profile_function!();
 
         self.device.poll(Maintain::Poll);
 
-        let frame = Arc::new(self.swapchain.get_current_frame().unwrap_or_else(|e| {
-            warn!("Failed to acquire swapchain frame, recreating: {}", e);
-            self.recreate_swapchain();
-            self.swapchain
-                .get_current_frame()
-                .expect("Failed to acquire new valid swapchain")
-        }));
+        let frame = {
+            puffin::profile_scope!("swapchain_acquire");
+            let frame = Arc::new(self.swapchain.get_current_frame().unwrap_or_else(|e| {
+                warn!("Failed to acquire swapchain frame, recreating: {}", e);
+                self.recreate_swapchain();
+                self.swapchain
+                    .get_current_frame()
+                    .expect("Failed to acquire new valid swapchain")
+            }));
 
-        let render_list = rend3_list::default_render_list(
-            self.renderer.mode(),
-            [self.swapchain_desc.width, self.swapchain_desc.height],
-            &self.pipelines,
-        );
+            frame
+        };
 
-        let handle = self.renderer.render(
-            render_list,
-            RendererOutput::ExternalSwapchain(frame.clone()),
-        );
+        {
+            puffin::profile_scope!("rend3_render");
+            let render_list = rend3_list::default_render_list(
+                self.renderer.mode(),
+                [self.swapchain_desc.width, self.swapchain_desc.height],
+                &self.pipelines,
+            );
 
-        // Complete rend3 drawing
-        pollster::block_on(handle);
+            let handle = self.renderer.render(
+                render_list,
+                RendererOutput::ExternalSwapchain(frame.clone()),
+            );
+
+            // Complete rend3 drawing
+            handle.await;
+        }
 
         // Remove objects added this frame
         for mat in self.materials.drain(..) {
@@ -292,6 +340,8 @@ impl Gfx {
 
         #[cfg(feature = "debug")]
         if debug.visible {
+            puffin::profile_scope!("egui_render");
+
             let egui_start = Instant::now();
             debug.platform.begin_frame();
 
@@ -366,7 +416,7 @@ fn trans2mat(trans: Transform) -> AffineTransform {
     AffineTransform {
         transform: Mat4::from_scale_rotation_translation(
             trans.scale.into(),
-            trans.rotation.into(),
+            glam::Quat::from_array(trans.rotation),
             trans.position.into(),
         ),
     }

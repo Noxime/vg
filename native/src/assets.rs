@@ -1,58 +1,92 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    fs::File as StdFile,
+    io::{Read, Seek, SeekFrom},
+    path::PathBuf,
+    rc::Rc,
+};
 
-use anymap::AnyMap;
-use tracing::{debug, error, trace, warn};
+use bytes::BytesMut;
+use dashmap::DashMap;
+use tokio::{
+    fs::{canonicalize, File},
+    io::{AsyncRead, AsyncReadExt, AsyncSeekExt},
+};
+use tracing::{debug, trace, warn};
 
 pub struct Assets {
     paths: Vec<PathBuf>,
-    cache: AnyMap,
-    defaults: AnyMap,
+    cache: DashMap<PathBuf, Rc<Cache>>,
 }
 
-type CacheOf<T> = HashMap<PathBuf, Cached<T>>;
-
-pub struct Cached<T> {
-    value: T,
+pub struct Cache {
+    pub len: usize,
+    pub path: PathBuf,
+    pub first: BytesMut,
 }
 
-#[derive(Hash, Eq, PartialEq, Clone)]
-pub struct Image {
-    pub width: usize,
-    pub height: usize,
-    pub data: Vec<u8>,
-}
+impl Cache {
+    pub async fn load_all(&self) -> Vec<u8> {
+        puffin::profile_function!();
+        let mut buf = self.first.to_vec();
 
-impl Load for Image {
-    fn load(bytes: Vec<u8>) -> Self {
-        let image = image::load_from_memory(&bytes).unwrap();
-        let image = image.into_rgba8();
-        Image {
-            width: image.width() as _,
-            height: image.height() as _,
-            data: image.into_raw(),
+        if buf.len() >= self.len {
+            return buf;
         }
+
+        let mut file = File::open(&self.path).await.unwrap();
+
+        // skip first n bytes because those are already pre-loaded
+        file.seek(SeekFrom::Start(buf.len() as u64)).await.unwrap();
+        file.read_to_end(&mut buf).await.unwrap();
+
+        buf
     }
 
-    fn placeholder() -> Self {
-        Image {
-            width: 5,
-            height: 5,
-            data: vec![0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x7F].repeat(20),
+    pub async fn start_read(&self) -> CacheRead {
+        let buf = self.first.to_vec();
+        let mut file = StdFile::open(&self.path).unwrap();
+
+        // skip first n bytes because those are already pre-loaded
+        file.seek(SeekFrom::Start(buf.len() as u64)).unwrap();
+
+        CacheRead {
+            buf,
+            file,
+            cursor: 0,
         }
     }
 }
 
-pub trait Load {
-    fn load(bytes: Vec<u8>) -> Self;
-    fn placeholder() -> Self;
+pub struct CacheRead {
+    buf: Vec<u8>,
+    file: StdFile,
+    cursor: usize,
+}
+
+impl tokio_io::AsyncRead for CacheRead {}
+
+impl Read for CacheRead {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if self.cursor < self.buf.len() {
+            let len = buf.len().min(self.buf.len() - self.cursor);
+            buf[..len].copy_from_slice(&self.buf[self.cursor..][..len]);
+            self.cursor += len;
+            Ok(len)
+        } else {
+            // deallocate any unnecessary memory
+            self.buf.clear();
+            self.buf.shrink_to_fit();
+
+            self.file.read(buf)
+        }
+    }
 }
 
 impl Assets {
     pub fn new() -> Assets {
         let mut a = Assets {
             paths: vec!["assets/".into()],
-            cache: AnyMap::new(),
-            defaults: AnyMap::new(),
+            cache: DashMap::new(),
         };
 
         a.fix();
@@ -77,68 +111,45 @@ impl Assets {
         }
     }
 
-    pub fn load<T: Load + 'static>(&mut self, asset: &str) -> &T {
+    pub async fn get(&self, asset: &str) -> Rc<Cache> {
         puffin::profile_function!();
         trace!("Fetching asset: {}", asset);
 
-        // let asset = PathBuf::from(asset);
+        // Look for the asset in any of the search paths
+        let mut found = None;
+        for source in &self.paths {
+            let path = source.join(asset);
 
-        // Start a cache for this file type
-        if !self.cache.contains::<CacheOf<T>>() {
-            self.cache.insert(CacheOf::<T>::new());
-        }
+            // Already cached, just use that one
+            if let Some(cache) = self.cache.get(&path) {
+                return Rc::clone(&*cache);
+            }
 
-        let map: &mut CacheOf<T> = self.cache.get_mut().unwrap();
-
-        // this is a workaround borrowing lifetimes
-        let mut found = false;
-
-        // search through cache
-        for search in &self.paths {
-            let asset = search.join(asset);
-
-            if map.contains_key(&asset) {
-                trace!("Found cached, full path: {}", asset.display());
-                found = true;
+            if let Ok(path) = canonicalize(path).await {
+                found = Some(path);
                 break;
             }
         }
 
-        // not in cache, search through filesystem
-        if !found {
-            debug!("Asset {} not in cache, searching", asset);
-            for search in &self.paths {
-                let asset = search.join(asset);
+        let path = found.expect("Asset not found in any search path");
+        trace!("Loading asset: {}", asset);
 
-                match std::fs::read(&asset) {
-                    Ok(bytes) => {
-                        let value = T::load(bytes);
+        let preload = 16 * 1024; // Preload first 16kb of data
+        let mut buf = BytesMut::with_capacity(preload);
+        let mut file = File::open(&path).await.unwrap();
+        let meta = file.metadata().await.unwrap();
 
-                        map.insert(asset.clone(), Cached { value });
-                        return &map.get(&asset).unwrap().value;
-                    }
-                    Err(err) => {
-                        trace!("Search failed: {}", err)
-                    }
-                }
-            }
-        } else {
-            for search in &self.paths {
-                let asset = search.join(asset);
+        file.read_buf(&mut buf).await.unwrap();
 
-                if let Some(cached) = map.get(&asset) {
-                    return &cached.value;
-                }
-            }
-        }
+        self.cache.insert(
+            path.clone(),
+            Rc::new(Cache {
+                first: buf,
+                len: meta.len() as _,
+                path: path.clone(),
+            }),
+        );
 
-        error!("Asset not found in cache nor on disk: {}", asset);
-        let placeholder = T::placeholder();
-
-        if !self.defaults.contains::<T>() {
-            self.defaults.insert(placeholder);
-        }
-
-        self.defaults.get().unwrap()
+        Rc::clone(&*self.cache.get(&path).unwrap())
     }
 }

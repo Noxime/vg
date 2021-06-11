@@ -1,15 +1,14 @@
-use std::{cell::Cell, rc::Rc, time::Duration};
+use std::rc::Rc;
 use tracing::*;
 
-use super::{super::Engine, Error, Runtime};
+use super::{Error, Runtime};
 
 use rust_wasm::*;
 use vg_types::*;
 
 pub struct Wasm {
     instance: Rc<ModuleInst>,
-    store: Store,
-    engine: Rc<Cell<*mut Engine>>,
+    store: Store<Vec<Call>>,
 }
 
 impl Runtime for Wasm {
@@ -17,33 +16,33 @@ impl Runtime for Wasm {
         let mut store = init_store();
         let module = decode_module(std::io::Cursor::new(code)).unwrap();
 
-        let engine: Rc<Cell<*mut Engine>> = Rc::new(Cell::new(std::ptr::null_mut()));
-        let engine_copy = Rc::clone(&engine);
-
         let call_type = types::Func {
             args: vec![types::I64, types::I64],
             result: vec![],
         };
-        let call_wrap =
-            move |mem: &mut [u8], args: &[values::Value], _res: &mut [values::Value]| {
-                if let (Some(values::Value::I64(ptr)), Some(values::Value::I64(len))) =
-                    (args.get(0), args.get(1))
-                {
-                    let bytes = &mem[*ptr as usize..][..*len as usize];
-                    let call = Call::deserialize_bin(bytes).unwrap();
-
-                    if let Some(engine) = unsafe { engine_copy.get().as_mut() } {
-                        engine.call(call);
-                    } else {
-                        panic!("Host called but no valid engine was not set");
-                    }
-                } else {
-                    eprintln!("Invalid use of env:call(i64, i64): {:?}", args);
-                }
-                None
+        let call_wrap = move |engine: &mut Vec<Call>,
+                              mem: &mut [u8],
+                              args: &[values::Value],
+                              _res: &mut [values::Value]| {
+            let (ptr, len) = if let (Some(values::Value::I64(ptr)), Some(values::Value::I64(len))) =
+                (args.get(0), args.get(1))
+            {
+                (ptr, len)
+            } else {
+                eprintln!("Invalid use of env:call(i64, i64): {:?}", args);
+                return None;
             };
 
-        let print = alloc_func(&mut store, &call_type, Rc::new(call_wrap));
+            let bytes = &mem[*ptr as usize..][..*len as usize];
+            let call = Call::deserialize_bin(bytes).unwrap();
+
+            engine.push(call);
+
+            // TODO: Pass calls back to engine
+            None
+        };
+
+        let call = alloc_func(&mut store, &call_type, Rc::new(call_wrap));
 
         debug!("Module imports");
         for (ns, n, val) in module_imports(&module) {
@@ -54,7 +53,92 @@ impl Runtime for Wasm {
             debug!("  {} => {:?}", name, val);
         }
 
-        let instance = instantiate_module(&mut store, module, &[ExternVal::Func(print)]).unwrap();
+        let fd_write = alloc_func(
+            &mut store,
+            &types::Func {
+                args: vec![types::I32, types::I32, types::I32, types::I32],
+                result: vec![types::I32],
+            },
+            Rc::new(|_, _mem, _args, _res| {
+                trace!("fd_write: {:?}", _args);
+                None
+            }),
+        );
+
+        let random_get = alloc_func(
+            &mut store,
+            &types::Func {
+                args: vec![types::I32, types::I32],
+                result: vec![types::I32],
+            },
+            Rc::new(|_, _mem, _args, _res| {
+                trace!("random_get: {:?}", _args);
+                None
+            }),
+        );
+
+        let proc_exit = alloc_func(
+            &mut store,
+            &types::Func {
+                args: vec![types::I32],
+                result: vec![],
+            },
+            Rc::new(|_, _mem, _args, _res| {
+                trace!("proc_exit: {:?}", _args);
+                None
+            }),
+        );
+
+        let environ_sizes_get = alloc_func(
+            &mut store,
+            &types::Func {
+                args: vec![types::I32, types::I32],
+                result: vec![types::I32],
+            },
+            Rc::new(|_, mem, args, _res| {
+                trace!("environ_sizes_get: {:?}", args);
+
+                if let [values::Value::I32(count), values::Value::I32(buf_size)] = args {
+                    let count = *count as usize;
+                    for i in 0..4 {
+                        mem[count + i] = 0u8;
+                    }
+                    let buf_size = *buf_size as usize;
+                    for i in 0..4 {
+                        mem[buf_size + i] = 0u8;
+                    }
+                }
+
+                None
+            }),
+        );
+
+        let environ_get = alloc_func(
+            &mut store,
+            &types::Func {
+                args: vec![types::I32, types::I32],
+                result: vec![types::I32],
+            },
+            Rc::new(|_, _mem, _args, _res| {
+                trace!("environ_get: {:?}", _args);
+                None
+            }),
+        );
+
+        let instance = instantiate_module(
+            &mut vec![],
+            &mut store,
+            module,
+            &[
+                ExternVal::Func(call),
+                ExternVal::Func(fd_write),
+                ExternVal::Func(random_get),
+                ExternVal::Func(proc_exit),
+                ExternVal::Func(environ_sizes_get),
+                ExternVal::Func(environ_get),
+            ],
+        )
+        .unwrap();
 
         let func = match get_export(&instance, "main") {
             Ok(ExternVal::Func(func)) => func,
@@ -64,20 +148,17 @@ impl Runtime for Wasm {
         };
 
         invoke_func(
+            &mut vec![],
             &mut store,
             func,
             vec![values::Value::I32(0), values::Value::I32(0)],
         )
         .unwrap();
 
-        Ok(Wasm {
-            instance,
-            store,
-            engine,
-        })
+        Ok(Wasm { instance, store })
     }
 
-    fn run_tick(&mut self, engine: &mut Engine) -> Result<(), Error> {
+    fn run_tick(&mut self) -> Result<Vec<Call>, Error> {
         puffin::profile_function!();
 
         let func = match get_export(&self.instance, "__vg_tick") {
@@ -87,11 +168,12 @@ impl Runtime for Wasm {
             }
         };
 
-        self.engine.set(engine as *mut _);
-        invoke_func(&mut self.store, func, vec![]).unwrap();
-        self.engine.set(std::ptr::null_mut());
+        // self.engine.set(Some(engine));
+        let mut calls = vec![];
+        invoke_func(&mut calls, &mut self.store, func, vec![]).unwrap();
+        // self.engine.set(None);
 
-        Ok(())
+        Ok(calls)
     }
 
     fn send(&mut self, value: vg_types::Response) {
@@ -109,8 +191,13 @@ impl Runtime for Wasm {
 
         let len = bytes.len();
 
-        let ptr =
-            invoke_func(&mut self.store, func, vec![values::Value::I64(len as u64)]).unwrap()[0];
+        let ptr = invoke_func(
+            &mut vec![],
+            &mut self.store,
+            func,
+            vec![values::Value::I64(len as u64)],
+        )
+        .unwrap()[0];
 
         let ptr = if let values::Value::I64(ptr) = ptr {
             ptr as usize
@@ -129,14 +216,14 @@ impl Runtime for Wasm {
             assert!(rust_wasm::write_mem(&mut self.store, mem, ptr + off, *byte).is_none());
         }
 
-        let func = match get_export(&self.instance, "__vg_consume") {
-            Ok(ExternVal::Func(func)) => func,
-            e => {
-                panic!("Couldn't get __vg_consume: {:?}", e)
-            }
-        };
+        // let func = match get_export(&self.instance, "__vg_consume") {
+        //     Ok(ExternVal::Func(func)) => func,
+        //     e => {
+        //         panic!("Couldn't get __vg_consume: {:?}", e)
+        //     }
+        // };
 
-        invoke_func(&mut self.store, func, vec![]).unwrap();
+        // invoke_func(&mut self.store, func, vec![]).unwrap();
     }
 
     fn serialize(&self) -> Result<Vec<u8>, Error> {
@@ -152,13 +239,7 @@ impl Runtime for Wasm {
 
         let instance = Rc::new(ModuleInst::clone(&self.instance));
         let store = self.store.clone();
-        // let engine = Rc::new(Cell::new(std::ptr::null_mut()));
-        let engine = Rc::clone(&self.engine);
 
-        Ok(Wasm {
-            instance,
-            store,
-            engine,
-        })
+        Ok(Wasm { instance, store })
     }
 }

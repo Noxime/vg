@@ -2,14 +2,14 @@ use ast;
 use types;
 use values;
 
-use std::rc::Rc;
-use std::ops::{Index, IndexMut};
 use std::collections::HashMap;
+use std::ops::{Index, IndexMut};
+use std::rc::Rc;
 
 // Use a map for types to answer type_{func, table, memory, global}
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct TypeKey {
-	pub extern_val: ExternVal,
+    pub extern_val: ExternVal,
 }
 
 pub type TypeHashMap = HashMap<TypeKey, types::Extern>;
@@ -17,63 +17,65 @@ pub type TypeHashMap = HashMap<TypeKey, types::Extern>;
 // Instances of a Module/Func/Table/Memory/Global
 #[derive(Clone)]
 pub struct ModuleInst {
-	pub(crate) types: Vec<types::Func>,
-	pub(crate) func_addrs: Vec<FuncAddr>,
-	pub(crate) table_addrs: Vec<TableAddr>,
-	pub(crate) mem_addrs: Vec<MemAddr>,
-	pub(crate) global_addrs: Vec<GlobalAddr>,
-	pub(crate) exports: Vec<ExportInst>,
+    pub(crate) types: Vec<types::Func>,
+    pub(crate) func_addrs: Vec<FuncAddr>,
+    pub(crate) table_addrs: Vec<TableAddr>,
+    pub(crate) mem_addrs: Vec<MemAddr>,
+    pub(crate) global_addrs: Vec<GlobalAddr>,
+    pub(crate) exports: Vec<ExportInst>,
 }
 #[derive(Clone)]
 pub struct MemInst {
-	pub data: Vec<u8>,
-	pub max: Option<u32>,
+    pub data: Vec<u8>,
+    pub max: Option<u32>,
 }
 
 #[derive(Clone)]
 pub struct GlobalInst {
-	pub value: values::Value,
-	pub mutable: bool,
+    pub value: values::Value,
+    pub mutable: bool,
 }
 
 pub type HostFunctionError = String;
-pub type HostFunc = Rc<dyn Fn(&mut [u8], &[values::Value], &mut [values::Value]) -> Option<HostFunctionError>>;
+pub type HostFunc<T> = Rc<
+    dyn Fn(&mut T, &mut [u8], &[values::Value], &mut [values::Value]) -> Option<HostFunctionError>,
+>;
 
 #[derive(Clone)]
-pub struct HostFuncInst {
-	pub type_: types::Func,
-	pub hostcode: HostFunc,
+pub struct HostFuncInst<T> {
+    pub type_: types::Func,
+    pub hostcode: HostFunc<T>,
 }
 
 #[derive(Clone)]
 pub struct ModuleFuncInst {
-	pub type_: types::Func,
-	pub module: Rc<ModuleInst>,
-	pub code: ast::Func,
+    pub type_: types::Func,
+    pub module: Rc<ModuleInst>,
+    pub code: ast::Func,
 }
 
 #[derive(Clone)]
-pub enum FuncInst {
-	Module(ModuleFuncInst),
-	Host(HostFuncInst),
+pub enum FuncInst<T> {
+    Module(ModuleFuncInst),
+    Host(HostFuncInst<T>),
 }
 
 type FuncElem = Option<FuncAddr>;
 
 #[derive(Clone)]
 pub struct TableInst {
-	pub elem: Vec<FuncElem>,
-	pub max: Option<u32>,
+    pub elem: Vec<FuncElem>,
+    pub max: Option<u32>,
 }
 
 #[derive(Clone)]
 pub struct ExportInst {
-	pub name: String,
-	pub value: ExternVal,
+    pub name: String,
+    pub value: ExternVal,
 }
 
 #[derive(Clone)]
-pub struct FuncInstStore(Vec<FuncInst>);
+pub struct FuncInstStore<T>(Vec<FuncInst<T>>);
 #[derive(Clone)]
 pub struct MemInstStore(pub Vec<MemInst>);
 #[derive(Clone)]
@@ -94,10 +96,10 @@ pub struct GlobalAddr(Addr);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ExternVal {
-	Func(FuncAddr),
-	Table(TableAddr),
-	Memory(MemAddr),
-	Global(GlobalAddr),
+    Func(FuncAddr),
+    Table(TableAddr),
+    Memory(MemAddr),
+    Global(GlobalAddr),
 }
 
 // Constants
@@ -105,152 +107,227 @@ pub const PAGE_SIZE: usize = 65536;
 
 // Traits
 impl ModuleInst {
-	pub fn new() -> ModuleInst {
-		ModuleInst {
-			types: Vec::new(),
-			func_addrs: Vec::new(),
-			table_addrs: Vec::new(),
-			mem_addrs: Vec::new(),
-			global_addrs: Vec::new(),
-			exports: Vec::new(),
-		}
-	}
+    pub fn new() -> ModuleInst {
+        ModuleInst {
+            types: Vec::new(),
+            func_addrs: Vec::new(),
+            table_addrs: Vec::new(),
+            mem_addrs: Vec::new(),
+            global_addrs: Vec::new(),
+            exports: Vec::new(),
+        }
+    }
 }
 
 macro_rules! impl_inst_store {
-	($StoreType:tt, $InnerType:ty, $AddrType:tt) => (
-		impl $StoreType {
-			pub fn new() -> Self {
-				Self { 0: Vec::new() }
-			}
+    ($StoreType:tt, $InnerType:ty, $AddrType:tt) => {
+        impl $StoreType {
+            pub fn new() -> Self {
+                Self { 0: Vec::new() }
+            }
 
-			pub fn len(&self) -> usize {
-				self.0.len()
-			}
+            pub fn len(&self) -> usize {
+                self.0.len()
+            }
 
-			pub fn contains(&self, addr: $AddrType) -> bool {
-				self.0.len() >= addr.0
-			}
-		}
+            pub fn contains(&self, addr: $AddrType) -> bool {
+                self.0.len() >= addr.0
+            }
+        }
 
-		impl Index<$AddrType> for $StoreType {
-			type Output = $InnerType;
-			fn index(&self, idx: $AddrType) -> &$InnerType {
-				self.0.get(idx.0).unwrap()
-			}
-		}
+        impl Index<$AddrType> for $StoreType {
+            type Output = $InnerType;
+            fn index(&self, idx: $AddrType) -> &$InnerType {
+                self.0.get(idx.0).unwrap()
+            }
+        }
 
-		impl IndexMut<$AddrType> for $StoreType {
-			fn index_mut(&mut self, idx: $AddrType) -> &mut $InnerType {
-				self.0.get_mut(idx.0).unwrap()
-			}
-		}
+        impl IndexMut<$AddrType> for $StoreType {
+            fn index_mut(&mut self, idx: $AddrType) -> &mut $InnerType {
+                self.0.get_mut(idx.0).unwrap()
+            }
+        }
 
-		impl $AddrType {
-			pub fn new(addr: Addr) -> $AddrType {
-				$AddrType { 0: addr }
-			}
-		}
-	)
+        impl $AddrType {
+            pub fn new(addr: Addr) -> $AddrType {
+                $AddrType { 0: addr }
+            }
+        }
+    };
 }
 
-impl_inst_store!(FuncInstStore, FuncInst, FuncAddr);
+impl<T> FuncInstStore<T> {
+    pub fn new() -> Self {
+        Self { 0: Vec::new() }
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn contains(&self, addr: FuncAddr) -> bool {
+        self.0.len() >= addr.0
+    }
+}
+
+impl<T> Index<FuncAddr> for FuncInstStore<T> {
+    type Output = FuncInst<T>;
+    fn index(&self, idx: FuncAddr) -> &FuncInst<T> {
+        self.0.get(idx.0).unwrap()
+    }
+}
+
+impl<T> IndexMut<FuncAddr> for FuncInstStore<T> {
+    fn index_mut(&mut self, idx: FuncAddr) -> &mut FuncInst<T> {
+        self.0.get_mut(idx.0).unwrap()
+    }
+}
+
+impl FuncAddr {
+    pub fn new(addr: Addr) -> FuncAddr {
+        FuncAddr { 0: addr }
+    }
+}
+
+// impl_inst_store!(FuncInstStore, FuncInst, FuncAddr);
 impl_inst_store!(TableInstStore, TableInst, TableAddr);
 impl_inst_store!(GlobalInstStore, GlobalInst, GlobalAddr);
 impl_inst_store!(MemInstStore, MemInst, MemAddr);
 
 // Per trait functions
-impl FuncInstStore {
-	pub(crate) fn alloc_module(&mut self, types_map: &mut TypeHashMap, functype: &types::Func, minst: &Rc<ModuleInst>, code: ast::Func) -> FuncAddr {
-		self.alloc(types_map,
-				   FuncInst::Module(
-					   ModuleFuncInst {
-						   type_: functype.clone(),
-						   module: Rc::clone(minst),
-						   code: code,
-					   }
-				   ),
-				   functype
-		)
-	}
+impl<T> FuncInstStore<T> {
+    pub(crate) fn alloc_module(
+        &mut self,
+        types_map: &mut TypeHashMap,
+        functype: &types::Func,
+        minst: &Rc<ModuleInst>,
+        code: ast::Func,
+    ) -> FuncAddr {
+        self.alloc(
+            types_map,
+            FuncInst::Module(ModuleFuncInst {
+                type_: functype.clone(),
+                module: Rc::clone(minst),
+                code: code,
+            }),
+            functype,
+        )
+    }
 
-	pub(crate) fn alloc_host(&mut self, types_map: &mut TypeHashMap, functype: &types::Func, hostfunc: HostFunc) -> FuncAddr {
-		self.alloc(types_map,
-				   FuncInst::Host(
-					   HostFuncInst {
-						   type_: functype.clone(),
-						   hostcode: hostfunc,
-					   }
-				   ),
-				   functype
-		)
-	}
+    pub(crate) fn alloc_host(
+        &mut self,
+        types_map: &mut TypeHashMap,
+        functype: &types::Func,
+        hostfunc: HostFunc<T>,
+    ) -> FuncAddr {
+        self.alloc(
+            types_map,
+            FuncInst::Host(HostFuncInst {
+                type_: functype.clone(),
+                hostcode: hostfunc,
+            }),
+            functype,
+        )
+    }
 
-	fn alloc(&mut self, types_map: &mut TypeHashMap, inst: FuncInst, functype: &types::Func) -> FuncAddr {
-		self.0.push(inst);
-		let addr = FuncAddr::new(self.len() - 1);
-		types_map.insert(TypeKey { extern_val: ExternVal::Func(addr) },
-						 types::Extern::Func(functype.clone()));
-		addr
-	}
-
+    fn alloc(
+        &mut self,
+        types_map: &mut TypeHashMap,
+        inst: FuncInst<T>,
+        functype: &types::Func,
+    ) -> FuncAddr {
+        self.0.push(inst);
+        let addr = FuncAddr::new(self.len() - 1);
+        types_map.insert(
+            TypeKey {
+                extern_val: ExternVal::Func(addr),
+            },
+            types::Extern::Func(functype.clone()),
+        );
+        addr
+    }
 }
 
 impl MemInstStore {
-	pub(crate) fn alloc(&mut self, types_map: &mut TypeHashMap, memtype: &types::Memory) -> MemAddr {
-		self.0.push(MemInst {
-			data: vec![0; (memtype.limits.min as usize) * PAGE_SIZE],
-			max: memtype.limits.max,
-		});
-		let addr = MemAddr::new(self.len() - 1);
-		types_map.insert(TypeKey { extern_val: ExternVal::Memory(addr) },
-						 types::Extern::Memory(memtype.clone()));
-		addr
-	}
+    pub(crate) fn alloc(
+        &mut self,
+        types_map: &mut TypeHashMap,
+        memtype: &types::Memory,
+    ) -> MemAddr {
+        self.0.push(MemInst {
+            data: vec![0; (memtype.limits.min as usize) * PAGE_SIZE],
+            max: memtype.limits.max,
+        });
+        let addr = MemAddr::new(self.len() - 1);
+        types_map.insert(
+            TypeKey {
+                extern_val: ExternVal::Memory(addr),
+            },
+            types::Extern::Memory(memtype.clone()),
+        );
+        addr
+    }
 
-	pub(crate) fn grow(&mut self, memaddr: MemAddr, new: usize) -> Option<usize> {
-		let mem = &mut self[memaddr];
-		let sz = mem.data.len() / PAGE_SIZE;
-		if let Some(max) = mem.max {
-			if (max as usize) < sz + new {
-				return None
-			}
-		}
-		// Can't allocate more than 4GB since its a 32-bits machine
-		if sz + new > ((1u64 << 32) / PAGE_SIZE as u64) as usize {
-			return None
-		}
-		mem.data.resize((sz + new) * PAGE_SIZE, 0);
-		Some(sz)
-	}
+    pub(crate) fn grow(&mut self, memaddr: MemAddr, new: usize) -> Option<usize> {
+        let mem = &mut self[memaddr];
+        let sz = mem.data.len() / PAGE_SIZE;
+        if let Some(max) = mem.max {
+            if (max as usize) < sz + new {
+                return None;
+            }
+        }
+        // Can't allocate more than 4GB since its a 32-bits machine
+        if sz + new > ((1u64 << 32) / PAGE_SIZE as u64) as usize {
+            return None;
+        }
+        mem.data.resize((sz + new) * PAGE_SIZE, 0);
+        Some(sz)
+    }
 
-	pub(crate) fn size(&self, memaddr: MemAddr) -> usize {
-		self[memaddr].data.len() / PAGE_SIZE
-	}
+    pub(crate) fn size(&self, memaddr: MemAddr) -> usize {
+        self[memaddr].data.len() / PAGE_SIZE
+    }
 }
 
 impl TableInstStore {
-	pub(crate) fn alloc(&mut self, types_map: &mut TypeHashMap, tabletype: &types::Table) -> TableAddr {
-		self.0.push(TableInst {
-			elem: vec![None; tabletype.limits.min as usize],
-			max: tabletype.limits.max,
-		});
-		let addr = TableAddr::new(self.len() - 1);
-		types_map.insert(TypeKey { extern_val: ExternVal::Table(addr) },
-						 types::Extern::Table(tabletype.clone()));
-		addr
-	}
+    pub(crate) fn alloc(
+        &mut self,
+        types_map: &mut TypeHashMap,
+        tabletype: &types::Table,
+    ) -> TableAddr {
+        self.0.push(TableInst {
+            elem: vec![None; tabletype.limits.min as usize],
+            max: tabletype.limits.max,
+        });
+        let addr = TableAddr::new(self.len() - 1);
+        types_map.insert(
+            TypeKey {
+                extern_val: ExternVal::Table(addr),
+            },
+            types::Extern::Table(tabletype.clone()),
+        );
+        addr
+    }
 }
 
 impl GlobalInstStore {
-	pub(crate) fn alloc(&mut self, types_map: &mut TypeHashMap, globaltype: &types::Global, val: values::Value) -> GlobalAddr {
-		self.0.push(GlobalInst {
-			value: val,
-			mutable: globaltype.mutable,
-		});
-		let addr = GlobalAddr::new(self.len() - 1);
-		types_map.insert(TypeKey { extern_val: ExternVal::Global(addr) },
-						 types::Extern::Global(globaltype.clone()));
-		addr
-	}
+    pub(crate) fn alloc(
+        &mut self,
+        types_map: &mut TypeHashMap,
+        globaltype: &types::Global,
+        val: values::Value,
+    ) -> GlobalAddr {
+        self.0.push(GlobalInst {
+            value: val,
+            mutable: globaltype.mutable,
+        });
+        let addr = GlobalAddr::new(self.len() - 1);
+        types_map.insert(
+            TypeKey {
+                extern_val: ExternVal::Global(addr),
+            },
+            types::Extern::Global(globaltype.clone()),
+        );
+        addr
+    }
 }

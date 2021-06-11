@@ -3,6 +3,19 @@ pub trait Position {
     fn to_vec3(self) -> [f32; 3];
 }
 
+impl Position for f32 {
+    fn to_vec3(self) -> [f32; 3] {
+        let x = self.into();
+        [x; 3]
+    }
+}
+impl Position for f64 {
+    fn to_vec3(self) -> [f32; 3] {
+        let x = self as _;
+        [x; 3]
+    }
+}
+
 impl<T: Into<f64>> Position for [T; 2] {
     fn to_vec3(self) -> [f32; 3] {
         let [x, y] = self;
