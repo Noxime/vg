@@ -134,6 +134,14 @@ impl Gfx {
             location: (0.0, 0.0, -5.0).into(),
         });
 
+        // renderer.set_camera_data(Camera {
+        //     projection: rend3::datatypes::CameraProjection::Orthographic {
+        //         size: (5.0, 5.0, 5.0).into(),
+        //         direction: (0.0, 0.0, 1.0).into(),
+        //     },
+        //     location: (0.0, 0.0, -5.0).into(),
+        // });
+
         let shaders = DefaultShaders::new(&renderer).await;
         let pipelines = DefaultPipelines::new(&renderer, &shaders).await;
 
@@ -171,7 +179,7 @@ impl Gfx {
             (1.0, 0.0).into(),
             (0.0, 0.0).into(),
         ])
-        .with_indices(vec![2, 1, 0, 0, 3, 2])
+        .with_indices(vec![2, 1, 0, 0, 3, 2, 2, 3, 0, 0, 1, 2])
         .build();
         let sprite_mesh = renderer.add_mesh(sprite_mesh);
 
@@ -247,6 +255,7 @@ impl Gfx {
             albedo: AlbedoComponent::Texture(tex),
             unlit: true,
             nearest: asset.len <= 128 * 128 * 4, // TODO: Pick sampling better than this
+            //alpha_cutout: Some(0.5),
             ..Default::default()
         });
         let obj = self.renderer.add_object(Object {

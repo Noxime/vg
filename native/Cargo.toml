@@ -14,7 +14,7 @@ rust-wasm = { path = "../rust-wasm", optional = true }
 vg-types = { path = "../rust/vg-types" }
 
 dashmap = "4"
-glam = "0.15"
+glam = "0.16"
 bytes = "1"
 
 tracing = "0.1"

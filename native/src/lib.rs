@@ -43,6 +43,8 @@ impl Engine {
         RT: Runtime + 'static,
         F: FnMut() -> Option<Vec<u8>> + 'static,
     {
+        let sfx = Sfx::new();
+
         let tokio = tokio::runtime::Builder::new_multi_thread()
             .thread_name("vg-worker")
             .enable_all()
@@ -56,26 +58,21 @@ impl Engine {
         let mut tick_runtime = None;
 
         let events = EventLoop::new();
+
+        let mut builder = WindowBuilder::new().with_title("vg-main");
+
+        #[cfg(target_os = "windows")]
+        {
+            // Disable drag and drop because of windows COM stuff, idk
+            use winit::platform::windows::WindowBuilderExtWindows;
+            builder = builder.with_drag_and_drop(false);
+        }
+
         let window = Arc::new(
-            WindowBuilder::new()
-                .with_title("vg-main")
+            builder
                 .build(&events)
                 .expect("Failed to initialize a window"),
         );
-
-        // #[cfg(target_arch = "wasm32")]
-        // {
-        //     use winit::platform::web::WindowExtWebSys;
-
-        //     let canvas = window.canvas();
-
-        //     let window = web_sys::window().unwrap();
-        //     let document = window.document().unwrap();
-        //     let body = document.body().unwrap();
-
-        //     body.append_child(&canvas)
-        //         .expect("Append canvas to HTML body");
-        // }
 
         #[cfg(feature = "debug")]
         let debug = debug::DebugData::new(window.clone());
@@ -88,8 +85,8 @@ impl Engine {
         let mut engine = Engine {
             #[cfg(feature = "debug")]
             debug,
+            sfx,
             gfx: tokio.block_on(Gfx::new(window.clone())),
-            sfx: Sfx::new(),
             assets: Assets::new(),
             window,
             start_time: Instant::now(),

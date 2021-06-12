@@ -1,4 +1,4 @@
-use std::{cell::Cell, io::Cursor, rc::Rc, time::Duration};
+use std::{cell::Cell, convert::identity, io::Cursor, rc::Rc, time::Duration};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -81,7 +81,6 @@ impl Sfx {
             OggStreamReader::from_pck_rdr(packet_reader.into_inner(), (ident, comment, setup))
                 .compat();
 
-        let mut buf = vec![];
         let signal = oddio::Stream::<f32>::new(sample_rate, 1024);
         debug!("Playing {} at {}hz", asset.path.display(), sample_rate);
 
@@ -90,35 +89,57 @@ impl Sfx {
                 .control()
                 .play(signal, [0.0, 0.0, 1.0].into(), [0.0; 3].into(), 1000.0);
 
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
         tokio::spawn(async move {
             loop {
-                // our decoded buffer is empty, so we better decode some more
-                if buf.is_empty() {
-                    match decoder.next().await {
-                        Some(Ok(frames)) => {
-                            for s in frames[0].iter() {
-                                buf.push(*s as f32 / std::i16::MAX as f32);
-                            }
-                        }
-                        Some(Err(e)) => {
-                            error!("Error during vorbis decode: {:?}", e);
+                match decoder.next().await {
+                    Some(Ok(frames)) => {
+                        if let Err(e) = tx.send(frames).await {
+                            error!("Failed to send audio frames to stream: {}", e);
                             break;
                         }
-                        None => break,
                     }
-                } else {
-                    // we have enough decoded samples in buffer, just play them
-                    let n = {
-                        let mut control = handle.control::<oddio::Stream<_>, _>();
-                        let n = control.write(&buf);
-                        buf.drain(..n);
-                        n
-                    };
-                    // sleep for half-n time
-                    tokio::time::sleep(Duration::from_micros(
-                        500_000 * n as u64 / sample_rate as u64,
-                    ))
-                    .await;
+                    Some(Err(e)) => {
+                        error!("Vorbis decode error: {:?}", e);
+                        break;
+                    }
+                    None => {
+                        debug!("Done with decoding");
+                        break;
+                    }
+                }
+            }
+        });
+
+        tokio::spawn(async move {
+            let mut buf = vec![];
+            let mut done = false;
+            loop {
+                let sleep = {
+                    let mut control = handle.control::<oddio::Stream<_>, _>();
+                    let n = control.write(&buf);
+                    buf.drain(..n);
+                    Duration::from_micros(500_000 * n as u64 / sample_rate as u64)
+                };
+
+                if done && buf.is_empty() {
+                    break;
+                }
+
+                if let Ok(true) = tokio::time::timeout(sleep, async {
+                    if let Some(frames) = rx.recv().await {
+                        for s in &frames[0] {
+                            buf.push(*s as f32 / std::i16::MAX as f32);
+                        }
+                        false
+                    } else {
+                        true
+                    }
+                })
+                .await
+                {
+                    done = true;
                 }
             }
         });

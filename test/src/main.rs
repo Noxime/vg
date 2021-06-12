@@ -10,7 +10,7 @@ async fn test() {
         }
 
         if Key::Space.pressed() {
-            sfx::play("wil.ogg");
+            sfx::play("cat.ogg");
         }
 
         gfx::draw("ferris.png").pos(pos);
