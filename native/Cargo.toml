@@ -31,6 +31,7 @@ futures = { version = "0.3", features = ["compat"] }
 
 winit = { version = "0.24", features = ["web-sys"] }
 wgpu = "0.7"
+wgpu-subscriber = "0.1"
 rend3 = { path = "../../rend3/rend3" }
 rend3-list = { path = "../../rend3/rend3-list" }
 

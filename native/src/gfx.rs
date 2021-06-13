@@ -40,6 +40,8 @@ pub struct Gfx {
 
 impl Gfx {
     pub async fn new(window: Arc<Window>) -> Gfx {
+        //wgpu_subscriber::initialize_default_subscriber(Some(std::path::Path::new("wgpu_trace")));
+
         let backends = BackendBit::all();
         debug!("Using graphics backends: {:?}", backends);
 
@@ -227,7 +229,7 @@ impl Gfx {
         })
     }
 
-    pub async fn draw_sprite(&mut self, asset: Rc<Cache>, transform: Transform) {
+    pub async fn draw_sprite(&mut self, asset: Arc<Cache>, transform: Transform) {
         puffin::profile_function!();
 
         if !self.textures.contains_key(&asset.path) {
@@ -306,7 +308,10 @@ impl Gfx {
     pub async fn present(&mut self, #[cfg(feature = "debug")] debug: &mut crate::debug::DebugData) {
         puffin::profile_function!();
 
-        self.device.poll(Maintain::Poll);
+        {
+            puffin::profile_scope!("maintain");
+            self.device.poll(Maintain::Poll);
+        }
 
         let frame = {
             puffin::profile_scope!("swapchain_acquire");
@@ -323,28 +328,40 @@ impl Gfx {
 
         {
             puffin::profile_scope!("rend3_render");
-            let render_list = rend3_list::default_render_list(
-                self.renderer.mode(),
-                [self.swapchain_desc.width, self.swapchain_desc.height],
-                &self.pipelines,
-            );
+            let render_list = {
+                puffin::profile_scope!("rend3_render_list");
+                rend3_list::default_render_list(
+                    self.renderer.mode(),
+                    [self.swapchain_desc.width, self.swapchain_desc.height],
+                    &self.pipelines,
+                )
+            };
 
-            let handle = self.renderer.render(
-                render_list,
-                RendererOutput::ExternalSwapchain(frame.clone()),
-            );
+            let handle = {
+                puffin::profile_scope!("rend3_start_render");
+                self.renderer.render(
+                    render_list,
+                    RendererOutput::ExternalSwapchain(frame.clone()),
+                )
+            };
 
             // Complete rend3 drawing
-            handle.await;
+            {
+                puffin::profile_scope!("rend3_finish_render");
+                handle.await;
+            }
         }
 
         // Remove objects added this frame
-        for mat in self.materials.drain(..) {
-            self.renderer.remove_material(mat);
-        }
+        {
+            puffin::profile_scope!("rend3_clear_scene");
+            for mat in self.materials.drain(..) {
+                self.renderer.remove_material(mat);
+            }
 
-        for obj in self.objects.drain(..) {
-            self.renderer.remove_object(obj);
+            for obj in self.objects.drain(..) {
+                self.renderer.remove_object(obj);
+            }
         }
 
         #[cfg(feature = "debug")]
@@ -416,8 +433,15 @@ impl Gfx {
             self.queue.submit(Some(enc.finish()));
         }
 
+        {
+            puffin::profile_scope!("wgpu_present");
+            drop(frame)
+        };
         // Done with the frame, record it on the profiler
-        puffin::GlobalProfiler::lock().new_frame();
+        {
+            puffin::profile_scope!("puffin_frame");
+            puffin::GlobalProfiler::lock().new_frame();
+        }
     }
 }
 

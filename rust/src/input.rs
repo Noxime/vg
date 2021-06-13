@@ -73,5 +73,17 @@ pub fn wasd() -> [f32; 2] {
         }
     }
 
-    [f(Key::D) - f(Key::A), f(Key::W) - f(Key::S)]
+    let mut x = 0.0;
+    let mut y = 0.0;
+    x += f(Key::D);
+    x += f(Key::Right);
+    x -= f(Key::A);
+    x -= f(Key::Left);
+
+    y += f(Key::W);
+    y += f(Key::Up);
+    y -= f(Key::S);
+    y -= f(Key::Down);
+
+    [x, y]
 }

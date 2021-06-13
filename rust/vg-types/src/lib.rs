@@ -48,6 +48,7 @@ pub struct DrawCall {
 #[derive(SerBin, DeBin, Debug, Clone)]
 pub struct PlayCall {
     pub asset: String,
+    pub looping: bool,
 }
 
 #[derive(SerBin, DeBin, Debug)]

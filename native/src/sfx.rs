@@ -1,22 +1,34 @@
-use std::{cell::Cell, convert::identity, io::Cursor, rc::Rc, time::Duration};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Arc,
+    },
+    time::Duration,
+};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, Stream, StreamConfig,
 };
-use futures::compat::Future01CompatExt;
+use dashmap::DashMap;
 use lewton::{
     header::{read_header_comment, read_header_ident, read_header_setup},
-    inside_ogg::async_api::{HeadersReader, OggStreamReader},
+    inside_ogg::async_api::OggStreamReader,
 };
-use oddio::{Frames, FramesSignal, Handle, Sample, Signal, SpatialScene, StreamControl};
-use tracing::{debug, error, trace};
+use oddio::{Handle, Mixer, Spatial, SpatialScene, Stop};
+use tracing::{debug, error, warn};
 
 use crate::assets::Cache;
 
 pub struct Sfx {
-    scene: Handle<SpatialScene>,
+    scene: Handle<Mixer<[f32; 2]>>,
     stream: Stream,
+    dead_sound_tx: Sender<Handle<Stop<oddio::Stream<[f32; 2]>>>>,
+    dead_sounds: Receiver<Handle<Stop<oddio::Stream<[f32; 2]>>>>,
+    active_streams: usize,
+    hack_bgm: bool,
 }
 
 impl Sfx {
@@ -37,7 +49,7 @@ impl Sfx {
             buffer_size: BufferSize::Default,
         };
 
-        let (scene_handle, scene) = oddio::split(oddio::SpatialScene::new(sample_rate.0, 0.1));
+        let (scene_handle, scene) = oddio::split(oddio::Mixer::new());
 
         let stream = device
             .build_output_stream(
@@ -54,13 +66,27 @@ impl Sfx {
 
         stream.play().unwrap();
 
+        let (dead_sound_tx, dead_sounds) = mpsc::channel();
+
         Sfx {
             scene: scene_handle,
             stream,
+            dead_sound_tx,
+            dead_sounds,
+            active_streams: 0,
+            hack_bgm: false,
         }
     }
 
-    pub async fn play_sound(&mut self, asset: Rc<Cache>) {
+    pub async fn play_sound(&mut self, asset: Arc<Cache>, looping: bool) {
+        if asset.path.ends_with("bgm.ogg") {
+            if self.hack_bgm {
+                return;
+            } else {
+                self.hack_bgm = true;
+            }
+        }
+
         use futures::{compat::Stream01CompatExt, StreamExt};
         let mut packet_reader =
             ogg::reading::async_api::PacketReader::new(asset.start_read().await).compat();
@@ -81,18 +107,28 @@ impl Sfx {
             OggStreamReader::from_pck_rdr(packet_reader.into_inner(), (ident, comment, setup))
                 .compat();
 
-        let signal = oddio::Stream::<f32>::new(sample_rate, 1024);
+        let signal = oddio::Stream::<[f32; 2]>::new(sample_rate, 1024);
         debug!("Playing {} at {}hz", asset.path.display(), sample_rate);
 
-        let mut handle =
-            self.scene
-                .control()
-                .play(signal, [0.0, 0.0, 1.0].into(), [0.0; 3].into(), 1000.0);
+        let mut handle = match self.dead_sounds.try_recv() {
+            Ok(handle) => handle,
+            Err(err) => {
+                debug!(
+                    "Failed to get existing audio stream handle: {} ({} existing streams)",
+                    err, self.active_streams
+                );
+                self.active_streams += 1;
+                self.scene.control().play(signal)
+            }
+        };
 
-        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(64);
+        let dead_sound_tx = self.dead_sound_tx.clone();
 
         tokio::spawn(async move {
             loop {
+                tokio::time::sleep(Duration::from_micros(1)).await;
+
                 match decoder.next().await {
                     Some(Ok(frames)) => {
                         if let Err(e) = tx.send(frames).await {
@@ -105,8 +141,36 @@ impl Sfx {
                         break;
                     }
                     None => {
-                        debug!("Done with decoding");
-                        break;
+                        if looping {
+                            debug!("Restarting loop");
+                            let mut packet_reader = ogg::reading::async_api::PacketReader::new(
+                                asset.start_read().await,
+                            )
+                            .compat();
+
+                            let ident = read_header_ident(
+                                &packet_reader.next().await.unwrap().unwrap().data,
+                            )
+                            .unwrap();
+                            let comment = read_header_comment(
+                                &packet_reader.next().await.unwrap().unwrap().data,
+                            )
+                            .unwrap();
+                            let setup = read_header_setup(
+                                &packet_reader.next().await.unwrap().unwrap().data,
+                                ident.audio_channels,
+                                (ident.blocksize_0, ident.blocksize_1),
+                            )
+                            .unwrap();
+                            decoder = OggStreamReader::from_pck_rdr(
+                                packet_reader.into_inner(),
+                                (ident, comment, setup),
+                            )
+                            .compat();
+                        } else {
+                            debug!("Done with decoding");
+                            break;
+                        }
                     }
                 }
             }
@@ -120,17 +184,19 @@ impl Sfx {
                     let mut control = handle.control::<oddio::Stream<_>, _>();
                     let n = control.write(&buf);
                     buf.drain(..n);
-                    Duration::from_micros(500_000 * n as u64 / sample_rate as u64)
+                    Duration::from_micros(250_000 * n as u64 / sample_rate as u64)
                 };
 
                 if done && buf.is_empty() {
+                    debug!("Done playing sound");
                     break;
                 }
 
-                if let Ok(true) = tokio::time::timeout(sleep, async {
+                match tokio::time::timeout(sleep, async {
                     if let Some(frames) = rx.recv().await {
                         for s in &frames[0] {
-                            buf.push(*s as f32 / std::i16::MAX as f32);
+                            let f = *s as f32 / std::i16::MAX as f32;
+                            buf.push([f; 2]);
                         }
                         false
                     } else {
@@ -139,9 +205,17 @@ impl Sfx {
                 })
                 .await
                 {
-                    done = true;
+                    Ok(true) => done = true,
+                    Err(_) => {
+                        if buf.is_empty() && !done {
+                            warn!("What the fuck");
+                        }
+                    }
+                    Ok(false) => (),
                 }
             }
+
+            let _ = dead_sound_tx.send(handle);
         });
     }
 }

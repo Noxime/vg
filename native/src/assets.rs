@@ -2,7 +2,7 @@ use std::{
     fs::File as StdFile,
     io::{Read, Seek, SeekFrom},
     path::PathBuf,
-    rc::Rc,
+    sync::Arc,
 };
 
 use bytes::BytesMut;
@@ -15,7 +15,7 @@ use tracing::{debug, trace, warn};
 
 pub struct Assets {
     paths: Vec<PathBuf>,
-    cache: DashMap<PathBuf, Rc<Cache>>,
+    cache: DashMap<PathBuf, Arc<Cache>>,
 }
 
 pub struct Cache {
@@ -111,7 +111,7 @@ impl Assets {
         }
     }
 
-    pub async fn get(&self, asset: &str) -> Rc<Cache> {
+    pub async fn get(&self, asset: &str) -> Arc<Cache> {
         puffin::profile_function!();
         trace!("Fetching asset: {}", asset);
 
@@ -122,7 +122,7 @@ impl Assets {
 
             // Already cached, just use that one
             if let Some(cache) = self.cache.get(&path) {
-                return Rc::clone(&*cache);
+                return Arc::clone(&*cache);
             }
 
             if let Ok(path) = canonicalize(path).await {
@@ -143,13 +143,13 @@ impl Assets {
 
         self.cache.insert(
             path.clone(),
-            Rc::new(Cache {
+            Arc::new(Cache {
                 first: buf,
                 len: meta.len() as _,
                 path: path.clone(),
             }),
         );
 
-        Rc::clone(&*self.cache.get(&path).unwrap())
+        Arc::clone(&*self.cache.get(&path).unwrap())
     }
 }

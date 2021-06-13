@@ -235,8 +235,8 @@ impl Engine {
         }
 
         let mut play_tasks = vec![];
-        for PlayCall { asset } in plays {
-            play_tasks.push(async move { assets.get(&asset).await });
+        for PlayCall { asset, looping } in plays {
+            play_tasks.push(async move { (assets.get(&asset).await, looping) });
         }
 
         let (draws, plays) = futures::join!(join_all(draw_tasks), join_all(play_tasks));
@@ -245,8 +245,8 @@ impl Engine {
             self.gfx.draw_sprite(asset, trans).await;
         }
 
-        for asset in plays {
-            self.sfx.play_sound(asset).await;
+        for (asset, looping) in plays {
+            self.sfx.play_sound(asset, looping).await;
         }
 
         for call in calls {

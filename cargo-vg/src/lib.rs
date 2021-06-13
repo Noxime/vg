@@ -115,13 +115,16 @@ pub fn run(opts: Opts) {
 
             vg_native::Engine::run::<Wasm, _>(move || match rx.try_recv() {
                 Ok(_) => {
-                    assert!(run_cargo(
+                    if run_cargo(
                         &opts.manifest_path,
                         opts.build_path.clone(),
                         "build",
                         None,
-                    ));
-                    Some(read_wasm())
+                    ) {
+                        Some(read_wasm())
+                    } else {
+                        None
+                    }
                 }
                 Err(TryRecvError::Empty) => None,
                 Err(TryRecvError::Disconnected) => panic!("File notification channel closed"),
