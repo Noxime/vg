@@ -16,17 +16,17 @@ use futures::future::join_all;
 use gfx::Gfx;
 use runtime::Runtime;
 use sfx::Sfx;
-use tokio::runtime::Runtime as Tokio;
-use tracing::{debug, info, trace, warn};
+use tracing::{debug, info, trace};
 use tracing_subscriber::prelude::*;
 use vg_types::{Call, DrawCall, PlayCall};
 use winit::{
-    event::{Event, VirtualKeyCode, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
 
 pub struct Engine {
+    #[allow(unused)]
     window: Arc<Window>,
     gfx: Gfx,
     sfx: Sfx,
@@ -75,7 +75,7 @@ impl Engine {
         );
 
         #[cfg(feature = "debug")]
-        let debug = debug::DebugData::new(window.clone());
+        let debug = debug::DebugData::new(window.clone(), RT::NAME);
 
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::from_default_env())

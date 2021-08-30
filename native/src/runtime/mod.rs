@@ -2,6 +2,8 @@ use vg_types::Call;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
+#[cfg(feature = "wasm")]
+pub mod wasmer;
 
 pub type Error = Box<dyn std::error::Error>;
 
@@ -9,6 +11,8 @@ pub trait Runtime
 where
     Self: Sized,
 {
+    const NAME: &'static str;
+
     fn load(code: &[u8]) -> Result<Self, Error>;
     fn run_tick(&mut self) -> Result<Vec<Call>, Error>;
     fn send(&mut self, value: vg_types::Response);

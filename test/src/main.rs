@@ -1,8 +1,6 @@
 use vg::*;
 
-game!(test);
-
-async fn test() {
+fn main() {
     let mut pos = [0.0; 2];
 
     loop {
@@ -18,6 +16,6 @@ async fn test() {
         gfx::draw("ferris.png").pos(pos);
         gfx::draw("ferris.png").pos([1, 1]);
 
-        frame().await;
+        frame();
     }
 }

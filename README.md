@@ -21,3 +21,14 @@ cargo vg run
 cd test/
 cargo run
 ```
+
+Path | Purpose
+-----|--------
+`native/` | The VG "host side", which implements all functionality
+`rust/` | A VG "client side" Rust crate which exposes the host API to the game
+`rust/derive/` | Currently unused leftover
+`rust/vg-builder/` | A "magic" crate that automatically builds the game as a proper WASM module when depended on
+`rust/vg-types/` | An interface crate which defines the actual API between host and client
+`cargo-vg/` | A cargo subcommand for automatically building your game as a WASM module and provides hot-reload
+`rust-wasm/` | A modified WASM interpreter used in host when other runtimes are not available
+`test/` | An example game used for development

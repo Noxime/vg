@@ -6,11 +6,13 @@ edition = "2018"
 
 [features]
 default = ["wasm"]
-wasm = ["rust-wasm"]
+wasm = ["rust-wasm", "wasmer"]
 debug = ["egui", "epi", "egui_wgpu_backend", "egui_winit_platform", "puffin_egui"]
 
 [dependencies]
 rust-wasm = { path = "../rust-wasm", optional = true }
+wasmer = { version = "2", optional = true }
+
 vg-types = { path = "../rust/vg-types" }
 
 dashmap = "4"
@@ -20,6 +22,7 @@ bytes = "1"
 tracing = "0.1"
 tracing-subscriber = "0.2"
 puffin = "0.4"
+loupe = "0.1"
 
 # console_error_panic_hook = "0.1"
 # tracing-wasm = "0.2"

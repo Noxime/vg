@@ -12,6 +12,8 @@ pub struct Wasm {
 }
 
 impl Runtime for Wasm {
+    const NAME: &'static str = "wasm-interpreter";
+
     fn load(code: &[u8]) -> Result<Self, Error> {
         let mut store = init_store();
         let module = decode_module(std::io::Cursor::new(code)).unwrap();

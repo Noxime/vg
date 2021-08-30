@@ -31,10 +31,11 @@ pub struct DebugData {
     pub last_draw: Instant,
     pub tick_time: Duration,
     pub force_smooth: bool,
+    pub runtime_name: String,
 }
 
 impl DebugData {
-    pub fn new(window: Arc<Window>) -> DebugData {
+    pub fn new(window: Arc<Window>, rt_name: impl ToString) -> DebugData {
         let size = window.inner_size();
         let platform = Platform::new(PlatformDescriptor {
             physical_width: size.width,
@@ -59,6 +60,7 @@ impl DebugData {
             last_draw: Instant::now(),
             tick_time: Duration::from_millis(1),
             force_smooth: false,
+            runtime_name: rt_name.to_string(),
         }
     }
 
@@ -75,6 +77,7 @@ impl epi::App for DebugData {
 
         egui::Window::new("VG").show(ctx, |ui| {
             let last_draw = self.last_draw.elapsed();
+            ui.label(format!("RT: {}", self.runtime_name));
             ui.label(format!(
                 "Framerate: {:.2}fps / {:.2?}",
                 1.0 / last_draw.as_secs_f32(),

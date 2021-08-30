@@ -3,7 +3,6 @@
 
 use std::{collections::VecDeque, future::Future, time::Duration};
 mod conversions;
-mod executor;
 pub use conversions::{Position, Rotation};
 use vg_types::DeBin;
 pub mod gfx;
@@ -11,74 +10,52 @@ mod input;
 pub mod sfx;
 pub use input::*;
 
-#[macro_export]
-macro_rules! game {
-    ($i:ident) => {
-        fn main() {
-            __vg_start($i)
-        }
-    };
-}
-
+// If we are running in WASI we are inside VG and everything is okay.
 #[cfg(target_os = "wasi")]
 fn ensure() -> &'static mut State {
-    unsafe { STATE.get_or_insert_with(|| unreachable!()) }
-}
-
-// This is what happens when you don't use cargo-vg
-#[cfg(not(target_os = "wasi"))]
-fn ensure() -> &'static mut State {
-    let mut code = Some(vg_builder::WASM.to_vec());
-    vg_native::Engine::run::<vg_native::runtime::wasm::Wasm, _>(move || code.take())
-}
-
-static mut STATE: Option<State> = None;
-
-pub struct State {
-    tick: usize,
-    exec: executor::Executor,
-    responses: VecDeque<Vec<u8>>,
-    runtime: Duration,
-    deltatime: Duration,
-    input: Input,
-}
-
-#[link(wasm_import_module = "env")]
-extern "C" {
-    fn call(ptr: u64, len: u64);
-}
-
-pub fn __vg_start<F, Fut>(f: F)
-where
-    F: Fn() -> Fut,
-    Fut: Future<Output = ()> + 'static,
-{
     unsafe {
         STATE.get_or_insert_with(|| {
-            let exec = executor::Executor::new(f());
             let tick = 0;
             let responses = VecDeque::new();
 
             State {
-                exec,
                 tick,
                 responses,
                 runtime: Duration::from_secs(0),
                 deltatime: Duration::from_secs(0),
                 input: Input::default(),
             }
-        });
+        })
     }
-
-    ensure();
 }
 
-#[no_mangle]
-pub extern "C" fn __vg_tick() {
-    let state = ensure();
+// This is what happens when you don't use cargo-vg
+#[cfg(not(target_os = "wasi"))]
+fn ensure() -> &'static mut State {
+    let mut code = Some(vg_builder::WASM.to_vec());
+    vg_native::Engine::run::<vg_native::runtime::wasmer::Wasmer, _>(move || code.take())
+}
 
-    state.tick += 1;
-    state.exec.run();
+// WASM-local engine state
+static mut STATE: Option<State> = None;
+
+pub struct State {
+    // Current tick number. Monotonically increasing at a fixed pace (deltatime)
+    tick: usize,
+    // The messages delivered from hosting VG, to be decoded
+    responses: VecDeque<Vec<u8>>,
+    // Time since the start of game aka tick 0
+    runtime: Duration,
+    // How long a single tick takes
+    deltatime: Duration,
+    // Input state cache
+    input: Input,
+}
+
+#[link(wasm_import_module = "env")]
+extern "C" {
+    // Provide a pointer length to a bincoded Call to the hosting VG instance
+    fn call(ptr: u64, len: u64);
 }
 
 /// Give the host some way to allocate new memory in the client
@@ -137,10 +114,11 @@ pub fn print(s: impl ToString) {
     call_host(vg_types::Call::Print(s.to_string()))
 }
 
-pub async fn frame() {
+pub fn frame() {
     call_host(vg_types::Call::Present);
+
     let state = ensure();
-    state.exec.halt().await;
+    state.tick += 1;
     state.input.step_states();
 
     while let Some(bytes) = state.responses.pop_front() {
