@@ -5,7 +5,6 @@ use std::{
     sync::mpsc::TryRecvError,
 };
 use structopt::StructOpt;
-use vg_native::runtime::wasm::Wasm;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -88,7 +87,7 @@ pub fn run(opts: Opts) {
             if run_cargo(&opts.manifest_path, opts.build_path, "build", None) {
                 println!("Running project");
                 let mut wasm = Some(read_wasm());
-                vg_native::Engine::run::<Wasm, _>(move || wasm.take());
+                vg_native::Engine::run::<vg_native::runtime::Recommended, _>(move || wasm.take());
             }
         }
         Some(Cmd::Watch) => {
@@ -113,7 +112,7 @@ pub fn run(opts: Opts) {
                 )
                 .unwrap();
 
-            vg_native::Engine::run::<Wasm, _>(move || match rx.try_recv() {
+            vg_native::Engine::run::<vg_native::runtime::Recommended, _>(move || match rx.try_recv() {
                 Ok(_) => {
                     if run_cargo(
                         &opts.manifest_path,

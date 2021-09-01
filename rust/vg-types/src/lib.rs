@@ -2,6 +2,8 @@ use std::ops::Deref;
 
 pub use nanoserde::{DeBin, SerBin};
 
+pub const MOVE_TRIGGER_MAGIC: usize = 0xCAFEBABE;
+
 type Vec3 = [f32; 3];
 type Quat = [f32; 4];
 
@@ -26,8 +28,6 @@ pub enum Call {
     Exit,
 
     // Graphics
-    /// Finish a single frame of the game and return to host
-    Present,
     /// Draw an asset with specified transform
     Draw(DrawCall),
 

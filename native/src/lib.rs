@@ -98,6 +98,8 @@ impl Engine {
         let mut last_frame = Instant::now();
         let mut shown_tick = false;
 
+        let mut rollbacks = vec![];
+
         events.run(move |ev, _, flow| {
             *flow = ControlFlow::Poll;
 
@@ -139,6 +141,23 @@ impl Engine {
                 } => {
                     debug!("Toggled debug UI visibility");
                     engine.debug.visible = !engine.debug.visible;
+                }
+                #[cfg(feature = "debug")]
+                Event::WindowEvent {
+                    event: WindowEvent::ReceivedCharacter(','),
+                    ..
+                } => {
+                    rollbacks.push(tick_runtime.serialize().unwrap());
+                }
+                #[cfg(feature = "debug")]
+                Event::WindowEvent {
+                    event: WindowEvent::ReceivedCharacter('.'),
+                    ..
+                } => {
+                    if let Some(bytes) = rollbacks.pop() {
+                        *tick_runtime = RT::deserialize(&bytes).unwrap();
+                        runtime = None;
+                    }
                 }
                 Event::WindowEvent {
                     event:
@@ -209,20 +228,12 @@ impl Engine {
         let mut draws = vec![];
         let mut plays = vec![];
 
-        let mut presented = false;
-        while !presented {
-            for call in rt.run_tick().unwrap().drain(..) {
-                // stop ticking once we complete a frame
-                if matches!(call, Call::Present) {
-                    presented = true;
-                }
-
-                // split calls into different categories so we can do concurrency
-                match call {
-                    Call::Draw(call) => draws.push(call),
-                    Call::Play(call) => plays.push(call),
-                    call => calls.push(call),
-                }
+        for call in rt.run_tick().unwrap().drain(..) {
+            // split calls into different categories so we can do concurrency
+            match call {
+                Call::Draw(call) => draws.push(call),
+                Call::Play(call) => plays.push(call),
+                call => calls.push(call),
             }
         }
 
@@ -251,20 +262,6 @@ impl Engine {
 
         for call in calls {
             match call {
-                Call::Present => {
-                    self.presented = true;
-                    let runtime = self.start_time.elapsed();
-
-                    #[cfg(feature = "debug")]
-                    self.debug.platform.update_time(runtime.as_secs_f64());
-
-                    self.gfx
-                        .present(
-                            #[cfg(feature = "debug")]
-                            &mut self.debug,
-                        )
-                        .await;
-                }
                 Call::Print(msg) => {
                     info!("{}", msg);
                     #[cfg(feature = "debug")]
@@ -276,5 +273,18 @@ impl Engine {
                 Call::Play(..) | Call::Draw(..) => unreachable!(),
             }
         }
+
+        self.presented = true;
+        let runtime = self.start_time.elapsed();
+
+        #[cfg(feature = "debug")]
+        self.debug.platform.update_time(runtime.as_secs_f64());
+
+        self.gfx
+            .present(
+                #[cfg(feature = "debug")]
+                &mut self.debug,
+            )
+            .await;
     }
 }

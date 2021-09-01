@@ -6,12 +6,12 @@ use super::{Error, Runtime};
 use rust_wasm::*;
 use vg_types::*;
 
-pub struct Wasm {
+pub struct InterpreterRT {
     instance: Rc<ModuleInst>,
     store: Store<Vec<Call>>,
 }
 
-impl Runtime for Wasm {
+impl Runtime for InterpreterRT {
     const NAME: &'static str = "wasm-interpreter";
 
     fn load(code: &[u8]) -> Result<Self, Error> {
@@ -157,7 +157,7 @@ impl Runtime for Wasm {
         )
         .unwrap();
 
-        Ok(Wasm { instance, store })
+        Ok(InterpreterRT { instance, store })
     }
 
     fn run_tick(&mut self) -> Result<Vec<Call>, Error> {
@@ -228,7 +228,7 @@ impl Runtime for Wasm {
         // invoke_func(&mut self.store, func, vec![]).unwrap();
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, Error> {
+    fn serialize(&mut self) -> Result<Vec<u8>, Error> {
         todo!()
     }
 
@@ -236,12 +236,12 @@ impl Runtime for Wasm {
         todo!()
     }
 
-    fn duplicate(&self) -> Result<Self, Error> {
+    fn duplicate(&mut self) -> Result<Self, Error> {
         puffin::profile_function!();
 
         let instance = Rc::new(ModuleInst::clone(&self.instance));
         let store = self.store.clone();
 
-        Ok(Wasm { instance, store })
+        Ok(InterpreterRT { instance, store })
     }
 }
