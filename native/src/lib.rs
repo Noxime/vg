@@ -14,6 +14,7 @@ use std::{
 use assets::Assets;
 use futures::future::join_all;
 use gfx::Gfx;
+use glam::UVec2;
 use runtime::Runtime;
 use sfx::Sfx;
 use tracing::{debug, info, trace};
@@ -34,7 +35,6 @@ pub struct Engine {
     assets: Assets,
     #[cfg(feature = "debug")]
     debug: debug::DebugData,
-    presented: bool,
 }
 
 impl Engine {
@@ -46,7 +46,7 @@ impl Engine {
         let sfx = Sfx::new();
 
         let tokio = tokio::runtime::Builder::new_multi_thread()
-            .thread_name("vg-worker")
+            .thread_name("vg")
             .enable_all()
             .build()
             .unwrap();
@@ -55,10 +55,9 @@ impl Engine {
         // tracing_wasm::set_as_global_default();
 
         let mut runtime = None;
-        let mut tick_runtime = None;
+        let mut runtime_smooth = None;
 
         let events = EventLoop::new();
-
         let mut builder = WindowBuilder::new().with_title("vg-main");
 
         #[cfg(target_os = "windows")]
@@ -90,37 +89,33 @@ impl Engine {
             assets: Assets::new(),
             window,
             start_time: Instant::now(),
-            presented: false,
         };
 
-        let time_tick = Duration::from_millis(10);
+        let tickrate = Duration::from_millis(100);
         let mut next_tick = Instant::now();
-        let mut last_frame = Instant::now();
-        let mut shown_tick = false;
-
-        let mut rollbacks = vec![];
+        let mut smooth_frame = Instant::now();
 
         events.run(move |ev, _, flow| {
+            puffin::profile_scope!("main");
             *flow = ControlFlow::Poll;
 
             // hosting process has decided it is time for us to die
             if let Some(code) = idle_task() {
                 debug!("Idle task reloaded code");
-                tick_runtime = Some(RT::load(&code).expect("Loading the runtime failed"));
-                runtime = None;
+                runtime = Some(RT::load(&code).expect("Loading the runtime failed"));
                 return;
             }
 
-            let tick_runtime = if let Some(ref mut rt) = tick_runtime {
-                rt
-            } else {
-                return;
+            // Don't run when we have nothing... to run
+            let runtime = match runtime {
+                Some(ref mut rt) => rt,
+                None => return,
             };
 
             #[cfg(feature = "debug")]
             {
                 engine.debug.platform.handle_event(&ev);
-                engine.debug.tick_time = time_tick;
+                engine.debug.tick_time = tickrate;
             }
 
             match ev {
@@ -132,32 +127,15 @@ impl Engine {
                     event: WindowEvent::Resized(size),
                     ..
                 } => {
-                    engine.gfx.resize(size);
+                    engine.gfx.resize(UVec2::new(size.width, size.height));
                 }
                 #[cfg(feature = "debug")]
                 Event::WindowEvent {
-                    event: WindowEvent::ReceivedCharacter('§'),
+                    event: WindowEvent::ReceivedCharacter('/'),
                     ..
                 } => {
                     debug!("Toggled debug UI visibility");
                     engine.debug.visible = !engine.debug.visible;
-                }
-                #[cfg(feature = "debug")]
-                Event::WindowEvent {
-                    event: WindowEvent::ReceivedCharacter(','),
-                    ..
-                } => {
-                    rollbacks.push(tick_runtime.serialize().unwrap());
-                }
-                #[cfg(feature = "debug")]
-                Event::WindowEvent {
-                    event: WindowEvent::ReceivedCharacter('.'),
-                    ..
-                } => {
-                    if let Some(bytes) = rollbacks.pop() {
-                        *tick_runtime = RT::deserialize(&bytes).unwrap();
-                        runtime = None;
-                    }
                 }
                 Event::WindowEvent {
                     event:
@@ -171,10 +149,10 @@ impl Engine {
                     if let Some(key) = input.virtual_keycode.and_then(util::winit_to_key) {
                         match input.state {
                             winit::event::ElementState::Pressed => {
-                                tick_runtime.send(vg_types::Response::Down(key))
+                                runtime.send(vg_types::Response::Down(key))
                             }
                             winit::event::ElementState::Released => {
-                                tick_runtime.send(vg_types::Response::Up(key))
+                                runtime.send(vg_types::Response::Up(key))
                             }
                         }
                     }
@@ -182,38 +160,27 @@ impl Engine {
                 // all events for an update handled
                 Event::MainEventsCleared => {
                     // we should run fixed tick
-                    if next_tick < Instant::now() && shown_tick {
+                    if next_tick <= Instant::now() {
                         trace!("Tick");
-                        next_tick += time_tick;
-                        runtime = None;
+                        next_tick += tickrate;
 
-                        // engine.run_till_present(tick_runtime);
-                        tokio.block_on(engine.run_till_present(tick_runtime));
+                        // Run a proper tick
+                        tokio.block_on(engine.run_till_present(runtime, tickrate));
 
-                        // Adjust the time by one tick. This is determenistic
-                        tick_runtime.send(vg_types::Response::Time(time_tick.as_secs_f64()));
-
-                        #[cfg(feature = "debug")]
-                        {
-                            shown_tick = !engine.debug.force_smooth;
-                        }
+                        // The smoothed runtime is invalid state now
+                        runtime_smooth = None;
+                        smooth_frame = Instant::now();
                     } else {
-                        // still waiting for fixed tick, so draw render ticks
-                        shown_tick = true;
+                        trace!("Smooth");
+                        let runtime_smooth = runtime_smooth.get_or_insert_with(|| runtime.duplicate().unwrap());
 
-                        let frame_runtime = if let Some(ref mut rt) = runtime {
-                            rt
-                        } else {
-                            runtime = Some(tick_runtime.duplicate().unwrap());
-                            runtime.as_mut().unwrap()
-                        };
+                        let elapsed = smooth_frame.elapsed();
+                        smooth_frame += elapsed;
+                        tokio.block_on(engine.run_till_present(runtime_smooth, elapsed));
 
-                        tokio.block_on(engine.run_till_present(frame_runtime));
-
-                        // Pass a frames worth of time. Non-determenistic, but its okay because we rollback each tick
-                        let elapsed = last_frame.elapsed();
-                        frame_runtime.send(vg_types::Response::Time(elapsed.as_secs_f64()));
-                        last_frame += elapsed;
+                        // // Pass a frames worth of time. Non-determenistic, but its okay because we rollback each tick
+                        // let elapsed = smooth_frame.elapsed();
+                        // smooth_frame += elapsed;
                     }
                 }
                 _ => (),
@@ -221,14 +188,14 @@ impl Engine {
         })
     }
 
-    async fn run_till_present<RT: Runtime>(&mut self, rt: &mut RT) {
+    async fn run_till_present<RT: Runtime>(&mut self, rt: &mut RT, dt: Duration) {
         puffin::profile_function!();
 
         let mut calls = vec![];
         let mut draws = vec![];
         let mut plays = vec![];
 
-        for call in rt.run_tick().unwrap().drain(..) {
+        for call in rt.run_tick(dt).unwrap().drain(..) {
             // split calls into different categories so we can do concurrency
             match call {
                 Call::Draw(call) => draws.push(call),
@@ -274,7 +241,6 @@ impl Engine {
             }
         }
 
-        self.presented = true;
         let runtime = self.start_time.elapsed();
 
         #[cfg(feature = "debug")]

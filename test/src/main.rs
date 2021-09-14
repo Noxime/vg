@@ -16,7 +16,7 @@ async fn game() {
         }
 
         gfx::draw("ferris.png").pos(pos);
-        gfx::draw("ferris.png").pos([1, 1]);
+        gfx::draw("ferris.png").pos([time().sin(), time().cos()]);
 
         frame().await;
     }

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, time::Duration};
 use tracing::*;
 
 use super::{Error, Runtime};
@@ -160,7 +160,7 @@ impl Runtime for InterpreterRT {
         Ok(InterpreterRT { instance, store })
     }
 
-    fn run_tick(&mut self) -> Result<Vec<Call>, Error> {
+    fn run_tick(&mut self, dt: Duration) -> Result<Vec<Call>, Error> {
         puffin::profile_function!();
 
         let func = match get_export(&self.instance, "__vg_tick") {
@@ -172,7 +172,7 @@ impl Runtime for InterpreterRT {
 
         // self.engine.set(Some(engine));
         let mut calls = vec![];
-        invoke_func(&mut calls, &mut self.store, func, vec![]).unwrap();
+        invoke_func(&mut calls, &mut self.store, func, vec![values::Value::F64(dt.as_secs_f64())]).unwrap();
         // self.engine.set(None);
 
         Ok(calls)
@@ -232,7 +232,7 @@ impl Runtime for InterpreterRT {
         todo!()
     }
 
-    fn deserialize(_bytes: &[u8]) -> Result<Self, Error> {
+    fn deserialize(_bytes: Vec<u8>) -> Result<Self, Error> {
         todo!()
     }
 

@@ -1,232 +1,142 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc, time::Instant};
 
-use glam::Mat4;
-use rend3::{
-    datatypes::{
-        AffineTransform, AlbedoComponent, Camera, Material, MaterialHandle, Mesh, MeshBuilder,
-        MeshHandle, Object, ObjectHandle, RendererTextureFormat, TextureHandle,
-    },
-    CustomDevice, Renderer, RendererBuilder, RendererOptions, RendererOutput, VSyncMode,
-};
-use rend3_list::{DefaultPipelines, DefaultShaders};
+use glam::{Mat4, UVec2, Vec3A, Vec4, vec2, vec3};
+use rend3::{InstanceAdapterDevice, RenderRoutine, Renderer, RendererMode, create_iad, types::{
+        AlbedoComponent, Camera, Material, MaterialHandle, Mesh, MeshHandle, MipmapCount,
+        MipmapSource, Object, ObjectHandle, Texture, TextureHandle,
+    }, util::output::OutputFrame};
+use rend3_pbr::{PbrRenderRoutine, RenderTextureOptions, SampleCount};
 use tracing::*;
 use vg_types::Transform;
-use wgpu::*;
+use wgpu::{Color, CommandBuffer, CommandEncoderDescriptor, LoadOp, Maintain, Operations, PresentMode, RenderPassColorAttachment, RenderPassDescriptor, Surface, TextureFormat, TextureViewDescriptor};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::assets::Cache;
 
-const PREFERRED_FORMAT: TextureFormat = TextureFormat::Bgra8Unorm;
-// const PREFERRED_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
-// const FALLBACK_FORMAT: TextureFormat = TextureFormat::Bgra8UnormSrgb;
 
 pub struct Gfx {
-    instance: Arc<Instance>,
     surface: Surface,
-    device: Arc<Device>,
-    queue: Arc<Queue>,
+    format: TextureFormat,
+    present_mode: PresentMode,
     window: Arc<Window>,
-    swapchain_desc: SwapChainDescriptor,
-    swapchain: SwapChain,
     renderer: Arc<Renderer>,
-    pipelines: DefaultPipelines,
-    #[cfg(feature = "debug")]
-    pub egui_pass: egui_wgpu_backend::RenderPass,
-    objects: Vec<ObjectHandle>,
-    materials: Vec<MaterialHandle>,
-    textures: HashMap<PathBuf, TextureHandle>,
+    routine_pbr: PbrRenderRoutine,
     sprite_mesh: MeshHandle,
+    textures: HashMap<PathBuf, TextureHandle>,
+    sprites: Vec<ObjectHandle>,
+
+    #[cfg(feature = "debug")]
+    egui_pass: egui_wgpu_backend::RenderPass,
 }
 
 impl Gfx {
     pub async fn new(window: Arc<Window>) -> Gfx {
-        //wgpu_subscriber::initialize_default_subscriber(Some(std::path::Path::new("wgpu_trace")));
+        // //wgpu_subscriber::initialize_default_subscriber(Some(std::path::Path::new("wgpu_trace")));
 
-        let backends = BackendBit::all();
-        debug!("Using graphics backends: {:?}", backends);
+        let iad = create_iad(None, None, None).await.unwrap();
 
-        let instance = Instance::new(backends);
-        let surface = unsafe { instance.create_surface(window.as_ref()) };
-
-        let adapter = instance
-            .request_adapter(&RequestAdapterOptions {
-                power_preference: PowerPreference::HighPerformance,
-                compatible_surface: Some(&surface),
-            })
-            .await
-            .expect("Could not find suitable adapter");
-
-        debug!("Using: {}", adapter.get_info().name);
-        // for adapter in instance.enumerate_adapters(backends) {
-        //     let info = adapter.get_info();
-        //     debug!(
-        //         "  {} ({:?}, {:?})",
-        //         info.name, info.device_type, info.backend
-        //     );
-        // }
-
+        // Lets hope winit never provides a busted window handle and the proper swapchain format can always be queried
+        let surface = unsafe { iad.instance.create_surface(window.as_ref()) };
+        let format = surface.get_preferred_format(&iad.adapter).unwrap();
         let present_mode = PresentMode::Mailbox;
-        let format = adapter
-            .get_texture_format_features(PREFERRED_FORMAT)
-            .allowed_usages
-            .contains(TextureUsage::RENDER_ATTACHMENT)
-            .then(|| PREFERRED_FORMAT)
-            .unwrap_or(adapter.get_swap_chain_preferred_format(&surface));
-
-        debug!(
-            "Using swapchain format of {:?} and present mode of {:?}",
-            format, present_mode
-        );
-
-        let (device, queue) = adapter
-            .request_device(
-                &DeviceDescriptor {
-                    label: Some("vg-device"),
-                    features: Features::MAPPABLE_PRIMARY_BUFFERS | Features::PUSH_CONSTANTS,
-                    limits: Limits {
-                        max_bind_groups: 8,
-                        max_storage_buffers_per_shader_stage: 5,
-                        max_push_constant_size: 128,
-                        ..Default::default()
-                    },
-                },
-                None,
-            )
-            .await
-            .expect("Failed to acquire graphics device");
 
         let size = window.inner_size();
+        let size = UVec2::new(size.width, size.height);
 
-        let swapchain_desc = SwapChainDescriptor {
-            format,
-            present_mode,
-            usage: TextureUsage::RENDER_ATTACHMENT,
-            width: size.width,
-            height: size.height,
-        };
-
-        let swapchain = device.create_swap_chain(&surface, &swapchain_desc);
-
-        let instance = Arc::new(instance);
-        let device = Arc::new(device);
-        let queue = Arc::new(queue);
-
-        let renderer = RendererBuilder::new(RendererOptions {
-            vsync: VSyncMode::Off, // we manually handle vsync
-            size: size.into(),
-            ambient: Default::default(),
-        })
-        .device(CustomDevice {
-            instance: Arc::clone(&instance),
-            device: Arc::clone(&device),
-            queue: Arc::clone(&queue),
-            info: adapter.get_info(),
-        })
-        .build()
-        .await
-        .expect("Failed to initialize rend3 renderer");
-
+        let renderer = Renderer::new(iad, Some(size.x as f32 / size.y as f32)).unwrap();
         renderer.set_camera_data(Camera {
-            projection: rend3::datatypes::CameraProjection::Projection {
-                vfov: 90.0,
-                near: 0.1,
-                pitch: 0.0,
-                yaw: 0.0,
+            projection: rend3::types::CameraProjection::Orthographic {
+                size: Vec3A::new(10.0, 10.0, 10.0),
+                direction: Vec3A::new(0.0, 0.0, 1.0),
             },
-            location: (0.0, 0.0, -5.0).into(),
+            location: Vec3A::new(0.0, 0.0, -5.0),
         });
 
-        // renderer.set_camera_data(Camera {
-        //     projection: rend3::datatypes::CameraProjection::Orthographic {
-        //         size: (5.0, 5.0, 5.0).into(),
-        //         direction: (0.0, 0.0, 1.0).into(),
-        //     },
-        //     location: (0.0, 0.0, -5.0).into(),
-        // });
-
-        let shaders = DefaultShaders::new(&renderer).await;
-        let pipelines = DefaultPipelines::new(&renderer, &shaders).await;
-
-        // TODO: rend3:0.0.5 crashes if there are 0 objects in the scene, create an invisible mesh
-        {
-            let mesh = renderer.add_mesh(Mesh {
-                vertex_positions: vec![Default::default()],
-                vertex_normals: vec![Default::default()],
-                vertex_tangents: vec![Default::default()],
-                vertex_uvs: vec![Default::default()],
-                vertex_colors: vec![Default::default()],
-                vertex_material_indices: vec![Default::default()],
-                indices: vec![0, 0, 0],
-            });
-
-            let material = renderer.add_material(Default::default());
-            let _object = renderer.add_object(Object {
-                mesh,
-                material,
-                transform: AffineTransform {
-                    transform: Default::default(),
-                },
-            });
-        }
-
-        let sprite_mesh = MeshBuilder::new(vec![
-            (-0.5, -0.5, 0.0).into(),
-            (0.5, -0.5, 0.0).into(),
-            (0.5, 0.5, 0.0).into(),
-            (-0.5, 0.5, 0.0).into(),
-        ])
-        .with_vertex_uvs(vec![
-            (0.0, 1.0).into(),
-            (1.0, 1.0).into(),
-            (1.0, 0.0).into(),
-            (0.0, 0.0).into(),
-        ])
-        .with_indices(vec![2, 1, 0, 0, 3, 2, 2, 3, 0, 0, 1, 2])
-        .build();
-        let sprite_mesh = renderer.add_mesh(sprite_mesh);
-
-        #[cfg(feature = "debug")]
-        let egui_pass = {
-            use egui_wgpu_backend::RenderPass;
-            let egui_pass = RenderPass::new(&device, format);
-            egui_pass
+        let mut mesh = Mesh {
+            vertex_positions: vec![
+                vec3(-0.5, -0.5, 0.0),
+                vec3(-0.5, 0.5, 0.0),
+                vec3(0.5, -0.5, 0.0),
+                vec3(0.5, 0.5, 0.0),
+            ],
+            vertex_uvs: vec![
+                vec2(0.0, 0.0),
+                vec2(0.0, 1.0),
+                vec2(1.0, 0.0),
+                vec2(1.0, 1.0),
+            ],
+            vertex_normals: vec![Default::default(); 4],
+            vertex_tangents: vec![Default::default(); 4],
+            vertex_colors: vec![[0xFF; 4]; 4],
+            vertex_material_indices: vec![0; 4],
+            indices: vec![0, 1, 2, 3, 2, 1],
         };
 
-        Gfx {
-            instance,
-            surface,
-            device,
-            queue,
-            window,
-            swapchain_desc,
-            swapchain,
-            renderer,
-            pipelines,
-            objects: vec![],
-            materials: vec![],
-            textures: HashMap::new(),
-            sprite_mesh,
+        mesh.calculate_normals();
+        mesh.calculate_tangents();
+
+        let sprite_mesh = renderer.add_mesh(mesh);
+
+        let routine_pbr = PbrRenderRoutine::new(
+            renderer.as_ref(),
+            RenderTextureOptions {
+                resolution: size,
+                samples: SampleCount::Four,
+            },
+            format,
+        );
+
+        let mut gfx = Gfx {
             #[cfg(feature = "debug")]
-            egui_pass,
+            egui_pass: egui_wgpu_backend::RenderPass::new(
+                &renderer.device,
+                format,
+                1,
+            ),
+
+            surface,
+            format,
+            present_mode,
+            window,
+            renderer,
+            routine_pbr,
+            sprite_mesh,
+
+            textures: HashMap::new(),
+            sprites: Vec::new(),
+        };
+
+        gfx.resize(size);
+
+        gfx
+    }
+
+    pub fn resize(&mut self, size: UVec2) {
+        debug!("Resizing to {}x{}", size.x, size.y);
+
+        // Cannot resize to zero
+        if size.x == 0 || size.y == 0 {
+            return;
         }
-    }
 
-    fn recreate_swapchain(&mut self) {
-        self.swapchain = self
-            .device
-            .create_swap_chain(&self.surface, &self.swapchain_desc);
-    }
+        rend3::configure_surface(
+            &self.surface,
+            &self.renderer.device,
+            self.format,
+            size,
+            self.present_mode,
+        );
 
-    pub fn resize(&mut self, size: PhysicalSize<u32>) {
-        trace!("Resizing to {}x{}", size.width, size.height);
-        self.swapchain_desc.width = size.width;
-        self.swapchain_desc.height = size.height;
-        self.recreate_swapchain();
-        self.renderer.set_options(RendererOptions {
-            vsync: VSyncMode::Off, // we manually handle vsync
-            size: size.into(),
-            ambient: Default::default(),
-        })
+        self.renderer
+            .set_aspect_ratio(size.x as f32 / size.y as f32);
+
+        self.routine_pbr.resize(
+            self.renderer.as_ref(),
+            RenderTextureOptions {
+                resolution: size,
+                samples: SampleCount::Four,
+            },
+        );
     }
 
     pub async fn draw_sprite(&mut self, asset: Arc<Cache>, transform: Transform) {
@@ -238,130 +148,68 @@ impl Gfx {
             let img = image::load_from_memory(&bytes).unwrap();
             let img = img.to_rgba8();
 
-            let tex = self.renderer.add_texture_2d(rend3::datatypes::Texture {
-                width: img.width(),
-                height: img.height(),
+            let tex = self.renderer.add_texture_2d(Texture {
+                label: Some(format!("Sprite: {}", asset.path.display())),
+                size: UVec2::new(img.width(), img.height()),
                 data: img.into_raw(),
-                format: RendererTextureFormat::Rgba8Srgb,
-                label: None,
-                mip_levels: 1,
+                format: TextureFormat::Rgba8UnormSrgb,
+                mip_count: MipmapCount::Maximum,
+                mip_source: MipmapSource::Generated,
             });
 
             self.textures.insert(asset.path.clone(), tex);
             debug!("Texture uploaded");
         }
 
-        let tex = *self.textures.get(&asset.path).unwrap();
+        let tex = self.textures.get(&asset.path).unwrap().clone();
 
         let material = self.renderer.add_material(Material {
             albedo: AlbedoComponent::Texture(tex),
             unlit: true,
-            nearest: asset.len <= 128 * 128 * 4, // TODO: Pick sampling better than this
-            //alpha_cutout: Some(0.5),
             ..Default::default()
         });
         let obj = self.renderer.add_object(Object {
-            mesh: self.sprite_mesh,
-            material,
+            mesh: self.sprite_mesh.clone(),
+            material: material,
             transform: trans2mat(transform),
         });
 
-        self.materials.push(material);
-        self.objects.push(obj);
+        self.sprites.push(obj);
     }
-
-    // pub fn draw_sprite(&mut self, image: &Image, transform: Transform) {
-    //     puffin::profile_function!();
-
-    //     if !self.textures.contains_key(image) {
-    //         let tex = self.renderer.add_texture_2d(rend3::datatypes::Texture {
-    //             data: image.data.clone(),
-    //             format: RendererTextureFormat::Rgba8Srgb,
-    //             width: image.width as _,
-    //             height: image.height as _,
-    //             label: None,
-    //             mip_levels: 1,
-    //         });
-
-    //         self.textures.insert(image.clone(), tex);
-    //         debug!("Uploading texture");
-    //     }
-
-    //     let texture = *self.textures.get(image).unwrap();
-
-    //     let material = self.renderer.add_material(Material {
-    //         albedo: AlbedoComponent::Texture(texture),
-    //         unlit: true,
-    //         nearest: (image.width * image.height) <= 128 * 128,
-    //         ..Default::default()
-    //     });
-    //     let obj = self.renderer.add_object(Object {
-    //         mesh: self.sprite_mesh,
-    //         material,
-    //         transform: trans2mat(transform),
-    //     });
-
-    //     self.materials.push(material);
-    //     self.objects.push(obj);
-    // }
 
     pub async fn present(&mut self, #[cfg(feature = "debug")] debug: &mut crate::debug::DebugData) {
         puffin::profile_function!();
 
         {
             puffin::profile_scope!("maintain");
-            self.device.poll(Maintain::Poll);
+            self.renderer.device.poll(Maintain::Poll);
         }
 
-        let frame = {
-            puffin::profile_scope!("swapchain_acquire");
-            let frame = Arc::new(self.swapchain.get_current_frame().unwrap_or_else(|e| {
-                warn!("Failed to acquire swapchain frame, recreating: {}", e);
-                self.recreate_swapchain();
-                self.swapchain
-                    .get_current_frame()
-                    .expect("Failed to acquire new valid swapchain")
-            }));
-
-            frame
+        let frame = match self.surface.get_current_frame() {
+            Ok(f) => f,
+            Err(e) => {
+                warn!("Failed to get output frame from surface: {}", e);
+                let size = self.window.inner_size();
+                self.resize(UVec2::new(size.width, size.height));
+                self.surface.get_current_frame().unwrap()
+            }
         };
+        let view = Arc::new(
+            frame
+                .output
+                .texture
+                .create_view(&TextureViewDescriptor::default()),
+        );
 
         {
-            puffin::profile_scope!("rend3_render");
-            let render_list = {
-                puffin::profile_scope!("rend3_render_list");
-                rend3_list::default_render_list(
-                    self.renderer.mode(),
-                    [self.swapchain_desc.width, self.swapchain_desc.height],
-                    &self.pipelines,
-                )
-            };
-
-            let handle = {
-                puffin::profile_scope!("rend3_start_render");
-                self.renderer.render(
-                    render_list,
-                    RendererOutput::ExternalSwapchain(frame.clone()),
-                )
-            };
-
-            // Complete rend3 drawing
-            {
-                puffin::profile_scope!("rend3_finish_render");
-                handle.await;
-            }
+            puffin::profile_scope!("rend3_pbr");
+            self.renderer
+                .render(&mut self.routine_pbr, OutputFrame::View(Arc::clone(&view)));
         }
 
-        // Remove objects added this frame
         {
             puffin::profile_scope!("rend3_clear_scene");
-            for mat in self.materials.drain(..) {
-                self.renderer.remove_material(mat);
-            }
-
-            for obj in self.objects.drain(..) {
-                self.renderer.remove_object(obj);
-            }
+            self.sprites.clear();
         }
 
         #[cfg(feature = "debug")]
@@ -379,6 +227,7 @@ impl Gfx {
                     cpu_usage: debug.last_frame_time,
                     seconds_since_midnight: None,
                     native_pixels_per_point: Some(self.window.scale_factor() as f32),
+                    prefer_dark_mode: None,
                 },
                 tex_allocator: &mut self.egui_pass,
                 output: &mut app_output,
@@ -389,54 +238,60 @@ impl Gfx {
             use epi::App;
             debug.update(&debug.platform.context(), &mut egui_frame);
 
-            let (_out, paint_commands) = debug.platform.end_frame();
+            let (_out, paint_commands) = debug.platform.end_frame(Some(&self.window));
             let paint_jobs = debug.platform.context().tessellate(paint_commands);
 
             let frame_time = (Instant::now() - egui_start).as_secs_f32();
             debug.last_frame_time = Some(frame_time);
 
             let mut enc = self
+                .renderer
                 .device
                 .create_command_encoder(&CommandEncoderDescriptor {
                     label: Some("egui-encoder"),
                 });
 
+            let size = self.window.inner_size();
+
             let screen_descriptor = egui_wgpu_backend::ScreenDescriptor {
-                physical_width: self.swapchain_desc.width,
-                physical_height: self.swapchain_desc.height,
+                physical_width: size.width,
+                physical_height: size.height,
                 scale_factor: self.window.scale_factor() as f32,
             };
 
             self.egui_pass.update_texture(
-                &self.device,
-                &self.queue,
+                &self.renderer.device,
+                &self.renderer.queue,
                 // debug.platform.context().texture(),
                 &debug.platform.context().texture(),
             );
             self.egui_pass
-                .update_user_textures(&self.device, &self.queue);
+                .update_user_textures(&self.renderer.device, &self.renderer.queue);
             self.egui_pass.update_buffers(
-                &self.device,
-                &self.queue,
+                &self.renderer.device,
+                &self.renderer.queue,
                 &paint_jobs,
                 &screen_descriptor,
             );
             self.egui_pass.execute(
                 &mut enc,
-                &frame.output.view,
+                &view,
                 &paint_jobs,
                 &screen_descriptor,
                 None,
-            );
+            ).unwrap();
 
             // Draw the debug UI
-            self.queue.submit(Some(enc.finish()));
+            self.renderer.queue.submit(Some(enc.finish()));
         }
 
         {
             puffin::profile_scope!("wgpu_present");
-            drop(frame)
-        };
+            // View must be dropped before frame
+            drop(view);
+            drop(frame);
+        }
+
         // Done with the frame, record it on the profiler
         {
             puffin::profile_scope!("puffin_frame");
@@ -445,12 +300,10 @@ impl Gfx {
     }
 }
 
-fn trans2mat(trans: Transform) -> AffineTransform {
-    AffineTransform {
-        transform: Mat4::from_scale_rotation_translation(
-            trans.scale.into(),
-            glam::Quat::from_array(trans.rotation),
-            trans.position.into(),
-        ),
-    }
+fn trans2mat(trans: Transform) -> Mat4 {
+    Mat4::from_scale_rotation_translation(
+        trans.scale.into(),
+        glam::Quat::from_array(trans.rotation),
+        trans.position.into(),
+    )
 }

@@ -1,10 +1,10 @@
 // pub use vg_derive::game;
 // use wasm_bindgen::prelude::*;
 
-use futures_channel::mpsc;
-use futures_executor::LocalPool;
-use futures_task::LocalSpawn;
-use futures_util::{SinkExt, StreamExt};
+use futures::channel::mpsc;
+use futures::executor::LocalPool;
+use futures::task::LocalSpawn;
+use futures::{SinkExt, StreamExt};
 use std::{collections::VecDeque, future::Future, time::Duration};
 mod conversions;
 pub use conversions::{Position, Rotation};
@@ -25,6 +25,7 @@ macro_rules! register {
 }
 
 // WASM-local engine state
+#[allow(unused)]
 static mut STATE: Option<State> = None;
 
 pub struct State {
@@ -93,9 +94,11 @@ pub extern "C" fn __vg_allocate(len: u64) -> u64 {
 
 // Run the executor for exactly one tick
 #[no_mangle]
-pub extern "C" fn __vg_tick() {
-    let (tx, mut rx) = mpsc::channel(4);
+pub extern "C" fn __vg_tick(deltatime: f64) {
+    let (tx, mut rx) = mpsc::channel(0);
     let state = ensure();
+    state.deltatime = Duration::from_secs_f64(deltatime);
+    state.runtime += state.deltatime;
     state.interrupt = tx;
     // The receiver will complete when frame() is called
     state.executor.run_until(rx.next()).unwrap();
@@ -177,15 +180,8 @@ pub async fn frame() {
 
     while let Some(bytes) = state.responses.pop_front() {
         match vg_types::Response::deserialize_bin(&bytes).unwrap() {
-            vg_types::Response::Time(step) => {
-                state.deltatime = Duration::from_secs_f64(step);
-                state.runtime += state.deltatime;
-            }
             vg_types::Response::Up(key) => state.input.set(key, Digital::Raised),
             vg_types::Response::Down(key) => state.input.set(key, Digital::Pressed),
-            vg_types::Response::Tick => {
-                // state.input.tick();
-            }
         }
     }
 }

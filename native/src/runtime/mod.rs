@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use vg_types::Call;
 
 #[cfg(feature = "wasm")]
@@ -17,14 +19,14 @@ where
     const NAME: &'static str;
 
     fn load(code: &[u8]) -> Result<Self, Error>;
-    fn run_tick(&mut self) -> Result<Vec<Call>, Error>;
+    fn run_tick(&mut self, dt: Duration) -> Result<Vec<Call>, Error>;
     fn send(&mut self, value: vg_types::Response);
 
     fn serialize(&mut self) -> Result<Vec<u8>, Error>;
-    fn deserialize(bytes: &[u8]) -> Result<Self, Error>;
+    fn deserialize(bytes: Vec<u8>) -> Result<Self, Error>;
 
     fn duplicate(&mut self) -> Result<Self, Error> {
         let bytes = self.serialize()?;
-        Self::deserialize(&bytes)
+        Self::deserialize(bytes)
     }
 }

@@ -1,6 +1,10 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering::Relaxed},
-    Arc, Mutex,
+use std::{
+    cell::{Cell, UnsafeCell},
+    sync::{
+        atomic::{AtomicBool, Ordering::Relaxed},
+        Arc, Mutex,
+    },
+    time::Duration,
 };
 
 const PAGE_SIZE: usize = u16::MAX as _;
@@ -10,13 +14,16 @@ use tracing::{debug, trace};
 use vg_types::{DeBin, SerBin};
 use wasmtime::{
     Caller, Config, Engine, Instance, Limits, LinearMemory, Linker, MemoryCreator, MemoryType,
-    Module, Store, Val,
+    Module, Store, Strategy, Val,
 };
+
+use abomonation::{decode, encode, measure};
+use abomonation_derive::Abomonation;
 
 use super::{Error, Runtime};
 
 // Intermediate representation of a wasm runtime, intended for serialization
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Abomonation, Clone)]
 struct Intermediate {
     memories: Vec<Vec<u8>>,
     code: Vec<u8>,
@@ -129,14 +136,15 @@ struct Context {
 
 pub struct WasmtimeRT {
     instance: Instance,
+    // TODO: We NEED to reuse this module instead of recompiling on each deserialize
     module: Module,
     store: Store<Context>,
     mem_manager: Arc<MemoryManager>,
-    code: Vec<u8>,
 }
 
 impl WasmtimeRT {
-    fn new(code: &[u8]) -> Result<Self, Error> {
+    fn new_engine() -> Result<(Engine, Arc<MemoryManager>), Error> {
+        puffin::profile_function!();
         let mem_manager = Arc::new(MemoryManager::new());
 
         let config = Config::new()
@@ -145,37 +153,98 @@ impl WasmtimeRT {
             .static_memory_maximum_size(0) // Force using dynamic memory which may change location
             .with_host_memory(mem_manager.as_trait())
             .clone();
-        let engine = Engine::new(&config)?;
-        let module = Module::from_binary(&engine, code)?;
+        Ok((Engine::new(&config)?, mem_manager))
+    }
 
-        // Define WASM imports
-        let mut linker = Linker::new(&engine);
+    fn new(module: Module, engine: Engine, mem_manager: Arc<MemoryManager>) -> Result<Self, Error> {
+        puffin::profile_function!();
 
-        // VG API
-        linker.func_wrap("vg", "call", vg_call)?;
+        let (instance, store) = {
+            puffin::profile_scope!("link_and_instantiate");
+            // Define WASM imports
+            let mut linker = Linker::new(&engine);
 
-        // WASI API
-        linker.func_wrap("wasi_snapshot_preview1", "fd_write", wasi_fd_write)?;
-        linker.func_wrap("wasi_snapshot_preview1", "random_get", wasi_random_get)?;
-        linker.func_wrap("wasi_snapshot_preview1", "proc_exit", wasi_proc_exit)?;
-        linker.func_wrap(
-            "wasi_snapshot_preview1",
-            "environ_sizes_get",
-            wasi_environ_sizes_get,
-        )?;
-        linker.func_wrap("wasi_snapshot_preview1", "environ_get", wasi_environ_get)?;
-        linker.func_wrap("wasi_snapshot_preview1", "sched_yield", wasi_sched_yield)?;
+            // VG API
+            linker.func_wrap("vg", "call", vg_call)?;
 
-        let mut store = Store::new(&engine, Context { calls: vec![] });
-        let instance = linker.instantiate(&mut store, &module)?;
+            // WASI API
+            linker.func_wrap("wasi_snapshot_preview1", "fd_write", wasi_fd_write)?;
+            linker.func_wrap("wasi_snapshot_preview1", "random_get", wasi_random_get)?;
+            linker.func_wrap("wasi_snapshot_preview1", "proc_exit", wasi_proc_exit)?;
+            linker.func_wrap(
+                "wasi_snapshot_preview1",
+                "environ_sizes_get",
+                wasi_environ_sizes_get,
+            )?;
+            linker.func_wrap("wasi_snapshot_preview1", "environ_get", wasi_environ_get)?;
+            linker.func_wrap("wasi_snapshot_preview1", "sched_yield", wasi_sched_yield)?;
+
+            let mut store = Store::new(&engine, Context { calls: vec![] });
+            (linker.instantiate(&mut store, &module)?, store)
+        };
 
         Ok(Self {
             instance,
             module,
             store,
             mem_manager,
-            code: code.to_vec(),
         })
+    }
+
+    fn to_intermediate(&mut self) -> Result<Intermediate, Error> {
+        puffin::profile_function!();
+        // This triggers memory growth which invalidates the memory pointer, meaning
+        // we can safely ser/de the memory
+        let move_fn = self
+            .instance
+            .get_func(&mut self.store, "__vg_move")
+            .unwrap();
+        move_fn.call(&mut self.store, &[]).unwrap();
+
+        // Check if _all_ memories for this client were properly moved
+        let memories = self.mem_manager.memories.lock().unwrap();
+        assert!(
+            memories.iter().all(|m| m.is_movable()),
+            "Cannot serialize safely when all memories are not moveable"
+        );
+        memories.iter().for_each(ArcMovingMemory::clear_movable);
+
+        Ok(Intermediate {
+            memories: memories.iter().map(|m| m.0.data.clone()).collect(),
+            code: self.module.serialize()?,
+        })
+    }
+
+    fn from_intermediate(s: Intermediate) -> Result<Self, Error> {
+        puffin::profile_function!();
+        let (engine, mem_manager) = Self::new_engine()?;
+
+        // Deserialize already compiled WASM
+        let module = unsafe { Module::deserialize(&engine, s.code)? };
+
+        // Link and instantiate
+        let mut this = Self::new(module, engine, mem_manager)?;
+
+        {
+            puffin::profile_scope!("deserialize_write_memory");
+            // Write the deserialized state to memories
+            let mut memories = this.mem_manager.memories.lock().unwrap();
+            for (dst, src) in memories.iter_mut().zip(s.memories) {
+                dst.set_data(&src);
+            }
+            drop(memories);
+        }
+
+        {
+            puffin::profile_scope!("deserialize_trigger_move");
+            let move_fn = this
+                .instance
+                .get_func(&mut this.store, "__vg_move")
+                .unwrap();
+            move_fn.call(&mut this.store, &[]).unwrap();
+        }
+
+        Ok(this)
     }
 }
 
@@ -183,7 +252,15 @@ impl Runtime for WasmtimeRT {
     const NAME: &'static str = "wasmtime";
 
     fn load(code: &[u8]) -> Result<Self, Error> {
-        let mut this = Self::new(code)?;
+        puffin::profile_function!();
+        // Create a config and new memory manager
+        let (engine, mem_manager) = Self::new_engine()?;
+
+        // Compile the WASM
+        let module = Module::from_binary(&engine, code)?;
+
+        // Link and instantiate
+        let mut this = Self::new(module, engine, mem_manager)?;
 
         // Initialize the client, ready for __vg_tick
         let main_fn = this
@@ -195,13 +272,17 @@ impl Runtime for WasmtimeRT {
         Ok(this)
     }
 
-    fn run_tick(&mut self) -> Result<Vec<vg_types::Call>, Error> {
+    fn run_tick(&mut self, dt: Duration) -> Result<Vec<vg_types::Call>, Error> {
+        puffin::profile_function!();
+
         let tick_fn = self
             .instance
             .get_func(&mut self.store, "__vg_tick")
             .unwrap();
 
-        tick_fn.call(&mut self.store, &[]).unwrap();
+        tick_fn
+            .call(&mut self.store, &[dt.as_secs_f64().into()])
+            .unwrap();
 
         let calls = self.store.data_mut().calls.split_off(0);
 
@@ -209,6 +290,7 @@ impl Runtime for WasmtimeRT {
     }
 
     fn send(&mut self, value: vg_types::Response) {
+        puffin::profile_function!();
         let bytes = value.serialize_bin();
 
         // Allocate space in client for the response struct
@@ -226,54 +308,38 @@ impl Runtime for WasmtimeRT {
     }
 
     fn serialize(&mut self) -> Result<Vec<u8>, Error> {
+        puffin::profile_function!();
         trace!("Serializing WASM state");
 
-        // This triggers memory growth which invalidates the memory pointer, meaning
-        // we can safely ser/de the memory
-        let move_fn = self
-            .instance
-            .get_func(&mut self.store, "__vg_move")
-            .unwrap();
-        move_fn.call(&mut self.store, &[]).unwrap();
+        let s = self.to_intermediate()?;
 
-        // Check if _all_ memories for this client were properly moved
-        let memories = self.mem_manager.memories.lock().unwrap();
-        assert!(
-            memories.iter().all(|m| m.is_movable()),
-            "Cannot serialize safely when all memories are not moveable"
-        );
-        memories.iter().for_each(ArcMovingMemory::clear_movable);
-
-        let s = Intermediate {
-            memories: memories.iter().map(|m| m.0.data.clone()).collect(),
-            code: self.code.clone(),
-        };
-
-        bincode::serialize(&s).map_err(Into::into)
+        {
+            puffin::profile_scope!("serialize_bincode");
+            let mut buf = Vec::with_capacity(measure(&s));
+            unsafe { encode(&s, &mut buf).unwrap() };
+            Ok(buf)
+        }
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
-        let s: Intermediate = bincode::deserialize(bytes)?;
-        let mut this = Self::new(&s.code)?;
+    fn deserialize(mut bytes: Vec<u8>) -> Result<Self, Error> {
+        puffin::profile_function!();
 
-        // Write the deserialized state to memories
-        let mut memories = this.mem_manager.memories.lock().unwrap();
-        for (dst, src) in memories.iter_mut().zip(s.memories) {
-            dst.set_data(&src);
-        }
-        drop(memories);
+        let s: Intermediate = {
+            puffin::profile_scope!("deserialize_bincode");
+            unsafe { decode::<Intermediate>(&mut bytes).unwrap().0.clone() }
+        };
 
-        let move_fn = this
-            .instance
-            .get_func(&mut this.store, "__vg_move")
-            .unwrap();
-        move_fn.call(&mut this.store, &[]).unwrap();
+        Self::from_intermediate(s)
+    }
 
-        Ok(this)
+    fn duplicate(&mut self) -> Result<Self, Error> {
+        puffin::profile_function!();
+        Self::from_intermediate(self.to_intermediate()?)
     }
 }
 
 fn vg_call(mut caller: Caller<Context>, ptr: u64, len: u64) {
+    puffin::profile_function!();
     // let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
     trace!("vg_call: ptr: {:#p}, len: {:#X}", ptr as *const u8, len);
     let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
@@ -282,7 +348,7 @@ fn vg_call(mut caller: Caller<Context>, ptr: u64, len: u64) {
     mem.read(&mut caller, ptr as _, &mut buf).unwrap();
 
     let call = vg_types::Call::deserialize_bin(&buf).unwrap();
-    debug!("Host got call {:?}", call);
+    trace!("Host got call {:?}", call);
 
     caller.data_mut().calls.push(call);
 }

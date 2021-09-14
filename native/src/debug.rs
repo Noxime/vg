@@ -10,6 +10,8 @@ use std::{
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use winit::window::Window;
 
+use tracing::debug;
+
 pub struct RepaintSignal(pub Arc<Window>);
 
 impl epi::RepaintSignal for RepaintSignal {
@@ -111,12 +113,14 @@ impl epi::App for DebugData {
 
             ui.checkbox(&mut self.logger, "Game log");
             if ui.checkbox(&mut self.profiler, "Engine profiler").changed() {
-                puffin::set_scopes_on(self.profiler);
+                debug!("Puffin scopes: {:?}", self.profiler);
             }
         });
 
+        puffin::set_scopes_on(self.profiler);
+
         if self.profiler {
-            puffin_egui::profiler_window(ctx);
+            self.profiler = puffin_egui::profiler_window(ctx);
         }
 
         if self.logger {

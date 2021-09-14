@@ -53,10 +53,8 @@ pub struct PlayCall {
 
 #[derive(SerBin, DeBin, Debug)]
 pub enum Response {
-    Time(f64),
     Up(Key),
     Down(Key),
-    Tick,
 }
 
 #[derive(SerBin, DeBin, Debug, Hash, Eq, PartialEq, Clone, Copy)]
