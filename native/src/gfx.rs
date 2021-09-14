@@ -1,18 +1,24 @@
-use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc, time::Instant};
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
 
-use glam::{Mat4, UVec2, Vec3A, Vec4, vec2, vec3};
-use rend3::{InstanceAdapterDevice, RenderRoutine, Renderer, RendererMode, create_iad, types::{
-        AlbedoComponent, Camera, Material, MaterialHandle, Mesh, MeshHandle, MipmapCount,
-        MipmapSource, Object, ObjectHandle, Texture, TextureHandle,
-    }, util::output::OutputFrame};
+use glam::{vec2, vec3, Mat4, UVec2, Vec3A};
+use rend3::{
+    create_iad,
+    types::{
+        AlbedoComponent, Camera, Material, Mesh, MeshHandle, MipmapCount, MipmapSource, Object,
+        ObjectHandle, Texture, TextureHandle,
+    },
+    util::output::OutputFrame,
+    Renderer,
+};
 use rend3_pbr::{PbrRenderRoutine, RenderTextureOptions, SampleCount};
 use tracing::*;
 use vg_types::Transform;
-use wgpu::{Color, CommandBuffer, CommandEncoderDescriptor, LoadOp, Maintain, Operations, PresentMode, RenderPassColorAttachment, RenderPassDescriptor, Surface, TextureFormat, TextureViewDescriptor};
-use winit::{dpi::PhysicalSize, window::Window};
+use wgpu::{
+    CommandEncoderDescriptor, Maintain, PresentMode, Surface, TextureFormat, TextureViewDescriptor,
+};
+use winit::window::Window;
 
 use crate::{assets::Cache, debug::DebugUi};
-
 
 pub struct Gfx {
     surface: Surface,
@@ -25,7 +31,6 @@ pub struct Gfx {
     textures: HashMap<PathBuf, TextureHandle>,
     sprites: Vec<ObjectHandle>,
 
-    
     egui_pass: egui_wgpu_backend::RenderPass,
 }
 
@@ -34,6 +39,11 @@ impl Gfx {
         // //wgpu_subscriber::initialize_default_subscriber(Some(std::path::Path::new("wgpu_trace")));
 
         let iad = create_iad(None, None, None).await.unwrap();
+
+        info!(
+            "{} ({:?}/{:?})",
+            iad.info.name, iad.info.backend, iad.info.device_type
+        );
 
         // Lets hope winit never provides a busted window handle and the proper swapchain format can always be queried
         let surface = unsafe { iad.instance.create_surface(window.as_ref()) };
@@ -44,13 +54,6 @@ impl Gfx {
         let size = UVec2::new(size.width, size.height);
 
         let renderer = Renderer::new(iad, Some(size.x as f32 / size.y as f32)).unwrap();
-        renderer.set_camera_data(Camera {
-            projection: rend3::types::CameraProjection::Orthographic {
-                size: Vec3A::new(10.0, 10.0, 10.0),
-                direction: Vec3A::new(0.0, 0.0, 1.0),
-            },
-            location: Vec3A::new(0.0, 0.0, -5.0),
-        });
 
         let mut mesh = Mesh {
             vertex_positions: vec![
@@ -60,10 +63,10 @@ impl Gfx {
                 vec3(0.5, 0.5, 0.0),
             ],
             vertex_uvs: vec![
-                vec2(0.0, 0.0),
                 vec2(0.0, 1.0),
-                vec2(1.0, 0.0),
+                vec2(0.0, 0.0),
                 vec2(1.0, 1.0),
+                vec2(1.0, 0.0),
             ],
             vertex_normals: vec![Default::default(); 4],
             vertex_tangents: vec![Default::default(); 4],
@@ -87,12 +90,7 @@ impl Gfx {
         );
 
         let mut gfx = Gfx {
-            
-            egui_pass: egui_wgpu_backend::RenderPass::new(
-                &renderer.device,
-                format,
-                1,
-            ),
+            egui_pass: egui_wgpu_backend::RenderPass::new(&renderer.device, format, 1),
 
             surface,
             format,
@@ -127,8 +125,17 @@ impl Gfx {
             self.present_mode,
         );
 
-        self.renderer
-            .set_aspect_ratio(size.x as f32 / size.y as f32);
+        let aspect = size.x as f32 / size.y as f32;
+
+        self.renderer.set_aspect_ratio(aspect);
+
+        self.renderer.set_camera_data(Camera {
+            projection: rend3::types::CameraProjection::Orthographic {
+                size: Vec3A::new(10.0 * aspect, 10.0, 10.0),
+                direction: Vec3A::new(0.0, 0.0, 1.0),
+            },
+            location: Vec3A::new(0.0, 0.0, -5.0),
+        });
 
         self.routine_pbr.resize(
             self.renderer.as_ref(),
@@ -177,7 +184,7 @@ impl Gfx {
         self.sprites.push(obj);
     }
 
-    pub async fn present(&mut self,  debug: &mut DebugUi) {
+    pub async fn present(&mut self, debug: &mut DebugUi) {
         puffin::profile_function!();
 
         {
@@ -212,7 +219,6 @@ impl Gfx {
             self.sprites.clear();
         }
 
-        
         if debug.visible {
             puffin::profile_scope!("egui_render");
 
@@ -273,13 +279,9 @@ impl Gfx {
                 &paint_jobs,
                 &screen_descriptor,
             );
-            self.egui_pass.execute(
-                &mut enc,
-                &view,
-                &paint_jobs,
-                &screen_descriptor,
-                None,
-            ).unwrap();
+            self.egui_pass
+                .execute(&mut enc, &view, &paint_jobs, &screen_descriptor, None)
+                .unwrap();
 
             // Draw the debug UI
             self.renderer.queue.submit(Some(enc.finish()));

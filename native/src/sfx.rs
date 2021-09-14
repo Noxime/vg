@@ -1,6 +1,4 @@
 use std::{
-    collections::HashMap,
-    path::PathBuf,
     sync::{
         mpsc::{self, Receiver, Sender},
         Arc,
@@ -12,12 +10,12 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, Stream, StreamConfig,
 };
-use dashmap::DashMap;
+
 use lewton::{
     header::{read_header_comment, read_header_ident, read_header_setup},
     inside_ogg::async_api::OggStreamReader,
 };
-use oddio::{Handle, Mixer, Spatial, SpatialScene, Stop};
+use oddio::{Handle, Mixer, Stop};
 use tracing::{debug, error, warn};
 
 use crate::assets::Cache;

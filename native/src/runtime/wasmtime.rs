@@ -1,5 +1,4 @@
 use std::{
-    cell::{Cell, UnsafeCell},
     sync::{
         atomic::{AtomicBool, Ordering::Relaxed},
         Arc, Mutex,
@@ -11,11 +10,11 @@ const PAGE_SIZE: usize = u16::MAX as _;
 
 // use serde::{Deserialize, Serialize};
 use serde::{Serialize, Deserialize};
-use tracing::{debug, trace};
+use tracing::{trace};
 use vg_types::{DeBin, SerBin};
 use wasmtime::{
-    Caller, Config, Engine, Instance, Limits, LinearMemory, Linker, MemoryCreator, MemoryType,
-    Module, Store, Strategy, Val,
+    Caller, Config, Engine, Instance, LinearMemory, Linker, MemoryCreator, MemoryType,
+    Module, Store, Val,
 };
 
 use super::{Error, Runtime};

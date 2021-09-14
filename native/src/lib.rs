@@ -5,6 +5,7 @@ mod gfx;
 pub mod runtime;
 mod sfx;
 mod util;
+mod net;
 
 use std::{
     sync::Arc,
@@ -94,6 +95,7 @@ impl Engine {
         let tickrate = Duration::from_millis(100);
         let mut next_tick = Instant::now();
         let mut smooth_frame = Instant::now();
+        let mut smoothed_frames = 0;
 
         events.run(move |ev, _, flow| {
             puffin::profile_scope!("main");
@@ -170,12 +172,15 @@ impl Engine {
                         // The smoothed runtime is invalid state now
                         runtime_smooth = None;
                         smooth_frame = Instant::now();
+                        engine.debug.smoothed_frames = smoothed_frames;
+                        smoothed_frames = 0;
                     } else {
                         trace!("Smooth");
                         let runtime_smooth = runtime_smooth.get_or_insert_with(|| runtime.duplicate().unwrap());
 
                         let elapsed = smooth_frame.elapsed();
                         smooth_frame += elapsed;
+                        smoothed_frames += 1;
                         tokio.block_on(engine.run_till_present(runtime_smooth, elapsed));
 
                         // // Pass a frames worth of time. Non-determenistic, but its okay because we rollback each tick

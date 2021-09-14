@@ -34,6 +34,7 @@ pub struct DebugUi {
     pub tick_time: Duration,
     pub force_smooth: bool,
     pub runtime_name: String,
+    pub smoothed_frames: usize,
 }
 
 impl DebugUi {
@@ -63,6 +64,7 @@ impl DebugUi {
             tick_time: Duration::from_millis(1),
             force_smooth: false,
             runtime_name: rt_name.to_string(),
+            smoothed_frames: 0,
         }
     }
 
@@ -90,6 +92,7 @@ impl epi::App for DebugUi {
                 1.0 / self.tick_time.as_secs_f32(),
                 self.tick_time,
             ));
+            ui.label(format!("{} Frames / Tick", self.smoothed_frames));
 
             ui.spacing();
 

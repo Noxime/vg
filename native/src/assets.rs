@@ -9,7 +9,7 @@ use bytes::BytesMut;
 use dashmap::DashMap;
 use tokio::{
     fs::{canonicalize, File},
-    io::{AsyncRead, AsyncReadExt, AsyncSeekExt},
+    io::{AsyncReadExt, AsyncSeekExt},
 };
 use tracing::{debug, trace, warn};
 
