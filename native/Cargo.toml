@@ -8,7 +8,6 @@ resolver = "2"
 [features]
 default = ["wasm"]
 wasm = ["rust-wasm", "wasmtime"]
-debug = ["egui", "epi", "egui_wgpu_backend", "egui_winit_platform", "puffin_egui"]
 
 [dependencies]
 rust-wasm = { path = "../rust-wasm", optional = true }
@@ -22,10 +21,6 @@ glam = "0.18"
 bytes = "1"
 serde = "1"
 bincode = "1"
-
-# Oh god, I am worse than xacrimon
-abomonation = "0.7"
-abomonation_derive = "0.5"
 
 tracing = "0.1"
 tracing-subscriber = "0.2"
@@ -53,8 +48,8 @@ image = "0.23"
 lewton = { version = "0.10", features = ["async_ogg"] }
 ogg = { version = "0.8", features = ["async"] }
 
-egui = { version = "0.14", optional = true }
-epi = { version = "0.14", optional = true }
-egui_wgpu_backend = { version = "0.12", optional = true }
-egui_winit_platform = { version = "0.10", optional = true }
-puffin_egui = { version = "0.7", optional = true }
+egui = { version = "0.14" }
+epi = { version = "0.14" }
+egui_wgpu_backend = { version = "0.12" }
+egui_winit_platform = { version = "0.10" }
+puffin_egui = { version = "0.7" }

@@ -20,7 +20,7 @@ impl epi::RepaintSignal for RepaintSignal {
     }
 }
 
-pub struct DebugData {
+pub struct DebugUi {
     pub visible: bool,
     pub profiler: bool,
     pub platform: Platform,
@@ -36,8 +36,8 @@ pub struct DebugData {
     pub runtime_name: String,
 }
 
-impl DebugData {
-    pub fn new(window: Arc<Window>, rt_name: impl ToString) -> DebugData {
+impl DebugUi {
+    pub fn new(window: Arc<Window>, rt_name: impl ToString) -> DebugUi {
         let size = window.inner_size();
         let platform = Platform::new(PlatformDescriptor {
             physical_width: size.width,
@@ -49,7 +49,7 @@ impl DebugData {
 
         let repaint_signal = Arc::new(RepaintSignal(window.clone()));
 
-        DebugData {
+        DebugUi {
             visible: false,
             profiler: false,
             logger: false,
@@ -73,7 +73,7 @@ impl DebugData {
     }
 }
 
-impl epi::App for DebugData {
+impl epi::App for DebugUi {
     fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
         puffin::profile_function!();
 

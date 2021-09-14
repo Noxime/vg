@@ -23,10 +23,10 @@ where
     fn send(&mut self, value: vg_types::Response);
 
     fn serialize(&mut self) -> Result<Vec<u8>, Error>;
-    fn deserialize(bytes: Vec<u8>) -> Result<Self, Error>;
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error>;
 
     fn duplicate(&mut self) -> Result<Self, Error> {
         let bytes = self.serialize()?;
-        Self::deserialize(bytes)
+        Self::deserialize(&bytes)
     }
 }

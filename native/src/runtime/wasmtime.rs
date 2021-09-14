@@ -9,7 +9,8 @@ use std::{
 
 const PAGE_SIZE: usize = u16::MAX as _;
 
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize};
 use tracing::{debug, trace};
 use vg_types::{DeBin, SerBin};
 use wasmtime::{
@@ -17,13 +18,10 @@ use wasmtime::{
     Module, Store, Strategy, Val,
 };
 
-use abomonation::{decode, encode, measure};
-use abomonation_derive::Abomonation;
-
 use super::{Error, Runtime};
 
 // Intermediate representation of a wasm runtime, intended for serialization
-#[derive(Serialize, Deserialize, Abomonation, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Intermediate {
     memories: Vec<Vec<u8>>,
     code: Vec<u8>,
@@ -229,8 +227,8 @@ impl WasmtimeRT {
             puffin::profile_scope!("deserialize_write_memory");
             // Write the deserialized state to memories
             let mut memories = this.mem_manager.memories.lock().unwrap();
-            for (dst, src) in memories.iter_mut().zip(s.memories) {
-                dst.set_data(&src);
+            for (dst, src) in memories.iter_mut().zip(s.memories.as_slice()) {
+                dst.set_data(src.as_slice());
             }
             drop(memories);
         }
@@ -314,19 +312,17 @@ impl Runtime for WasmtimeRT {
         let s = self.to_intermediate()?;
 
         {
-            puffin::profile_scope!("serialize_bincode");
-            let mut buf = Vec::with_capacity(measure(&s));
-            unsafe { encode(&s, &mut buf).unwrap() };
-            Ok(buf)
+            puffin::profile_scope!("archive");
+            bincode::serialize(&s).map_err(Into::into)
         }
     }
 
-    fn deserialize(mut bytes: Vec<u8>) -> Result<Self, Error> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
         puffin::profile_function!();
 
-        let s: Intermediate = {
-            puffin::profile_scope!("deserialize_bincode");
-            unsafe { decode::<Intermediate>(&mut bytes).unwrap().0.clone() }
+        let s = {
+            puffin::profile_scope!("unarchive");
+            bincode::deserialize(bytes)?
         };
 
         Self::from_intermediate(s)

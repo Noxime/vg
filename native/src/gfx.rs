@@ -11,7 +11,7 @@ use vg_types::Transform;
 use wgpu::{Color, CommandBuffer, CommandEncoderDescriptor, LoadOp, Maintain, Operations, PresentMode, RenderPassColorAttachment, RenderPassDescriptor, Surface, TextureFormat, TextureViewDescriptor};
 use winit::{dpi::PhysicalSize, window::Window};
 
-use crate::assets::Cache;
+use crate::{assets::Cache, debug::DebugUi};
 
 
 pub struct Gfx {
@@ -25,7 +25,7 @@ pub struct Gfx {
     textures: HashMap<PathBuf, TextureHandle>,
     sprites: Vec<ObjectHandle>,
 
-    #[cfg(feature = "debug")]
+    
     egui_pass: egui_wgpu_backend::RenderPass,
 }
 
@@ -87,7 +87,7 @@ impl Gfx {
         );
 
         let mut gfx = Gfx {
-            #[cfg(feature = "debug")]
+            
             egui_pass: egui_wgpu_backend::RenderPass::new(
                 &renderer.device,
                 format,
@@ -177,7 +177,7 @@ impl Gfx {
         self.sprites.push(obj);
     }
 
-    pub async fn present(&mut self, #[cfg(feature = "debug")] debug: &mut crate::debug::DebugData) {
+    pub async fn present(&mut self,  debug: &mut DebugUi) {
         puffin::profile_function!();
 
         {
@@ -212,7 +212,7 @@ impl Gfx {
             self.sprites.clear();
         }
 
-        #[cfg(feature = "debug")]
+        
         if debug.visible {
             puffin::profile_scope!("egui_render");
 

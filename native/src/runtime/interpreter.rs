@@ -232,7 +232,7 @@ impl Runtime for InterpreterRT {
         todo!()
     }
 
-    fn deserialize(_bytes: Vec<u8>) -> Result<Self, Error> {
+    fn deserialize(_bytes: &[u8]) -> Result<Self, Error> {
         todo!()
     }
 

@@ -1,5 +1,5 @@
 mod assets;
-#[cfg(feature = "debug")]
+
 mod debug;
 mod gfx;
 pub mod runtime;
@@ -12,6 +12,7 @@ use std::{
 };
 
 use assets::Assets;
+use debug::DebugUi;
 use futures::future::join_all;
 use gfx::Gfx;
 use glam::UVec2;
@@ -33,8 +34,7 @@ pub struct Engine {
     sfx: Sfx,
     start_time: Instant,
     assets: Assets,
-    #[cfg(feature = "debug")]
-    debug: debug::DebugData,
+    debug: DebugUi,
 }
 
 impl Engine {
@@ -73,8 +73,8 @@ impl Engine {
                 .expect("Failed to initialize a window"),
         );
 
-        #[cfg(feature = "debug")]
-        let debug = debug::DebugData::new(window.clone(), RT::NAME);
+        
+        let debug = DebugUi::new(window.clone(), RT::NAME);
 
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::from_default_env())
@@ -82,7 +82,7 @@ impl Engine {
             .init();
 
         let mut engine = Engine {
-            #[cfg(feature = "debug")]
+            
             debug,
             sfx,
             gfx: tokio.block_on(Gfx::new(window.clone())),
@@ -112,7 +112,7 @@ impl Engine {
                 None => return,
             };
 
-            #[cfg(feature = "debug")]
+            
             {
                 engine.debug.platform.handle_event(&ev);
                 engine.debug.tick_time = tickrate;
@@ -129,7 +129,7 @@ impl Engine {
                 } => {
                     engine.gfx.resize(UVec2::new(size.width, size.height));
                 }
-                #[cfg(feature = "debug")]
+                
                 Event::WindowEvent {
                     event: WindowEvent::ReceivedCharacter('/'),
                     ..
@@ -231,7 +231,7 @@ impl Engine {
             match call {
                 Call::Print(msg) => {
                     info!("{}", msg);
-                    #[cfg(feature = "debug")]
+                    
                     self.debug.print(msg);
                 }
                 Call::Exit => {
@@ -243,12 +243,12 @@ impl Engine {
 
         let runtime = self.start_time.elapsed();
 
-        #[cfg(feature = "debug")]
+        
         self.debug.platform.update_time(runtime.as_secs_f64());
 
         self.gfx
             .present(
-                #[cfg(feature = "debug")]
+                
                 &mut self.debug,
             )
             .await;

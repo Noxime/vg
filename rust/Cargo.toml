@@ -6,7 +6,6 @@ edition = "2018"
 
 [features]
 default = []
-debug = ["vg-native/debug"]
 
 [dependencies]
 # vg-derive = { path = "derive" }
