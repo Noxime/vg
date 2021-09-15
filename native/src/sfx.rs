@@ -22,6 +22,7 @@ use crate::assets::Cache;
 
 pub struct Sfx {
     scene: Handle<Mixer<[f32; 2]>>,
+    #[allow(unused)] // We have to keep it alive
     stream: Stream,
     dead_sound_tx: Sender<Handle<Stop<oddio::Stream<[f32; 2]>>>>,
     dead_sounds: Receiver<Handle<Stop<oddio::Stream<[f32; 2]>>>>,

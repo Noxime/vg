@@ -77,6 +77,7 @@ fn ensure() -> &'static mut State {
 }
 
 // VG Host API
+#[allow(unused)]
 #[link(wasm_import_module = "vg")]
 extern "C" {
     // Provide a pointer length to a bincoded Call to the hosting VG instance
@@ -136,11 +137,11 @@ pub extern "C" fn __vg_move() {
 //     }
 // }
 
-fn call_host(val: impl vg_types::SerBin) {
+fn call_host(_val: impl vg_types::SerBin) {
     ensure();
     #[cfg(target_os = "wasi")]
     unsafe {
-        let bytes = val.serialize_bin();
+        let bytes = _val.serialize_bin();
         call(bytes.as_ptr() as u64, bytes.len() as u64)
     }
 }

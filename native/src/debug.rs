@@ -48,7 +48,7 @@ impl DebugUi {
             style: Default::default(),
         });
 
-        let repaint_signal = Arc::new(RepaintSignal(window.clone()));
+        let repaint_signal = Arc::new(RepaintSignal(window));
 
         DebugUi {
             visible: false,
@@ -150,11 +150,11 @@ impl std::fmt::Display for Memory {
         const MB: usize = 1024 * KB;
         const GB: usize = 1024 * MB;
 
-        #[allow(overlapping_range_endpoints)]
+        #[allow(overlapping_range_endpoints, clippy::match_overlapping_arm)]
         match self.0 {
             0..=KB => write!(f, "{} bytes", self.0),
-            MB..=GB => write!(f, "{} MB", self.0 / MB),
             KB..=MB => write!(f, "{} KB", self.0 / KB),
+            MB..=GB => write!(f, "{} MB", self.0 / MB),
             _ => write!(f, "{} GB", self.0 / GB),
         }
     }

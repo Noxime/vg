@@ -2521,10 +2521,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-wasm"
-version = "0.1.0"
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3030,7 +3026,6 @@ dependencies = [
  "puffin_egui",
  "rend3",
  "rend3-pbr",
- "rust-wasm",
  "serde",
  "tokio",
  "tokio-io",

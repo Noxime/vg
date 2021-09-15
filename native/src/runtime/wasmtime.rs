@@ -39,8 +39,7 @@ impl MemoryManager {
     }
 
     fn as_trait(self: &Arc<MemoryManager>) -> Arc<dyn MemoryCreator> {
-        let cloned = Arc::clone(self);
-        cloned
+        Arc::clone(self) as _
     }
 }
 
@@ -188,7 +187,7 @@ impl WasmtimeRT {
         })
     }
 
-    fn to_intermediate(&mut self) -> Result<Intermediate, Error> {
+    fn make_intermediate(&mut self) -> Result<Intermediate, Error> {
         puffin::profile_function!();
         // This triggers memory growth which invalidates the memory pointer, meaning
         // we can safely ser/de the memory
@@ -308,7 +307,7 @@ impl Runtime for WasmtimeRT {
         puffin::profile_function!();
         trace!("Serializing WASM state");
 
-        let s = self.to_intermediate()?;
+        let s = self.make_intermediate()?;
 
         {
             puffin::profile_scope!("archive");
@@ -329,7 +328,7 @@ impl Runtime for WasmtimeRT {
 
     fn duplicate(&mut self) -> Result<Self, Error> {
         puffin::profile_function!();
-        Self::from_intermediate(self.to_intermediate()?)
+        Self::from_intermediate(self.make_intermediate()?)
     }
 }
 

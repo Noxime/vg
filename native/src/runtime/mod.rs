@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use vg_types::Call;
 
-#[cfg(feature = "wasm")]
-pub mod interpreter;
+// #[cfg(feature = "wasm")]
+// pub mod interpreter;
 // #[cfg(feature = "wasm")]
 // pub mod wasmer;
 #[cfg(feature = "wasm")]

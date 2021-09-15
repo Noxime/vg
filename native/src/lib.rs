@@ -5,7 +5,6 @@ mod gfx;
 pub mod runtime;
 mod sfx;
 mod util;
-mod net;
 
 use std::{
     sync::Arc,

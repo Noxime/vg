@@ -177,7 +177,7 @@ impl Gfx {
         });
         let obj = self.renderer.add_object(Object {
             mesh: self.sprite_mesh.clone(),
-            material: material,
+            material,
             transform: trans2mat(transform),
         });
 

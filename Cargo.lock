@@ -1565,12 +1565,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hexf-parse"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79296f72d53a89096cbc9a88c9547ee8dfe793388674620e2207593d370550ac"
-
-[[package]]
 name = "httparse"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3241,13 +3235,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-wasm"
-version = "0.1.0"
-dependencies = [
- "hexf-parse",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3973,7 +3960,6 @@ dependencies = [
  "puffin_egui",
  "rend3",
  "rend3-pbr",
- "rust-wasm",
  "serde",
  "tokio",
  "tokio-io",
