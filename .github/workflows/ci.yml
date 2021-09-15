@@ -25,7 +25,12 @@ jobs:
           - name: Ubuntu Stable
             os: ubuntu-18.04
             channel: stable
-            prepare_command:
+            prepare_command: |
+              echo "Installing Vulkan"
+              sudo apt-get update -y -qq
+              sudo add-apt-repository ppa:kisak/kisak-mesa -y
+              sudo apt-get update
+              sudo apt install -y libxcb-xfixes0-dev mesa-vulkan-drivers libasound2-dev
           - name: Ubuntu Nightly
             os: ubuntu-18.04
             channel: nightly

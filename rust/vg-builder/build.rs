@@ -1,7 +1,7 @@
 use std::env::var;
 use std::path::PathBuf;
 
-const TARGET: &'static str = "wasm32-wasi";
+const TARGET: &str = "wasm32-wasi";
 
 // Find Cargo.toml in parent directory
 fn root_manifest() -> PathBuf {
