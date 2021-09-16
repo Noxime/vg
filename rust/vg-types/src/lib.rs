@@ -7,7 +7,7 @@ pub const MOVE_TRIGGER_MAGIC: usize = 0xCAFEBABE;
 type Vec3 = [f32; 3];
 type Quat = [f32; 4];
 
-#[derive(SerBin, DeBin, Debug, Copy, Clone)]
+#[derive(SerBin, DeBin, Debug, Copy, Clone, PartialEq)]
 pub struct Transform {
     pub position: Vec3,
     pub scale: Vec3,
@@ -22,7 +22,7 @@ impl Transform {
     };
 }
 
-#[derive(SerBin, DeBin, Debug, Clone)]
+#[derive(SerBin, DeBin, Debug, Clone, PartialEq)]
 pub enum Call {
     /// Exit the game
     Exit,
@@ -39,13 +39,13 @@ pub enum Call {
     Print(String),
 }
 
-#[derive(SerBin, DeBin, Debug, Clone)]
+#[derive(SerBin, DeBin, Debug, Clone, PartialEq)]
 pub struct DrawCall {
     pub asset: String,
     pub trans: Transform,
 }
 
-#[derive(SerBin, DeBin, Debug, Clone)]
+#[derive(SerBin, DeBin, Debug, Clone, PartialEq)]
 pub struct PlayCall {
     pub asset: String,
     pub looping: bool,

@@ -187,23 +187,23 @@ impl WasmtimeRT {
         })
     }
 
-    fn make_intermediate(&mut self) -> Result<Intermediate, Error> {
+    fn make_intermediate(&self) -> Result<Intermediate, Error> {
         puffin::profile_function!();
         // This triggers memory growth which invalidates the memory pointer, meaning
         // we can safely ser/de the memory
-        let move_fn = self
-            .instance
-            .get_func(&mut self.store, "__vg_move")
-            .unwrap();
-        move_fn.call(&mut self.store, &[]).unwrap();
+        // let move_fn = self
+        //     .instance
+        //     .get_func(&mut self.store, "__vg_move")
+        //     .unwrap();
+        // move_fn.call(&mut self.store, &[]).unwrap();
 
-        // Check if _all_ memories for this client were properly moved
+        // // Check if _all_ memories for this client were properly moved
         let memories = self.mem_manager.memories.lock().unwrap();
-        assert!(
-            memories.iter().all(|m| m.is_movable()),
-            "Cannot serialize safely when all memories are not moveable"
-        );
-        memories.iter().for_each(ArcMovingMemory::clear_movable);
+        // assert!(
+        //     memories.iter().all(|m| m.is_movable()),
+        //     "Cannot serialize safely when all memories are not moveable"
+        // );
+        // memories.iter().for_each(ArcMovingMemory::clear_movable);
 
         Ok(Intermediate {
             memories: memories.iter().map(|m| m.0.data.clone()).collect(),
@@ -232,6 +232,8 @@ impl WasmtimeRT {
         }
 
         {
+            // This triggers memory growth which invalidates the memory pointer, meaning
+            // we can safely ser/de the memory
             puffin::profile_scope!("deserialize_trigger_move");
             let move_fn = this
                 .instance
@@ -303,7 +305,7 @@ impl Runtime for WasmtimeRT {
         mem.write(&mut self.store, ptr as _, &bytes).unwrap();
     }
 
-    fn serialize(&mut self) -> Result<Vec<u8>, Error> {
+    fn serialize(&self) -> Result<Vec<u8>, Error> {
         puffin::profile_function!();
         trace!("Serializing WASM state");
 

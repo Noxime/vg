@@ -54,6 +54,7 @@ impl Gfx {
         let size = UVec2::new(size.width, size.height);
 
         let renderer = Renderer::new(iad, Some(size.x as f32 / size.y as f32)).unwrap();
+        debug!("Using {:?} culling", renderer.mode);
 
         let mut mesh = Mesh {
             vertex_positions: vec![

@@ -142,14 +142,15 @@ impl epi::App for DebugUi {
     }
 }
 
-struct Memory(usize);
+pub struct Memory(pub usize);
+pub const KB: usize = 1024;
+pub const MB: usize = 1024 * KB;
+pub const GB: usize = 1024 * MB;
+
 
 impl std::fmt::Display for Memory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        const KB: usize = 1024;
-        const MB: usize = 1024 * KB;
-        const GB: usize = 1024 * MB;
-
+       
         #[allow(overlapping_range_endpoints, clippy::match_overlapping_arm)]
         match self.0 {
             0..=KB => write!(f, "{} bytes", self.0),

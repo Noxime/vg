@@ -22,7 +22,7 @@ where
     fn run_tick(&mut self, dt: Duration) -> Result<Vec<Call>, Error>;
     fn send(&mut self, value: vg_types::Response);
 
-    fn serialize(&mut self) -> Result<Vec<u8>, Error>;
+    fn serialize(&self) -> Result<Vec<u8>, Error>;
     fn deserialize(bytes: &[u8]) -> Result<Self, Error>;
 
     fn duplicate(&mut self) -> Result<Self, Error> {

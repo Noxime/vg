@@ -228,7 +228,7 @@ impl Runtime for InterpreterRT {
         // invoke_func(&mut self.store, func, vec![]).unwrap();
     }
 
-    fn serialize(&mut self) -> Result<Vec<u8>, Error> {
+    fn serialize(&self) -> Result<Vec<u8>, Error> {
         todo!()
     }
 

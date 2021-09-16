@@ -2,6 +2,7 @@ mod assets;
 
 mod debug;
 mod gfx;
+mod net;
 pub mod runtime;
 mod sfx;
 mod util;
@@ -16,6 +17,7 @@ use debug::DebugUi;
 use futures::future::join_all;
 use gfx::Gfx;
 use glam::UVec2;
+use net::{Client, Server};
 use runtime::Runtime;
 use sfx::Sfx;
 use tracing::{debug, info, trace};
@@ -37,19 +39,60 @@ pub struct Engine {
     debug: DebugUi,
 }
 
+fn runtime() -> tokio::runtime::Runtime {
+    tokio::runtime::Builder::new_multi_thread()
+        .thread_name("vg")
+        .enable_all()
+        .build()
+        .unwrap()
+}
+
 impl Engine {
-    pub fn run<RT, F>(mut idle_task: F) -> !
+    pub fn run<RT, F>(mut load_task: F) -> !
+    where
+        RT: Runtime + 'static,
+        F: FnMut() -> Option<Vec<u8>> + 'static,
+    {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::from_default_env())
+            .with(tracing_subscriber::fmt::layer())
+            .init();
+
+        let code = load_task().unwrap();
+        let tokio = runtime();
+
+        tokio
+            .block_on(async {
+                
+                let _ = tokio::join! {
+                    async {
+                        let server = Server::<RT>::bind("[::]:6502", code).await?;
+                        server.run().await?;
+                        info!("Server exit");
+                        Ok::<_, Box<dyn std::error::Error>>(())
+                    },
+                    async {
+                        let client = Client::<RT>::connect("localhost:6502").await?;
+                        client.run().await?;
+                        info!("Client exit");
+                        Ok::<_, Box<dyn std::error::Error>>(())
+                    }
+                };
+
+                Ok::<_, Box<dyn std::error::Error>>(())
+            })
+            .unwrap();
+
+        loop {}
+    }
+
+    pub fn run_old<RT, F>(mut idle_task: F) -> !
     where
         RT: Runtime + 'static,
         F: FnMut() -> Option<Vec<u8>> + 'static,
     {
         let sfx = Sfx::new();
-
-        let tokio = tokio::runtime::Builder::new_multi_thread()
-            .thread_name("vg")
-            .enable_all()
-            .build()
-            .unwrap();
+        let tokio = runtime();
 
         // console_error_panic_hook::set_once();
         // tracing_wasm::set_as_global_default();
@@ -73,7 +116,6 @@ impl Engine {
                 .expect("Failed to initialize a window"),
         );
 
-        
         let debug = DebugUi::new(window.clone(), RT::NAME);
 
         tracing_subscriber::registry()
@@ -82,7 +124,6 @@ impl Engine {
             .init();
 
         let mut engine = Engine {
-            
             debug,
             sfx,
             gfx: tokio.block_on(Gfx::new(window.clone())),
@@ -113,7 +154,6 @@ impl Engine {
                 None => return,
             };
 
-            
             {
                 engine.debug.platform.handle_event(&ev);
                 engine.debug.tick_time = tickrate;
@@ -130,7 +170,7 @@ impl Engine {
                 } => {
                     engine.gfx.resize(UVec2::new(size.width, size.height));
                 }
-                
+
                 Event::WindowEvent {
                     event: WindowEvent::ReceivedCharacter('/'),
                     ..
@@ -175,7 +215,8 @@ impl Engine {
                         smoothed_frames = 0;
                     } else {
                         trace!("Smooth");
-                        let runtime_smooth = runtime_smooth.get_or_insert_with(|| runtime.duplicate().unwrap());
+                        let runtime_smooth =
+                            runtime_smooth.get_or_insert_with(|| runtime.duplicate().unwrap());
 
                         let elapsed = smooth_frame.elapsed();
                         smooth_frame += elapsed;
@@ -235,7 +276,7 @@ impl Engine {
             match call {
                 Call::Print(msg) => {
                     info!("{}", msg);
-                    
+
                     self.debug.print(msg);
                 }
                 Call::Exit => {
@@ -247,14 +288,8 @@ impl Engine {
 
         let runtime = self.start_time.elapsed();
 
-        
         self.debug.platform.update_time(runtime.as_secs_f64());
 
-        self.gfx
-            .present(
-                
-                &mut self.debug,
-            )
-            .await;
+        self.gfx.present(&mut self.debug).await;
     }
 }
