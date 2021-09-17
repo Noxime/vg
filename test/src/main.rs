@@ -10,13 +10,9 @@ async fn game() {
 
         pos[0] += keys[0] * delta() as f32;
         pos[1] += keys[1] * delta() as f32;
-
-        if Key::Space.pressed() {
-            sfx::play("cat.ogg");
-        }
-
+        
         gfx::draw("ferris.png").pos(pos);
-        gfx::draw("ferris.png").pos([time().sin(), time().cos()]);
+        gfx::draw("ferris.png").pos([time().sin(), time().cos()]).rot(time());
 
         frame().await;
     }

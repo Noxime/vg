@@ -9,15 +9,16 @@ use std::{
 const PAGE_SIZE: usize = u16::MAX as _;
 
 // use serde::{Deserialize, Serialize};
-use serde::{Serialize, Deserialize};
-use tracing::{trace};
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use tracing::trace;
 use vg_types::{DeBin, SerBin};
 use wasmtime::{
-    Caller, Config, Engine, Instance, LinearMemory, Linker, MemoryCreator, MemoryType,
-    Module, Store, Val,
+    Caller, Config, Engine, Instance, LinearMemory, Linker, MemoryCreator, MemoryType, Module,
+    Store, Val,
 };
 
-use super::{Error, Runtime};
+use super::Runtime;
 
 // Intermediate representation of a wasm runtime, intended for serialization
 #[derive(Serialize, Deserialize, Clone)]
@@ -79,13 +80,13 @@ unsafe impl MemoryCreator for MemoryManager {
 struct ArcMovingMemory(Arc<MovingMemory>);
 
 impl ArcMovingMemory {
-    fn is_movable(&self) -> bool {
-        self.0.moveable.load(Relaxed)
-    }
+    // fn is_movable(&self) -> bool {
+    //     self.0.moveable.load(Relaxed)
+    // }
 
-    fn clear_movable(&self) {
-        self.0.moveable.store(false, Relaxed);
-    }
+    // fn clear_movable(&self) {
+    //     self.0.moveable.store(false, Relaxed);
+    // }
 
     // God damn unsafe, but deal with it
     fn set_data(&self, b: &[u8]) {
@@ -139,7 +140,7 @@ pub struct WasmtimeRT {
 }
 
 impl WasmtimeRT {
-    fn new_engine() -> Result<(Engine, Arc<MemoryManager>), Error> {
+    fn new_engine() -> Result<(Engine, Arc<MemoryManager>)> {
         puffin::profile_function!();
         let mem_manager = Arc::new(MemoryManager::new());
 
@@ -152,7 +153,7 @@ impl WasmtimeRT {
         Ok((Engine::new(&config)?, mem_manager))
     }
 
-    fn new(module: Module, engine: Engine, mem_manager: Arc<MemoryManager>) -> Result<Self, Error> {
+    fn new(module: Module, engine: Engine, mem_manager: Arc<MemoryManager>) -> Result<Self> {
         puffin::profile_function!();
 
         let (instance, store) = {
@@ -187,7 +188,7 @@ impl WasmtimeRT {
         })
     }
 
-    fn make_intermediate(&self) -> Result<Intermediate, Error> {
+    fn make_intermediate(&self) -> Result<Intermediate> {
         puffin::profile_function!();
         // This triggers memory growth which invalidates the memory pointer, meaning
         // we can safely ser/de the memory
@@ -211,7 +212,7 @@ impl WasmtimeRT {
         })
     }
 
-    fn from_intermediate(s: Intermediate) -> Result<Self, Error> {
+    fn from_intermediate(s: Intermediate) -> Result<Self> {
         puffin::profile_function!();
         let (engine, mem_manager) = Self::new_engine()?;
 
@@ -249,7 +250,7 @@ impl WasmtimeRT {
 impl Runtime for WasmtimeRT {
     const NAME: &'static str = "wasmtime";
 
-    fn load(code: &[u8]) -> Result<Self, Error> {
+    fn load(code: &[u8]) -> Result<Self> {
         puffin::profile_function!();
         // Create a config and new memory manager
         let (engine, mem_manager) = Self::new_engine()?;
@@ -270,7 +271,7 @@ impl Runtime for WasmtimeRT {
         Ok(this)
     }
 
-    fn run_tick(&mut self, dt: Duration) -> Result<Vec<vg_types::Call>, Error> {
+    fn run_tick(&mut self, dt: Duration) -> Result<Vec<vg_types::Call>> {
         puffin::profile_function!();
 
         let tick_fn = self
@@ -287,7 +288,7 @@ impl Runtime for WasmtimeRT {
         Ok(calls)
     }
 
-    fn send(&mut self, value: vg_types::Response) {
+    fn send(&mut self, value: vg_types::PlayerEvent) {
         puffin::profile_function!();
         let bytes = value.serialize_bin();
 
@@ -305,7 +306,7 @@ impl Runtime for WasmtimeRT {
         mem.write(&mut self.store, ptr as _, &bytes).unwrap();
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, Error> {
+    fn serialize(&self) -> Result<Vec<u8>> {
         puffin::profile_function!();
         trace!("Serializing WASM state");
 
@@ -317,7 +318,7 @@ impl Runtime for WasmtimeRT {
         }
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
+    fn deserialize(bytes: &[u8]) -> Result<Self> {
         puffin::profile_function!();
 
         let s = {
@@ -328,7 +329,7 @@ impl Runtime for WasmtimeRT {
         Self::from_intermediate(s)
     }
 
-    fn duplicate(&mut self) -> Result<Self, Error> {
+    fn duplicate(&mut self) -> Result<Self> {
         puffin::profile_function!();
         Self::from_intermediate(self.make_intermediate()?)
     }

@@ -1,76 +1,76 @@
-use futures::StreamExt;
-use quinn::{
-    Connection, Datagrams, EndpointBuilder, IncomingBiStreams, IncomingUniStreams, NewConnection,
+use std::time::Duration;
+
+use super::{recv, S2C};
+use crate::{
+    debug::Memory,
+    net::{send, set_nodelay, C2S},
+    runtime::Runtime,
 };
-use tokio::{net::{lookup_host, ToSocketAddrs}, select};
+use anyhow::Result;
+use std::sync::mpsc::Sender as SyncSender;
+use tokio::{select, sync::mpsc::Receiver};
+use tokio_tungstenite::connect_async;
 use tracing::*;
+use vg_types::Event;
 
-use crate::{debug::Memory, net::certs, runtime::Runtime};
+pub async fn run<RT: Runtime>(
+    url: &str,
+    mut rx: Receiver<Event>,
+    tx: SyncSender<RT>,
+) -> Result<()> {
+    let (mut socket, _) = connect_async(url).await?;
+    debug!("Connected to {}", url);
 
-use super::Error;
+    // Make sending events and ticks faster
+    set_nodelay(&mut socket);
 
-pub struct Client<RT> {
-    connection: Connection,
-    uni_streams: IncomingUniStreams,
-    bi_streams: IncomingBiStreams,
-    datagrams: Datagrams,
-    state: ClientState<RT>,
-}
+    let (_player, mut runtime) = match recv(&mut socket).await? {
+        Some(S2C::Sync { player, state }) => {
+            debug!(
+                "Received sync from server ({}), I am {:?}",
+                Memory(state.len()),
+                player
+            );
+            (player, RT::deserialize(&state)?)
+        }
+        other => {
+            error!("Expected Sync, got {:?}", other);
+            panic!();
+        }
+    };
 
-enum ClientState<RT> {
-    Game { runtime: [RT; 0] },
-}
+    loop {
+        select! {
+            msg = recv::<S2C>(&mut socket) => {
+                let msg = match msg {
+                    Ok(Some(msg)) => msg,
+                    Ok(None) => break,
+                    Err(e) => return Err(e),
+                };
 
-impl<RT: Runtime> Client<RT> {
-    pub async fn connect(addr: impl ToSocketAddrs) -> Result<Self, Error> {
-        let remote = lookup_host(addr).await?.next().unwrap();
+                debug!("Received {:?}", msg);
 
-        let cfg = certs::insecure_client();
-        let endpoint = EndpointBuilder::new(Default::default(), cfg);
+                match msg {
+                    S2C::Sync { .. } => todo!(),
+                    S2C::Tick { events, tickrate_ns } => {
+                        let tickrate = Duration::from_nanos(tickrate_ns);
+                        for ev in events {
+                            runtime.send(ev);
+                        }
+                        runtime.run_tick(tickrate)?;
 
-        let (endpoint, _) = endpoint.bind(&"[::]:0".parse().unwrap())?;
-        let connecting = endpoint.connect(&remote, "localhost")?;
-        debug!("Connecting to {}", connecting.remote_address());
-        let NewConnection {
-            connection,
-            datagrams,
-            uni_streams,
-            bi_streams,
-            ..
-        } = connecting.await?;
-        debug!("Connected, ID: {}", connection.stable_id());
-
-        Ok(Client {
-            connection,
-            bi_streams,
-            uni_streams,
-            datagrams,
-            state: ClientState::Game { runtime: [] },
-        })
-    }
-
-    pub async fn run(mut self) -> Result<(), Error> {
-        let mut runtime = None;
-
-        loop {
-            select! {
-                Some(datagram) = self.datagrams.next() => {
-                    debug!("Got datagram: {:?}", datagram);
-
-                    let _bytes = datagram?;
-                },
-                Some(uni) = self.uni_streams.next() => {
-                    debug!("Got unidirectional stream");
-                    let stream = uni?;
-                    let bytes = stream.read_to_end(4 * crate::debug::GB).await?;
-                    debug!("Received {} bytes of state", Memory(bytes.len()));
-
-                    runtime = Some(RT::load(&bytes));
-                },
-                _bi = self.bi_streams.next() => {
-                    debug!("Got bidirectional stream");
+                        let _ = tx.send(runtime.duplicate()?);
+                    },
                 }
+            },
+            Some(ev) = rx.recv() => {
+                debug!("Sending event: {:?}", ev);
+                send(&mut socket, C2S::Event(ev)).await?
             }
         }
     }
+
+    info!("Disconnected from server");
+
+    Ok(())
 }

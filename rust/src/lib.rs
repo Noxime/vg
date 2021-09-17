@@ -180,9 +180,10 @@ pub async fn frame() {
     state.input.step_states();
 
     while let Some(bytes) = state.responses.pop_front() {
-        match vg_types::Response::deserialize_bin(&bytes).unwrap() {
-            vg_types::Response::Up(key) => state.input.set(key, Digital::Raised),
-            vg_types::Response::Down(key) => state.input.set(key, Digital::Pressed),
+        let pe = vg_types::PlayerEvent::deserialize_bin(&bytes).unwrap();
+        match pe.event {
+            vg_types::Event::Up(key) => state.input.set(key, Digital::Raised),
+            vg_types::Event::Down(key) => state.input.set(key, Digital::Pressed),
         }
     }
 }

@@ -21,6 +21,7 @@ glam = "0.18"
 bytes = "1"
 serde = "1"
 bincode = "1"
+nanoserde = "0.1"
 
 # Debugging
 tracing = "0.1"
@@ -32,6 +33,8 @@ epi = { version = "0.14" }
 egui_wgpu_backend = { version = "0.12" }
 egui_winit_platform = { version = "0.10" }
 puffin_egui = { version = "0.7" }
+derivative = "2"
+anyhow = "1"
 
 # console_error_panic_hook = "0.1"
 # tracing-wasm = "0.2"
@@ -43,10 +46,11 @@ tokio-io = "0.1"
 futures = { version = "0.3", features = ["compat"] }
 
 # Networking
-quinn = "0.7"
-rustls = { version = "0.19", features = ["quic", "dangerous_configuration"] }
-webpki = "0.21"
-rcgen = "0.8"
+tokio-tungstenite = "0.15"
+# quinn = "0.7"
+# rustls = { version = "0.19", features = ["quic", "dangerous_configuration"] }
+# webpki = "0.21"
+# rcgen = "0.8"
 
 # Windowing & Graphics
 winit = { version = "0.25", features = ["web-sys"] }

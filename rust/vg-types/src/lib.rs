@@ -51,8 +51,17 @@ pub struct PlayCall {
     pub looping: bool,
 }
 
-#[derive(SerBin, DeBin, Debug)]
-pub enum Response {
+#[derive(SerBin, DeBin, Debug, Clone, Copy)]
+pub struct PlayerId(pub u16);
+
+#[derive(SerBin, DeBin, Debug, Clone, Copy)]
+pub struct PlayerEvent {
+    pub player: PlayerId,
+    pub event: Event,
+}
+
+#[derive(SerBin, DeBin, Debug, Clone, Copy)]
+pub enum Event {
     Up(Key),
     Down(Key),
 }

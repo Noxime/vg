@@ -112,21 +112,18 @@ pub fn run(opts: Opts) {
                 )
                 .unwrap();
 
-            vg_native::Engine::run::<vg_native::runtime::Recommended, _>(move || match rx.try_recv() {
-                Ok(_) => {
-                    if run_cargo(
-                        &opts.manifest_path,
-                        opts.build_path.clone(),
-                        "build",
-                        None,
-                    ) {
-                        Some(read_wasm())
-                    } else {
-                        None
+            vg_native::Engine::run::<vg_native::runtime::Recommended, _>(move || {
+                match rx.try_recv() {
+                    Ok(_) => {
+                        if run_cargo(&opts.manifest_path, opts.build_path.clone(), "build", None) {
+                            Some(read_wasm())
+                        } else {
+                            None
+                        }
                     }
+                    Err(TryRecvError::Empty) => None,
+                    Err(TryRecvError::Disconnected) => panic!("File notification channel closed"),
                 }
-                Err(TryRecvError::Empty) => None,
-                Err(TryRecvError::Disconnected) => panic!("File notification channel closed"),
             })
         }
         Some(Cmd::Build) => {

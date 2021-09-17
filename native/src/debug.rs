@@ -35,6 +35,7 @@ pub struct DebugUi {
     pub force_smooth: bool,
     pub runtime_name: String,
     pub smoothed_frames: usize,
+    pub start_time: Instant,
 }
 
 impl DebugUi {
@@ -65,6 +66,7 @@ impl DebugUi {
             force_smooth: false,
             runtime_name: rt_name.to_string(),
             smoothed_frames: 0,
+            start_time: Instant::now(),
         }
     }
 
@@ -78,6 +80,8 @@ impl DebugUi {
 impl epi::App for DebugUi {
     fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
         puffin::profile_function!();
+        self.platform
+            .update_time(self.start_time.elapsed().as_secs_f64());
 
         egui::Window::new("VG").show(ctx, |ui| {
             let last_draw = self.last_draw.elapsed();
@@ -147,10 +151,8 @@ pub const KB: usize = 1024;
 pub const MB: usize = 1024 * KB;
 pub const GB: usize = 1024 * MB;
 
-
 impl std::fmt::Display for Memory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-       
         #[allow(overlapping_range_endpoints, clippy::match_overlapping_arm)]
         match self.0 {
             0..=KB => write!(f, "{} bytes", self.0),

@@ -2,29 +2,28 @@ mod assets;
 
 mod debug;
 mod gfx;
+mod ids;
 mod net;
 pub mod runtime;
 mod sfx;
 mod util;
 
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{sync::Arc, time::Instant};
 
 use assets::Assets;
 use debug::DebugUi;
 use futures::future::join_all;
 use gfx::Gfx;
-use glam::UVec2;
-use net::{Client, Server};
 use runtime::Runtime;
 use sfx::Sfx;
-use tracing::{debug, info, trace};
+use std::sync::mpsc::{self as sync_mpsc};
+use tokio::sync::mpsc::{self, Sender};
+use tracing::{debug, info};
 use tracing_subscriber::prelude::*;
+use vg_types::Event;
 use vg_types::{Call, DrawCall, PlayCall};
 use winit::{
-    event::{Event, WindowEvent},
+    event::{Event as WinitEvent, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
@@ -34,7 +33,6 @@ pub struct Engine {
     window: Arc<Window>,
     gfx: Gfx,
     sfx: Sfx,
-    start_time: Instant,
     assets: Assets,
     debug: DebugUi,
 }
@@ -45,6 +43,36 @@ fn runtime() -> tokio::runtime::Runtime {
         .enable_all()
         .build()
         .unwrap()
+}
+
+async fn handle(ev: WinitEvent<'_, ()>, event_tx: Sender<Event>) -> anyhow::Result<()> {
+    match ev {
+        WinitEvent::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            ..
+        } => {
+            std::process::exit(0);
+        }
+        WinitEvent::WindowEvent {
+            event: WindowEvent::KeyboardInput { input, .. },
+            ..
+        } => {
+            if let Some(key) = input.virtual_keycode.and_then(util::winit_to_key) {
+                match input.state {
+                    winit::event::ElementState::Pressed => {
+                        event_tx.send(vg_types::Event::Down(key)).await?
+                    }
+                    winit::event::ElementState::Released => {
+                        event_tx.send(vg_types::Event::Up(key)).await?
+                    }
+                }
+            }
+        }
+        WinitEvent::MainEventsCleared => {}
+        _ => (),
+    }
+
+    Ok(())
 }
 
 impl Engine {
@@ -61,46 +89,30 @@ impl Engine {
         let code = load_task().unwrap();
         let tokio = runtime();
 
-        tokio
-            .block_on(async {
-                
-                let _ = tokio::join! {
-                    async {
-                        let server = Server::<RT>::bind("[::]:6502", code).await?;
-                        server.run().await?;
-                        info!("Server exit");
-                        Ok::<_, Box<dyn std::error::Error>>(())
-                    },
-                    async {
-                        let client = Client::<RT>::connect("localhost:6502").await?;
-                        client.run().await?;
-                        info!("Client exit");
-                        Ok::<_, Box<dyn std::error::Error>>(())
-                    }
-                };
+        // Start the dedicated server
+        if true {
+            let runtime = RT::load(&code).unwrap();
+            tokio.spawn(async {
+                net::server("0.0.0.0:6502", runtime)
+                    .await
+                    .expect("Failed to run server");
+                info!("Server exit");
+            });
+        }
 
-                Ok::<_, Box<dyn std::error::Error>>(())
-            })
-            .unwrap();
+        // Network client
+        let (event_tx, event_rx) = mpsc::channel(16);
+        let (rt_tx, rt_rx) = sync_mpsc::channel();
+        tokio.spawn(async {
+            net::client::<RT>("ws://localhost:6502", event_rx, rt_tx)
+                .await
+                .unwrap();
+            info!("Client exit");
+        });
 
-        loop {}
-    }
-
-    pub fn run_old<RT, F>(mut idle_task: F) -> !
-    where
-        RT: Runtime + 'static,
-        F: FnMut() -> Option<Vec<u8>> + 'static,
-    {
-        let sfx = Sfx::new();
-        let tokio = runtime();
-
-        // console_error_panic_hook::set_once();
-        // tracing_wasm::set_as_global_default();
-
-        let mut runtime = None;
-        let mut runtime_smooth = None;
-
+        // Windowing
         let events = EventLoop::new();
+        #[allow(unused_mut)]
         let mut builder = WindowBuilder::new().with_title("vg-main");
 
         #[cfg(target_os = "windows")]
@@ -116,131 +128,46 @@ impl Engine {
                 .expect("Failed to initialize a window"),
         );
 
-        let debug = DebugUi::new(window.clone(), RT::NAME);
-
-        tracing_subscriber::registry()
-            .with(tracing_subscriber::EnvFilter::from_default_env())
-            .with(tracing_subscriber::fmt::layer())
-            .init();
-
         let mut engine = Engine {
-            debug,
-            sfx,
             gfx: tokio.block_on(Gfx::new(window.clone())),
+            debug: DebugUi::new(window.clone(), RT::NAME),
+            sfx: Sfx::new(),
             assets: Assets::new(),
             window,
-            start_time: Instant::now(),
         };
 
-        let tickrate = Duration::from_millis(100);
-        let mut next_tick = Instant::now();
-        let mut smooth_frame = Instant::now();
-        let mut smoothed_frames = 0;
+        let mut runtime = rt_rx.recv().unwrap();
+        let mut frame_time = Instant::now();
 
         events.run(move |ev, _, flow| {
-            puffin::profile_scope!("main");
             *flow = ControlFlow::Poll;
 
-            // hosting process has decided it is time for us to die
-            if let Some(code) = idle_task() {
-                debug!("Idle task reloaded code");
-                runtime = Some(RT::load(&code).expect("Loading the runtime failed"));
-                return;
+            // Client received updated tick
+            if let Ok(rt) = rt_rx.try_recv() {
+                runtime = rt;
+                debug!("Client tick received");
             }
 
-            // Don't run when we have nothing... to run
-            let runtime = match runtime {
-                Some(ref mut rt) => rt,
-                None => return,
-            };
+            tokio
+                .block_on(handle(ev, event_tx.clone()))
+                .expect("Event handler failed");
 
-            {
-                engine.debug.platform.handle_event(&ev);
-                engine.debug.tick_time = tickrate;
-            }
+            let elapsed = frame_time.elapsed();
+            let calls = runtime.run_tick(elapsed).unwrap();
+            frame_time += elapsed;
 
-            match ev {
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
-                    ..
-                } => *flow = ControlFlow::Exit,
-                Event::WindowEvent {
-                    event: WindowEvent::Resized(size),
-                    ..
-                } => {
-                    engine.gfx.resize(UVec2::new(size.width, size.height));
-                }
-
-                Event::WindowEvent {
-                    event: WindowEvent::ReceivedCharacter('/'),
-                    ..
-                } => {
-                    debug!("Toggled debug UI visibility");
-                    engine.debug.visible = !engine.debug.visible;
-                }
-                Event::WindowEvent {
-                    event:
-                        WindowEvent::KeyboardInput {
-                            input,
-                            is_synthetic: false,
-                            ..
-                        },
-                    ..
-                } => {
-                    if let Some(key) = input.virtual_keycode.and_then(util::winit_to_key) {
-                        match input.state {
-                            winit::event::ElementState::Pressed => {
-                                runtime.send(vg_types::Response::Down(key))
-                            }
-                            winit::event::ElementState::Released => {
-                                runtime.send(vg_types::Response::Up(key))
-                            }
-                        }
-                    }
-                }
-                // all events for an update handled
-                Event::MainEventsCleared => {
-                    // we should run fixed tick
-                    if next_tick <= Instant::now() {
-                        trace!("Tick");
-                        next_tick += tickrate;
-
-                        // Run a proper tick
-                        tokio.block_on(engine.run_till_present(runtime, tickrate));
-
-                        // The smoothed runtime is invalid state now
-                        runtime_smooth = None;
-                        smooth_frame = Instant::now();
-                        engine.debug.smoothed_frames = smoothed_frames;
-                        smoothed_frames = 0;
-                    } else {
-                        trace!("Smooth");
-                        let runtime_smooth =
-                            runtime_smooth.get_or_insert_with(|| runtime.duplicate().unwrap());
-
-                        let elapsed = smooth_frame.elapsed();
-                        smooth_frame += elapsed;
-                        smoothed_frames += 1;
-                        tokio.block_on(engine.run_till_present(runtime_smooth, elapsed));
-
-                        // // Pass a frames worth of time. Non-determenistic, but its okay because we rollback each tick
-                        // let elapsed = smooth_frame.elapsed();
-                        // smooth_frame += elapsed;
-                    }
-                }
-                _ => (),
-            }
+            tokio.block_on(engine.process_calls(calls));
         })
     }
 
-    async fn run_till_present<RT: Runtime>(&mut self, rt: &mut RT, dt: Duration) {
+    async fn process_calls(&mut self, all_calls: Vec<Call>) {
         puffin::profile_function!();
 
         let mut calls = vec![];
         let mut draws = vec![];
         let mut plays = vec![];
 
-        for call in rt.run_tick(dt).unwrap().drain(..) {
+        for call in all_calls {
             // split calls into different categories so we can do concurrency
             match call {
                 Call::Draw(call) => draws.push(call),
@@ -285,10 +212,6 @@ impl Engine {
                 Call::Play(..) | Call::Draw(..) => unreachable!(),
             }
         }
-
-        let runtime = self.start_time.elapsed();
-
-        self.debug.platform.update_time(runtime.as_secs_f64());
 
         self.gfx.present(&mut self.debug).await;
     }
