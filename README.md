@@ -1,4 +1,5 @@
 # VG Engine
+[![](https://github-actions.40ants.com/Noxime/vg/matrix.svg)](https://owo.codes/noxim/vg)
 
 VG is a cross-platform, cross-api lightweight game engine for prototyping smaller games
 
