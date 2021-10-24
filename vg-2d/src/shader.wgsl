@@ -32,11 +32,15 @@ struct FragmentOutput {
 
 fn bb_line(i: i32) -> vec2<f32> {
     let r = r_locals.props.x + r_locals.props.y;
+    let a = r_locals.xyzw.xy;
+    let b = r_locals.xyzw.zw;
+    let d0 = normalize(b - a) * r; // radius-length vector along the rect
+    let d90 = vec2<f32>(d0.y, -d0.x); // 90 degrees to clockwise
     switch (i) {
-        case 0: { return r_locals.xyzw.xy + vec2<f32>(-r, -r); }
-        case 1: { return r_locals.xyzw.xw + vec2<f32>(-r, r); }
-        case 2: { return r_locals.xyzw.zy + vec2<f32>(r, -r); }
-        case 3: { return r_locals.xyzw.zw + vec2<f32>(r, r); }
+        case 0: { return a + d90 - d0; }
+        case 1: { return a - d90 - d0; }
+        case 2: { return b + d90 + d0; }
+        case 3: { return b - d90 + d0; }
     }
     return vec2<f32>(0.0, 0.0);
 }
@@ -54,7 +58,26 @@ fn bb_circle(i: i32) -> vec2<f32> {
 
 // A rect really is more of a line with sharp corner width, so from A to B (xyzw)
 // with thickness of theta (u)
-// fn bb_rect(i: i32) -> vec2<f32> {}
+fn bb_rect(i: i32) -> vec2<f32> {
+    let r = r_locals.props.x + r_locals.props.y;
+    let a = r_locals.xyzw.xy;
+    let b = r_locals.xyzw.zw;
+
+    let width = distance(a, b) / 2.0;
+    let height = r_locals.uvst.x / 2.0;
+    // TODO: This isn't ideal, because long but narrow rects will get lots of
+    // overflow
+    let d = normalize(b - a);
+    let d0 = d * r; // radius-length vector along the rect
+    let d90 = vec2<f32>(d.y, -d.x) * (max(width, height) + r); // 90 degrees to clockwise
+    switch (i) {
+        case 0: { return a + d90 - d0; }
+        case 1: { return a - d90 - d0; }
+        case 2: { return b + d90 + d0; }
+        case 3: { return b - d90 + d0; }
+    }
+    return vec2<f32>(0.0, 0.0);
+}
 
 [[stage(vertex)]]
 fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
@@ -77,6 +100,13 @@ fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
         case 9: { xy = bb_circle(1); }
         case 10: { xy = bb_circle(2); }
         case 11: { xy = bb_circle(3); }
+        // Rectangle
+        case 12: { xy = bb_rect(0); }
+        case 13: { xy = bb_rect(1); }
+        case 14: { xy = bb_rect(2); }
+        case 15: { xy = bb_rect(1); }
+        case 16: { xy = bb_rect(2); }
+        case 17: { xy = bb_rect(3); }
 
         // Fallback with fullscreen quad, a lot of overdraw
         default: {
@@ -93,7 +123,7 @@ fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
 
     //xy = mix(r_globals.bounds.xy, r_globals.bounds.zw, xy * 0.5 + 0.5);
 
-    out.position = vec4<f32>(xy, 0.0, 1.0);
+    out.position = vec4<f32>(mix(1.0 / r_globals.bounds.xy, 1.0 / r_globals.bounds.zw, xy * 0.5 + 0.5), 0.0, 1.0);
     out.tex_coord = xy;
 
     return out;

@@ -17,7 +17,6 @@ use wgpu::{
     RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
     RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, Texture, TextureDescriptor,
     TextureDimension, TextureFormat, TextureUsages, TextureView, VertexState,
-    BIND_BUFFER_ALIGNMENT,
 };
 
 // mod layer;
@@ -26,8 +25,6 @@ use wgpu::{
 // We can have more shapes per layer, but we have to split the draws into groups
 // of MAX_SHAPES to make sure the shape data fits in the uniform buffer
 const MAX_SHAPES: usize = 256;
-pub(crate) const LOCAL_SIZE: usize = BIND_BUFFER_ALIGNMENT as usize; // Locals is about 32 bytes, this is 256
-const SHAPE_UNIFORM_SIZE: usize = MAX_SHAPES * LOCAL_SIZE;
 
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
@@ -172,10 +169,13 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(device: Arc<Device>, size: UVec2) -> Renderer {
         let module = device.create_shader_module(&include_wgsl!("shader.wgsl"));
+        let align = device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
+
+        debug!("Shape buffer {} bytes", align as usize * MAX_SHAPES);
 
         let locals_buffer = device.create_buffer(&BufferDescriptor {
             label: Some("vg-2d locals buffer"),
-            size: SHAPE_UNIFORM_SIZE as BufferAddress,
+            size: MAX_SHAPES as BufferAddress * align,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -222,7 +222,7 @@ impl Renderer {
                     resource: BindingResource::Buffer(BufferBinding {
                         buffer: &locals_buffer,
                         offset: 0,
-                        size: BufferSize::new(LOCAL_SIZE as u64),
+                        size: BufferSize::new(align as u64),
                     }),
                 },
                 BindGroupEntry {
@@ -340,10 +340,11 @@ impl Renderer {
         pipeline: &RenderPipeline,
         output: &TextureView,
     ) {
+        let align = self.device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
         // Copy current shapes into the locals buffer
-        let mut data = vec![0; SHAPE_UNIFORM_SIZE];
+        let mut data = vec![0; MAX_SHAPES * align as usize];
         for i in 0..shapes.len() {
-            let offset = i * LOCAL_SIZE;
+            let offset = i * align as usize;
             data[offset..][..mem::size_of::<Locals>()]
                 .copy_from_slice(bytemuck::bytes_of(&shapes[i].as_locals()))
         }
@@ -380,7 +381,7 @@ impl Renderer {
             rpass.set_pipeline(&pipeline);
 
             for i in 0..shapes.len() {
-                let offset = (i * LOCAL_SIZE) as DynamicOffset;
+                let offset = (i * align as usize) as DynamicOffset;
 
                 rpass.set_bind_group(0, &self.bind_group, &[offset]);
                 rpass.draw(0..6, 0..1);

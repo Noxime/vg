@@ -6,7 +6,7 @@ use pollster::block_on;
 use rand::{thread_rng, Rng};
 use vg_2d::{calculate_bounds, RenderOutput, Renderer, Shape};
 use wgpu::{
-    Adapter, Backends, Device, Instance, PresentMode, RequestAdapterOptions, Surface,
+    Adapter, Backends, Device, Instance, Maintain, PresentMode, RequestAdapterOptions, Surface,
     SurfaceConfiguration, TextureFormat, TextureUsages,
 };
 use winit::{
@@ -49,6 +49,7 @@ fn main() -> Result<()> {
 
     events.run(move |ev, _, flow| {
         *flow = ControlFlow::Poll;
+        device.poll(Maintain::Poll);
 
         if helper.update(&ev) {
             if helper.quit() || helper.key_pressed(VirtualKeyCode::Escape) {
@@ -61,10 +62,10 @@ fn main() -> Result<()> {
                 bounds = calculate_bounds(UVec2::new(size.width, size.height));
             }
 
-            let frame = surface.get_current_frame().unwrap();
+            let frame = surface.get_current_texture().unwrap();
 
             let output = RenderOutput {
-                view: frame.output.texture.create_view(&Default::default()),
+                view: frame.texture.create_view(&Default::default()),
                 format,
             };
 
@@ -76,7 +77,7 @@ fn main() -> Result<()> {
                 bounds,
             );
 
-            drop(frame);
+            frame.present();
 
             let elapsed = time.elapsed();
             println!(
@@ -87,7 +88,7 @@ fn main() -> Result<()> {
             time += elapsed;
 
             shapes.clear();
-            for _ in 0..4096 {
+            for _ in 0..(64*1024) {
                 shapes.push(
                     Shape::line(rng.gen::<Vec2>() * 2.0 - 1.0, rng.gen::<Vec2>() * 2.0 - 1.0)
                         .with_width(rng.gen_range(0.0..0.01))

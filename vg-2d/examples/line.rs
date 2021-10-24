@@ -5,15 +5,10 @@ use glam::{UVec2, Vec2, Vec4};
 use pollster::block_on;
 use vg_2d::{calculate_bounds, RenderOutput, Renderer, Shape};
 use wgpu::{
-    Adapter, Backends, Device, Instance, PresentMode, RequestAdapterOptions, Surface,
+    Adapter, Backends, Device, Instance, Maintain, PresentMode, RequestAdapterOptions, Surface,
     SurfaceConfiguration, TextureFormat, TextureUsages,
 };
-use winit::{
-    dpi::PhysicalSize,
-    event::VirtualKeyCode,
-    event_loop::{ControlFlow, EventLoop},
-    window::Window,
-};
+use winit::{dpi::PhysicalSize, event::{Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 fn main() -> Result<()> {
@@ -42,9 +37,15 @@ fn main() -> Result<()> {
     let mut renderer = Renderer::new(device.clone(), UVec2::new(size.width, size.height));
 
     let time = Instant::now();
+    let mut focused = true;
 
     events.run(move |ev, _, flow| {
         *flow = ControlFlow::Poll;
+        device.poll(Maintain::Poll);
+
+        if let Event::WindowEvent { event: WindowEvent::Focused(x), .. } = ev {
+            focused = x;
+        }
 
         if helper.update(&ev) {
             if helper.quit() || helper.key_pressed(VirtualKeyCode::Escape) {
@@ -57,7 +58,10 @@ fn main() -> Result<()> {
                 bounds = calculate_bounds(UVec2::new(size.width, size.height));
             }
 
-            let frame = surface.get_current_frame().unwrap();
+            // MacOS Fix: WGPU leaks resources when rendering while a window is covered
+            if !focused { return }
+
+            let frame = surface.get_current_texture().unwrap();
 
             let t = time.elapsed().as_secs_f32();
             let shapes = vec![
@@ -84,14 +88,14 @@ fn main() -> Result<()> {
                     .with_color(Vec4::new(0.8, 0.8, 0.4, 1.0)),
                 Shape::triangle(
                     Vec2::new(-0.9, -0.8),
-                    Vec2::new(0.0, -0.4),
-                    Vec2::new(0.9, -0.8),
+                    Vec2::new(-0.35, -0.4),
+                    Vec2::new(0.2, -0.8),
                 )
                 .with_outline(Some(0.01 + t.sin() * 0.005)),
             ];
 
             let output = RenderOutput {
-                view: frame.output.texture.create_view(&Default::default()),
+                view: frame.texture.create_view(&Default::default()),
                 format,
             };
 
@@ -103,7 +107,7 @@ fn main() -> Result<()> {
                 bounds,
             );
 
-            drop(frame);
+            frame.present();
         }
     })
 }

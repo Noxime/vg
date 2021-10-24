@@ -5,6 +5,6 @@ with many features and optimizations lacking. See the examples for how to use it
 
 **Despite the name, vg-2d is not tied to the VG library and can be used on its own**
 
-# Preview
+## Preview
 
 ![example](screenshot.png)

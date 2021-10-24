@@ -120,9 +120,6 @@ name = "arrayvec"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "ash"
@@ -877,9 +874,9 @@ dependencies = [
 
 [[package]]
 name = "egui_wgpu_backend"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d44a2a93ed9d03e9b7f8648fd5fc8ba56bb8391af195042fd8c85dd2544e972"
+checksum = "10b5ce7d92c1efed2572c77894a5d21f7b78fb0095c4f1ea4a69378560972991"
 dependencies = [
  "bytemuck",
  "epi",
@@ -1216,9 +1213,9 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "525a3e490ba77b8e326fb67d4b44b4bd2f920f44d4cc73ccec50adc68e3bee34"
+checksum = "2b8509e6791516e81c1a630d0bd7fbac36d2fa8712a9da8662e716b52d5051ca"
 dependencies = [
  "bytemuck",
 ]
@@ -1303,6 +1300,12 @@ checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "hexf-parse"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "http"
@@ -1558,6 +1561,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "list-any"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb6e1a111fcefd9e4d7bbd27741b6922d4689e5b765787668c369daa4ae9c11c"
+
+[[package]]
 name = "lock_api"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1745,19 +1754,19 @@ checksum = "0debeb9fcf88823ea64d64e4a815ab1643f33127d995978e099942ce38f25238"
 
 [[package]]
 name = "naga"
-version = "0.6.1"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "568344dfe26b6caee4003da5be57bf8c2ef16d9525a2a5561164bcc462687f92"
+checksum = "eda66d09f712e1f0a6ab436137da4fac312f78301f6d4ac7cb8bfe96e988734f"
 dependencies = [
  "bit-set",
  "bitflags",
  "codespan-reporting",
  "fxhash",
+ "hexf-parse",
+ "indexmap",
  "log",
  "num-traits",
  "petgraph",
- "rose_tree",
- "serde",
  "spirv",
  "thiserror",
 ]
@@ -2295,15 +2304,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "puffin_egui"
-version = "0.7.0"
+name = "puffin"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e072403b12bb4fe12498a68cab84a6b02446134b4172ba329b65a84bb0d6a148"
+checksum = "828f6bdc5edbbb9b2bfa603a29015bc0f09ee67cd30ed22621e675a171a54fe2"
+dependencies = [
+ "byteorder",
+ "once_cell",
+]
+
+[[package]]
+name = "puffin_egui"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f619d6b3df22e6f5b3e092fc0ce6e74991481380ec3d78b32050c59e1b946737"
 dependencies = [
  "egui",
  "natord",
  "once_cell",
- "puffin",
+ "puffin 0.10.0",
+ "vec1",
 ]
 
 [[package]]
@@ -2478,9 +2498,9 @@ dependencies = [
 
 [[package]]
 name = "rend3"
-version = "0.1.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ecbfe0f29de9d3a7f07584ed2db92b4141b75b21c56d35facd9c11661f6d00c"
+checksum = "f0894ced9b061fae634592ae4a488e1440f4abac872d8e4f235b36e7b7f031c9"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -2488,7 +2508,9 @@ dependencies = [
  "flume",
  "glam",
  "indexmap",
+ "list-any",
  "log",
+ "num-traits",
  "parking_lot",
  "profiling",
  "range-alloc",
@@ -2503,12 +2525,14 @@ dependencies = [
 
 [[package]]
 name = "rend3-pbr"
-version = "0.1.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9628cc45c7004e654a1d28f385913fd12dcb340f86e1dc6a910cfb341fc99036"
+checksum = "3f54ed294230601400dd0e044665e32b73644e3c212c6aed45027b2a9f3ef130"
 dependencies = [
  "arrayvec",
+ "bitflags",
  "bytemuck",
+ "flume",
  "glam",
  "include_dir",
  "log",
@@ -2522,9 +2546,9 @@ dependencies = [
 
 [[package]]
 name = "rend3-types"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0cef3f7f6aa1a09cd466437e29853130b2bde25209cd29299e0357800aaf3b7"
+checksum = "5a98f7945ec8393bea27bc1303149fdd37b95222539d8423e27f476ba29808ce"
 dependencies = [
  "bitflags",
  "glam",
@@ -2536,26 +2560,6 @@ name = "renderdoc-sys"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1382d1f0a252c4bf97dc20d979a2fdd05b024acd7c2ed0f7595d7817666a157"
-
-[[package]]
-name = "ron"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "064ea8613fb712a19faf920022ec8ddf134984f100090764a4e1d768f3827f1f"
-dependencies = [
- "base64",
- "bitflags",
- "serde",
-]
-
-[[package]]
-name = "rose_tree"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcd16c61e9205949fa4f8a22096705b4c2f8b8025b2ff67ff6c86afd854039ae"
-dependencies = [
- "petgraph",
-]
 
 [[package]]
 name = "rust-test"
@@ -3132,6 +3136,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
+name = "vec1"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fc1631c774f0f9570797191e01247cbefde789eebfbf128074cb934115a6133"
+
+[[package]]
 name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3174,7 +3184,7 @@ dependencies = [
  "nanoserde",
  "oddio",
  "ogg",
- "puffin",
+ "puffin 0.8.1",
  "puffin_egui",
  "rend3",
  "rend3-pbr",
@@ -3592,9 +3602,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.51"
+version = "0.3.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e828417b379f3df7111d3a2a9e5753706cae29c41f7c4029ee9fd77f3e09e582"
+checksum = "224b2f6b67919060055ef1a67807367c2066ed520c3862cc013d26cf893a783c"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -3608,9 +3618,9 @@ checksum = "d8b77fdfd5a253be4ab714e4ffa3c49caf146b4de743e97510c0656cf90f1e8e"
 
 [[package]]
 name = "wgpu"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d92a4fe73b1e7d7ef99938dacd49258cbf1ad87cdb5bf6efa20c27447442b45"
+checksum = "d1577ecc4f6992b9e965878ac594efb24eed2bdf089c11f45b3d1c5f216e2e30"
 dependencies = [
  "arrayvec",
  "js-sys",
@@ -3618,7 +3628,6 @@ dependencies = [
  "naga",
  "parking_lot",
  "raw-window-handle",
- "serde",
  "smallvec",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3630,9 +3639,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "0.10.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a81393a8d78194c7433d63afed2bf5f64feb126aef9ddd18eca3b16e9fac0cea"
+checksum = "3bdcbfa4885b32c2b1feb2faeb8b6a76065b752b8f08751b82f994e937687f46"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -3644,8 +3653,6 @@ dependencies = [
  "parking_lot",
  "profiling",
  "raw-window-handle",
- "ron",
- "serde",
  "smallvec",
  "thiserror",
  "wgpu-hal",
@@ -3654,9 +3661,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-hal"
-version = "0.10.2"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31bc8def88a1416997bff66b1f6788a4bd497546ad985db2d442d099c48f4246"
+checksum = "0e493835d9edb153d5c8a9d8d016e1811dbe32ddb707a110be1453c7b051d3ec"
 dependencies = [
  "arrayvec",
  "ash",
@@ -3671,6 +3678,7 @@ dependencies = [
  "gpu-alloc",
  "gpu-descriptor",
  "inplace_it",
+ "js-sys",
  "khronos-egl",
  "libloading 0.7.0",
  "log",
@@ -3678,19 +3686,22 @@ dependencies = [
  "naga",
  "objc",
  "parking_lot",
+ "profiling",
  "range-alloc",
  "raw-window-handle",
  "renderdoc-sys",
  "thiserror",
+ "wasm-bindgen",
+ "web-sys",
  "wgpu-types",
  "winapi",
 ]
 
 [[package]]
 name = "wgpu-profiler"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "598efb2ffc3d7b277ce504f24716579c24b6692600f031c98c0bb0aa1486a01d"
+checksum = "5bbb9608f7c1717777bb33209895624c15d656196083d112b539eab0560f9003"
 dependencies = [
  "futures-lite",
  "wgpu",
@@ -3711,12 +3722,11 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25feb2fbf24ab3219a9f10890ceb8e1ef02b13314ed89d64a9ae99dcad883e18"
+checksum = "e15e44ba88ec415466e18e91881319e7c9e96cb905dc623305168aea65b85ccc"
 dependencies = [
  "bitflags",
- "serde",
 ]
 
 [[package]]

@@ -17,7 +17,7 @@ vg-types = { path = "../rust/vg-types" }
 
 # Data structures & serialization
 dashmap = "4"
-glam = "0.18"
+glam = "0.19"
 bytes = "1"
 serde = "1"
 bincode = "1"
@@ -30,9 +30,10 @@ puffin = "0.8"
 loupe = "0.1"
 egui = { version = "0.14" }
 epi = { version = "0.14" }
-egui_wgpu_backend = { version = "0.12" }
+egui_wgpu_backend = { version = "0.13" }
 egui_winit_platform = { version = "0.10" }
-puffin_egui = { version = "0.7" }
+# puffin_egui = { path = "../../puffin/puffin_egui" }
+puffin_egui = "0.9"
 derivative = "2"
 anyhow = "1"
 
@@ -54,10 +55,10 @@ tokio-tungstenite = "0.15"
 
 # Windowing & Graphics
 winit = { version = "0.25", features = ["web-sys"] }
-wgpu = "0.10"
+wgpu = "0.11"
 wgpu-subscriber = "0.1"
-rend3 = "0.1"
-rend3-pbr = "0.1"
+rend3 = "0.2"
+rend3-pbr = "0.2"
 
 # Audio
 oddio = { git = "https://github.com/Ralith/oddio", branch = "main" }
