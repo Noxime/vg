@@ -11,7 +11,7 @@ default = []
 # vg-derive = { path = "derive" }
 # wasm-bindgen = "0.2"
 vg-types = { path = "vg-types" }
-glam = "0.18"
+glam = "0.19"
 
 # Deps for event loop execution, hopefully some day inline these for reduced build times
 futures = { version = "0.3", default-features = false, features = ["alloc", "executor"] }

@@ -1,4 +1,4 @@
 [workspace]
-members = ["native", "rust", "rust/derive", "rust/vg-types", "rust/vg-builder", "cargo-vg"]
-exclude = ["test"]
+members = ["native", "rust", "rust/derive", "rust/vg-types", "rust/vg-builder", "cargo-vg", "vg-2d"]
+exclude = ["test", "net-test"]
 resolver = "2"

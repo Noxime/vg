@@ -4,13 +4,15 @@ use glam::{vec2, vec3, Mat4, UVec2, Vec3A};
 use rend3::{
     create_iad,
     types::{
-        AlbedoComponent, Camera, Material, Mesh, MeshHandle, MipmapCount, MipmapSource, Object,
-        ObjectHandle, Texture, TextureHandle,
+        Camera, Mesh, MeshHandle, MipmapCount, MipmapSource, Object, ObjectHandle, Texture,
+        TextureHandle,
     },
-    util::output::OutputFrame,
     Renderer,
 };
-use rend3_pbr::{PbrRenderRoutine, RenderTextureOptions, SampleCount};
+use rend3_pbr::{
+    material::{AlbedoComponent, PbrMaterial},
+    PbrRenderRoutine, RenderTextureOptions, SampleCount,
+};
 use tracing::*;
 use vg_types::Transform;
 use wgpu::{
@@ -63,7 +65,13 @@ impl Gfx {
                 vec3(0.5, -0.5, 0.0),
                 vec3(0.5, 0.5, 0.0),
             ],
-            vertex_uvs: vec![
+            vertex_uv0: vec![
+                vec2(0.0, 1.0),
+                vec2(0.0, 0.0),
+                vec2(1.0, 1.0),
+                vec2(1.0, 0.0),
+            ],
+            vertex_uv1: vec![
                 vec2(0.0, 1.0),
                 vec2(0.0, 0.0),
                 vec2(1.0, 1.0),
@@ -133,9 +141,8 @@ impl Gfx {
         self.renderer.set_camera_data(Camera {
             projection: rend3::types::CameraProjection::Orthographic {
                 size: Vec3A::new(10.0 * aspect, 10.0, 10.0),
-                direction: Vec3A::new(0.0, 0.0, 1.0),
             },
-            location: Vec3A::new(0.0, 0.0, -5.0),
+            view: Mat4::IDENTITY,
         });
 
         self.routine_pbr.resize(
@@ -171,7 +178,7 @@ impl Gfx {
 
         let tex = self.textures.get(&asset.path).unwrap().clone();
 
-        let material = self.renderer.add_material(Material {
+        let material = self.renderer.add_material(PbrMaterial {
             albedo: AlbedoComponent::Texture(tex),
             unlit: true,
             ..Default::default()
@@ -193,26 +200,22 @@ impl Gfx {
             self.renderer.device.poll(Maintain::Poll);
         }
 
-        let frame = match self.surface.get_current_frame() {
+        let frame = match self.surface.get_current_texture() {
             Ok(f) => f,
             Err(e) => {
                 warn!("Failed to get output frame from surface: {}", e);
                 let size = self.window.inner_size();
                 self.resize(UVec2::new(size.width, size.height));
-                self.surface.get_current_frame().unwrap()
+                self.surface
+                    .get_current_texture()
+                    .expect("Failed to re-acquire swapchain")
             }
         };
-        let view = Arc::new(
-            frame
-                .output
-                .texture
-                .create_view(&TextureViewDescriptor::default()),
-        );
+        let view = Arc::new(frame.texture.create_view(&TextureViewDescriptor::default()));
 
         {
             puffin::profile_scope!("rend3_pbr");
-            self.renderer
-                .render(&mut self.routine_pbr, OutputFrame::View(Arc::clone(&view)));
+            self.renderer.render(&mut self.routine_pbr, (), &view);
         }
 
         {
@@ -292,7 +295,7 @@ impl Gfx {
             puffin::profile_scope!("wgpu_present");
             // View must be dropped before frame
             drop(view);
-            drop(frame);
+            frame.present();
         }
 
         // Done with the frame, record it on the profiler
