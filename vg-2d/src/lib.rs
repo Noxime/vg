@@ -87,6 +87,13 @@ impl Shape {
             ..Default::default()
         }
     }
+
+    pub fn bezier(a: Vec2, b: Vec2, c: Vec2, d: Vec2) -> Shape {
+        Shape {
+            kind: ShapeKind::Bezier(a, b, c, d),
+            ..Default::default()
+        }
+    }
 }
 
 impl Default for Shape {
@@ -106,6 +113,7 @@ pub enum ShapeKind {
     Circle(Vec2),
     Rect(Vec2, Vec2, f32),
     Triangle(Vec2, Vec2, Vec2),
+    Bezier(Vec2, Vec2, Vec2, Vec2),
 }
 
 impl Shape {
@@ -134,6 +142,12 @@ impl Shape {
                 props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 3.0, 0.0),
                 xyzw: Vec4::new(a.x, a.y, b.x, b.y),
                 uvst: Vec4::new(c.x, c.y, 0.0, 0.0),
+            },
+            ShapeKind::Bezier(a, b, c, d) => Locals {
+                color: self.color,
+                props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 4.0, 0.0),
+                xyzw: Vec4::new(a.x, a.y, b.x, b.y),
+                uvst: Vec4::new(c.x, c.y, d.x, d.y),
             },
         }
     }
@@ -171,7 +185,11 @@ impl Renderer {
         let module = device.create_shader_module(&include_wgsl!("shader.wgsl"));
         let align = device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
 
-        debug!("Shape buffer {} bytes, global buffer {} bytes", align as usize * MAX_SHAPES, mem::size_of::<Globals>());
+        debug!(
+            "Shape buffer {} bytes, global buffer {} bytes",
+            align as usize * MAX_SHAPES,
+            mem::size_of::<Globals>()
+        );
 
         let locals_buffer = device.create_buffer(&BufferDescriptor {
             label: Some("vg-2d locals buffer"),

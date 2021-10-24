@@ -88,10 +88,17 @@ fn main() -> Result<()> {
                     .with_color(Vec4::new(0.8, 0.8, 0.4, 1.0)),
                 Shape::triangle(
                     Vec2::new(-0.9, -0.8),
-                    Vec2::new(-0.35, -0.4),
-                    Vec2::new(0.2, -0.8),
+                    Vec2::new(-0.7, -0.4),
+                    Vec2::new(-0.5, -0.8),
                 )
                 .with_outline(Some(0.01 + t.sin() * 0.005)),
+                Shape::bezier(
+                    Vec2::new(-0.2, -0.8),
+                    Vec2::new(t.sin() * 0.2, -0.4),
+                    Vec2::new(0.2, -0.8),
+                    Vec2::new(0.2, -0.4),
+                )
+                .with_width(0.01)
             ];
 
             let output = RenderOutput {
