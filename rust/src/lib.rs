@@ -113,30 +113,6 @@ pub extern "C" fn __vg_move() {
     core::arch::wasm32::memory_grow(0, vg_types::MOVE_TRIGGER_MAGIC);
 }
 
-/// Take a host-pushed Response and apply it to local state
-// #[no_mangle]
-// pub extern "C" fn __vg_consume() {
-//     let state = ensure();
-
-//     while let Some(bytes) = state.responses.pop_front() {
-//         match vg_types::Response::deserialize_bin(&bytes).unwrap() {
-//             vg_types::Response::Time(step) => {
-//                 state.deltatime = Duration::from_secs_f64(step);
-//                 state.runtime += state.deltatime;
-//             }
-//             vg_types::Response::Up(key) => {
-//                 state.input.set(key, Digital::Raised)
-//             },
-//             vg_types::Response::Down(key) => {
-//                 state.input.set(key, Digital::Pressed)
-//             },
-//             vg_types::Response::Tick => {
-//                 // state.input.tick();
-//             }
-//         }
-//     }
-// }
-
 fn call_host(_val: impl vg_types::SerBin) {
     ensure();
     #[cfg(target_os = "wasi")]

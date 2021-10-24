@@ -46,7 +46,9 @@ tokio-io = "0.1"
 futures = { version = "0.3", features = ["compat"] }
 
 # Networking
-tokio-tungstenite = "0.15"
+webrtc-data = "0.2.5"
+webrtc-sctp = "0.3.5"
+hyper = { version = "0.14", features = ["client", "server", "http1", "http2", "tcp"] }
 # quinn = "0.7"
 # rustls = { version = "0.19", features = ["quic", "dangerous_configuration"] }
 # webpki = "0.21"

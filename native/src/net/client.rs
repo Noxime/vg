@@ -1,74 +1,97 @@
-use std::time::Duration;
+use std::{
+    net::IpAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
-use super::{recv, S2C};
 use crate::{
     debug::Memory,
-    net::{send, set_nodelay, C2S},
+    net::{
+        event_queue::EventQueue, http, Channel, Nothing, Ping, Pong, Tick, MAX_MESSAGE_SIZE,
+        MAX_RECEIVE_BUFFER_SIZE,
+    },
     runtime::Runtime,
 };
 use anyhow::Result;
+use futures::{
+    future::{join_all, ready},
+    stream::FuturesUnordered,
+};
 use std::sync::mpsc::Sender as SyncSender;
 use tokio::{select, sync::mpsc::Receiver};
-use tokio_tungstenite::connect_async;
 use tracing::*;
-use vg_types::Event;
+use vg_types::{Event, PlayerEvent, PlayerId};
+use webrtc_data::data_channel::{self, DataChannel};
+use webrtc_sctp::{
+    association::{self, Association},
+    chunk::chunk_payload_data::PayloadProtocolIdentifier,
+};
 
 pub async fn run<RT: Runtime>(
-    url: &str,
+    addr: IpAddr,
     mut rx: Receiver<Event>,
     tx: SyncSender<RT>,
 ) -> Result<()> {
-    let (mut socket, _) = connect_async(url).await?;
-    debug!("Connected to {}", url);
+    let (socket, state) = http::req_socket(addr).await?;
+    debug!("Client socket established");
 
-    // Make sending events and ticks faster
-    set_nodelay(&mut socket);
+    let mut runtime = RT::deserialize(&state)?;
+    let mut event_queue = EventQueue::new();
 
-    let (_player, mut runtime) = match recv(&mut socket).await? {
-        Some(S2C::Sync { player, state }) => {
-            debug!(
-                "Received sync from server ({}), I am {:?}",
-                Memory(state.len()),
-                player
-            );
-            (player, RT::deserialize(&state)?)
-        }
-        other => {
-            error!("Expected Sync, got {:?}", other);
-            panic!();
-        }
-    };
+    let association = Arc::new(
+        Association::client(association::Config {
+            net_conn: Arc::new(socket),
+            max_receive_buffer_size: MAX_RECEIVE_BUFFER_SIZE,
+            max_message_size: MAX_MESSAGE_SIZE,
+            name: "ClientAssociation".into(),
+        })
+        .await?,
+    );
+
+    let ping_channel: Channel<Ping, Pong, false> =
+        Channel::accept(DataChannel::accept(&association, Default::default()).await?).unwrap();
+
+    let event_channel: Channel<u64, EventQueue, false> =
+        Channel::accept(DataChannel::accept(&association, Default::default()).await?).unwrap();
+
+    let tick_channel: Channel<Tick, Nothing, true> =
+        Channel::accept(DataChannel::accept(&association, Default::default()).await?).unwrap();
 
     loop {
         select! {
-            msg = recv::<S2C>(&mut socket) => {
-                let msg = match msg {
-                    Ok(Some(msg)) => msg,
-                    Ok(None) => break,
-                    Err(e) => return Err(e),
-                };
-
-                debug!("Received {:?}", msg);
-
-                match msg {
-                    S2C::Sync { .. } => todo!(),
-                    S2C::Tick { events, tickrate_ns } => {
-                        let tickrate = Duration::from_nanos(tickrate_ns);
-                        for ev in events {
-                            runtime.send(ev);
-                        }
-                        runtime.run_tick(tickrate)?;
-
-                        let _ = tx.send(runtime.duplicate()?);
-                    },
-                }
+            // Reply to ping requests
+            Ok(Ping(challenge)) = ping_channel.recv() => {
+                debug!("Replying to ping {}", challenge);
+                ping_channel.send(Pong(challenge)).await?;
             },
+            // Broadcast our event
             Some(ev) = rx.recv() => {
-                debug!("Sending event: {:?}", ev);
-                send(&mut socket, C2S::Event(ev)).await?
+                event_queue.push(ev);
+            }
+            // Clear events that the server has already acked
+            Ok(i) = event_channel.recv() => {
+                debug!("Server acknowledged up to {}", i);
+                event_queue.ack(i);
+            }
+            Ok(Tick { events, tickrate_ns, }) = tick_channel.recv() => {
+                let tickrate = Duration::from_nanos(tickrate_ns);
+
+                for ev in events {
+                    runtime.send(ev);
+                }
+                let _calls = runtime.run_tick(tickrate)?;
+                
+                tx.send(runtime.duplicate()?).unwrap();
             }
         }
+
+        if !event_queue.empty() {
+            debug!("Sending events {:?}", event_queue.range());
+            event_channel.send(event_queue.clone()).await?;
+        }
     }
+
+    // let dc = DataChannel::dial(&association, 1337, config()).await?;
 
     info!("Disconnected from server");
 

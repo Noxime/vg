@@ -1,5 +1,4 @@
 mod assets;
-
 mod debug;
 mod gfx;
 mod ids;
@@ -7,16 +6,15 @@ mod net;
 pub mod runtime;
 mod sfx;
 mod util;
-
-use std::{sync::Arc, time::Instant};
-
 use assets::Assets;
 use debug::DebugUi;
 use futures::future::join_all;
 use gfx::Gfx;
 use runtime::Runtime;
 use sfx::Sfx;
+use std::net::Ipv4Addr;
 use std::sync::mpsc::{self as sync_mpsc};
+use std::{sync::Arc, time::Instant};
 use tokio::sync::mpsc::{self, Sender};
 use tracing::{debug, info};
 use tracing_subscriber::prelude::*;
@@ -93,9 +91,7 @@ impl Engine {
         if true {
             let runtime = RT::load(&code).unwrap();
             tokio.spawn(async {
-                net::server("0.0.0.0:6502", runtime)
-                    .await
-                    .expect("Failed to run server");
+                net::server(runtime).await.expect("Failed to run server");
                 info!("Server exit");
             });
         }
@@ -104,7 +100,7 @@ impl Engine {
         let (event_tx, event_rx) = mpsc::channel(16);
         let (rt_tx, rt_rx) = sync_mpsc::channel();
         tokio.spawn(async {
-            net::client::<RT>("ws://localhost:6502", event_rx, rt_tx)
+            net::client::<RT>(Ipv4Addr::new(127, 0, 0, 1).into(), event_rx, rt_tx)
                 .await
                 .unwrap();
             info!("Client exit");
