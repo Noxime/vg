@@ -171,7 +171,7 @@ impl Renderer {
         let module = device.create_shader_module(&include_wgsl!("shader.wgsl"));
         let align = device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
 
-        debug!("Shape buffer {} bytes", align as usize * MAX_SHAPES);
+        debug!("Shape buffer {} bytes, global buffer {} bytes", align as usize * MAX_SHAPES, mem::size_of::<Globals>());
 
         let locals_buffer = device.create_buffer(&BufferDescriptor {
             label: Some("vg-2d locals buffer"),
@@ -182,7 +182,7 @@ impl Renderer {
 
         let globals_buffer = device.create_buffer(&BufferDescriptor {
             label: Some("vg-2d globals buffer"),
-            size: mem::size_of::<Globals> as BufferAddress,
+            size: mem::size_of::<Globals>() as BufferAddress,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
