@@ -271,7 +271,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     // Analytic anti-aliasing
     let w = fwidth(t) * 0.5;
-    let blend = vec4<f32>(1.0, 1.0, 1.0, 1.0 - smoothStep(-w, w, t) + 0.1);
+    let blend = vec4<f32>(1.0, 1.0, 1.0, 1.0 - smoothStep(-w, w, t));
 
     out.color = r_locals.color * blend;
     out.depth = t;

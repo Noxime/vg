@@ -1,5 +1,4 @@
 use glam::{UVec2, Vec2, Vec4};
-use log::debug;
 use std::{mem, sync::Arc};
 use wgpu::{
     include_wgsl, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
@@ -7,10 +6,10 @@ use wgpu::{
     BlendOperation, BlendState, Buffer, BufferAddress, BufferBinding, BufferBindingType,
     BufferDescriptor, BufferSize, BufferUsages, Color, ColorTargetState, ColorWrites,
     CommandEncoderDescriptor, CompareFunction, DepthStencilState, Device, DynamicOffset, Extent3d,
-    FragmentState, LoadOp, Operations, PipelineLayout, PipelineLayoutDescriptor, Queue,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-    RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, Texture,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView, VertexState,
+    FragmentState, LoadOp, Operations, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, ShaderStages, Texture, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsages, TextureView, VertexState,
 };
 
 mod shape;
@@ -42,21 +41,11 @@ pub(crate) struct Globals {
 unsafe impl bytemuck::Pod for Globals {}
 unsafe impl bytemuck::Zeroable for Globals {}
 
-/// Utility struct defining where we want to render to
-pub struct RenderOutput {
-    /// The texture to render to. Pointed texture must have `TextureUsages::RENDER_ATTACHMENT`
-    pub view: TextureView,
-    /// The format of the texture pointed by `view`
-    pub format: TextureFormat,
-}
-
 /// Core struct which handles the management of internal wgpu resources and lets
 /// you render [`&[Shapes]`](Shape) onto a swapchain or texture
 pub struct Renderer {
     device: Arc<Device>,
-    pipeline_layout: PipelineLayout,
-    pipeline: Option<(TextureFormat, RenderPipeline)>,
-    module: ShaderModule,
+    pipeline: RenderPipeline,
     bind_group: BindGroup,
     locals_buffer: Buffer,
     globals_buffer: Buffer,
@@ -68,15 +57,9 @@ pub struct Renderer {
 impl Renderer {
     /// Initialize the renderer for a specific output size. Do not forget to
     /// call [`resize`](Renderer::resize) when your swapchain changes size
-    pub fn new(device: Arc<Device>, size: UVec2) -> Renderer {
+    pub fn new(device: Arc<Device>, size: UVec2, format: TextureFormat) -> Renderer {
         let module = device.create_shader_module(&include_wgsl!("shader.wgsl"));
         let align = device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
-
-        debug!(
-            "Shape buffer {} bytes, global buffer {} bytes",
-            align as usize * MAX_SHAPES,
-            mem::size_of::<Globals>()
-        );
 
         let locals_buffer = device.create_buffer(&BufferDescriptor {
             label: Some("vg-2d locals buffer"),
@@ -147,15 +130,50 @@ impl Renderer {
             push_constant_ranges: &[],
         });
 
-        let pipeline = None;
+        let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("vg-2d output"),
+            layout: Some(&pipeline_layout),
+            vertex: VertexState {
+                module: &module,
+                entry_point: "vs_main",
+                buffers: &[],
+            },
+            primitive: Default::default(),
+            depth_stencil: Some(DepthStencilState {
+                format: TextureFormat::Depth24Plus,
+                depth_write_enabled: true,
+                depth_compare: CompareFunction::LessEqual,
+                stencil: Default::default(),
+                bias: Default::default(),
+            }),
+            multisample: Default::default(),
+            fragment: Some(FragmentState {
+                module: &module,
+                entry_point: "fs_main",
+                targets: &[ColorTargetState {
+                    format,
+                    blend: Some(BlendState {
+                        color: BlendComponent {
+                            src_factor: BlendFactor::SrcAlpha,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::One,
+                            dst_factor: BlendFactor::One,
+                            operation: BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: ColorWrites::all(),
+                }],
+            }),
+        });
 
         let (depth_texture, depth_texture_view) = Self::create_depth(&device, size);
 
         Renderer {
             device,
-            pipeline_layout,
             pipeline,
-            module,
             bind_group,
             locals_buffer,
             globals_buffer,
@@ -191,7 +209,7 @@ impl Renderer {
         queue: &Queue,
         shapes: &[Shape],
         clear: Option<Vec4>,
-        output: RenderOutput,
+        output: &TextureView,
         viewport: (Vec2, Vec2),
     ) {
         // Update per-draw properties
@@ -200,17 +218,6 @@ impl Renderer {
             resolution: self.size,
         };
         queue.write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
-
-        // Check that our pipeline is appropriate
-        if self
-            .pipeline
-            .as_ref()
-            .filter(|(f, _)| *f == output.format)
-            .is_none()
-        {
-            self.pipeline = Some(self.create_pipeline(output.format));
-        }
-        let (_, pipeline) = self.pipeline.as_ref().unwrap();
 
         // Clear the screen if needed and reset depth buffer
         let mut enc = self
@@ -223,7 +230,7 @@ impl Renderer {
             let mut rpass = enc.begin_render_pass(&RenderPassDescriptor {
                 label: Some("vg-2d clear pass"),
                 color_attachments: &[RenderPassColorAttachment {
-                    view: &output.view,
+                    view: output,
                     resolve_target: None,
                     ops: Operations {
                         load: match clear {
@@ -248,7 +255,7 @@ impl Renderer {
                 }),
             });
 
-            rpass.set_pipeline(pipeline);
+            rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[0]);
             rpass.draw(0..0, 0..0);
         }
@@ -257,17 +264,11 @@ impl Renderer {
 
         // We can only fit so many shapes into the uniform buffer at once so work in chunks of MAX_SHAPES
         for shapes in shapes.chunks(MAX_SHAPES) {
-            self.render_chunk(shapes, queue, pipeline, &output.view)
+            self.render_chunk(shapes, queue, output)
         }
     }
 
-    fn render_chunk(
-        &self,
-        shapes: &[Shape],
-        queue: &Queue,
-        pipeline: &RenderPipeline,
-        output: &TextureView,
-    ) {
+    fn render_chunk(&self, shapes: &[Shape], queue: &Queue, output: &TextureView) {
         let align = self.device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
         // Copy current shapes into the locals buffer
         let mut data = vec![0; MAX_SHAPES * align as usize];
@@ -282,12 +283,12 @@ impl Renderer {
         let mut enc = self
             .device
             .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("vg-2d output encoder"),
+                label: Some("vg-2d chunk encoder"),
             });
 
         {
             let mut rpass = enc.begin_render_pass(&RenderPassDescriptor {
-                label: Some("vg-2d pass"),
+                label: Some("vg-2d chunk pass"),
                 color_attachments: &[RenderPassColorAttachment {
                     view: output,
                     resolve_target: None,
@@ -306,7 +307,7 @@ impl Renderer {
                 }),
             });
 
-            rpass.set_pipeline(pipeline);
+            rpass.set_pipeline(&self.pipeline);
 
             for i in 0..shapes.len() {
                 let offset = (i * align as usize) as DynamicOffset;
@@ -319,6 +320,10 @@ impl Renderer {
         queue.submit([enc.finish()])
     }
 
+    /// Resize the internal textures
+    ///
+    /// This must be called before calling [`render`](Renderer::render), if the last provided
+    /// size is not up to date to the provided `view`
     pub fn resize(&mut self, size: UVec2) {
         let (t, v) = Self::create_depth(&self.device, size);
 
@@ -327,56 +332,7 @@ impl Renderer {
         self.size = size;
     }
 
-    fn create_pipeline(&self, format: TextureFormat) -> (TextureFormat, RenderPipeline) {
-        debug!("Creating pipeline for {:?}", format);
-
-        let pl = self
-            .device
-            .create_render_pipeline(&RenderPipelineDescriptor {
-                label: Some("vg-2d output"),
-                layout: Some(&self.pipeline_layout),
-                vertex: VertexState {
-                    module: &self.module,
-                    entry_point: "vs_main",
-                    buffers: &[],
-                },
-                primitive: Default::default(),
-                depth_stencil: Some(DepthStencilState {
-                    format: TextureFormat::Depth24Plus,
-                    depth_write_enabled: true,
-                    depth_compare: CompareFunction::LessEqual,
-                    stencil: Default::default(),
-                    bias: Default::default(),
-                }),
-                multisample: Default::default(),
-                fragment: Some(FragmentState {
-                    module: &self.module,
-                    entry_point: "fs_main",
-                    targets: &[ColorTargetState {
-                        format,
-                        blend: Some(BlendState {
-                            color: BlendComponent {
-                                src_factor: BlendFactor::SrcAlpha,
-                                dst_factor: BlendFactor::OneMinusSrcAlpha,
-                                operation: BlendOperation::Add,
-                            },
-                            alpha: BlendComponent {
-                                src_factor: BlendFactor::One,
-                                dst_factor: BlendFactor::One,
-                                operation: BlendOperation::Add,
-                            },
-                        }),
-                        write_mask: ColorWrites::all(),
-                    }],
-                }),
-            });
-
-        (format, pl)
-    }
-
     fn create_depth(device: &Device, size: UVec2) -> (Texture, TextureView) {
-        debug!("Creating depth texture for {}", size);
-
         let tex = device.create_texture(&TextureDescriptor {
             label: Some("vg-2d distance field depth"),
             size: Extent3d {
