@@ -30,7 +30,7 @@ fn main() -> Result<()> {
         compatible_surface: Some(&surface),
         ..Default::default()
     }))
-    .ok_or(anyhow!("No compatible graphics adapter"))?;
+    .ok_or_else(|| anyhow!("No compatible graphics adapter"))?;
     let (device, queue) = block_on(adapter.request_device(&Default::default(), None))?;
     let device = Arc::new(device);
 
@@ -88,10 +88,10 @@ fn main() -> Result<()> {
             time += elapsed;
 
             shapes.clear();
-            for _ in 0..(64*1024) {
+            for _ in 0..(64 * 1024) {
                 shapes.push(
                     Shape::circle(rng.gen::<Vec2>() * 2.0 - 1.0)
-                        .with_width(rng.gen_range(0.0..0.01))
+                        .with_radius(rng.gen_range(0.0..0.01))
                         .with_color(rng.gen()),
                 );
             }
@@ -106,11 +106,11 @@ fn reconfigure(
     size: PhysicalSize<u32>,
 ) -> TextureFormat {
     let format = surface
-        .get_preferred_format(&adapter)
+        .get_preferred_format(adapter)
         .unwrap_or(TextureFormat::Rgba8UnormSrgb);
 
     surface.configure(
-        &device,
+        device,
         &SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format,

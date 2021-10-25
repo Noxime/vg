@@ -35,8 +35,12 @@ fn dot2(x: vec2<f32>) -> f32 {
 
 // Bounding box functions
 
+fn pixel_size() -> f32 {
+    return 2.0 / f32(min(r_globals.resolution.x, r_globals.resolution.y));
+}
+
 fn bb_line(i: i32) -> vec2<f32> {
-    let r = r_locals.props.x + r_locals.props.y;
+    let r = r_locals.props.x + r_locals.props.y + pixel_size();
     let a = r_locals.xyzw.xy;
     let b = r_locals.xyzw.zw;
     let d0 = normalize(b - a) * r; // radius-length vector along the rect
@@ -51,7 +55,7 @@ fn bb_line(i: i32) -> vec2<f32> {
 }
 
 fn bb_circle(i: i32) -> vec2<f32> {
-    let r = r_locals.props.x + r_locals.props.y;
+    let r = r_locals.props.x + r_locals.props.y + pixel_size();
     switch (i) {
         case 0: { return r_locals.xyzw.xy + vec2<f32>(-r, -r); }
         case 1: { return r_locals.xyzw.xy + vec2<f32>(-r, r); }
@@ -64,7 +68,7 @@ fn bb_circle(i: i32) -> vec2<f32> {
 // A rect really is more of a line with sharp corner width, so from A to B (xyzw)
 // with thickness of theta (u)
 fn bb_rect(i: i32) -> vec2<f32> {
-    let r = r_locals.props.x + r_locals.props.y;
+    let r = r_locals.props.x + r_locals.props.y + pixel_size();
     let a = r_locals.xyzw.xy;
     let b = r_locals.xyzw.zw;
 
@@ -84,9 +88,23 @@ fn bb_rect(i: i32) -> vec2<f32> {
     return vec2<f32>(0.0, 0.0);
 }
 
-// Broken
+fn bb_triangle(i: i32) -> vec2<f32> {
+    let r = r_locals.props.x + r_locals.props.y + pixel_size();
+
+    let m = max(max(r_locals.xyzw.xy, r_locals.xyzw.zw), r_locals.uvst.xy);
+    let n = min(min(r_locals.xyzw.xy, r_locals.xyzw.zw), r_locals.uvst.xy);
+
+    switch (i) {
+        case 0: { return vec2<f32>(n.x - r, n.y - r); }
+        case 1: { return vec2<f32>(n.x - r, m.y + r); }
+        case 2: { return vec2<f32>(m.x + r, n.y - r); }
+        case 3: { return vec2<f32>(m.x + r, m.y + r); }
+    }
+    return vec2<f32>(0.0, 0.0);
+}
+
 fn bb_bezier(i: i32) -> vec2<f32> {
-    let r = r_locals.props.x + r_locals.props.y;
+    let r = r_locals.props.x + r_locals.props.y + pixel_size();
 
     let m = max(max(r_locals.xyzw.xy, r_locals.xyzw.zw), max(r_locals.uvst.xy, r_locals.uvst.zw));
     let n = min(min(r_locals.xyzw.xy, r_locals.xyzw.zw), min(r_locals.uvst.xy, r_locals.uvst.zw));
@@ -128,15 +146,20 @@ fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
         case 15: { xy = bb_rect(1); }
         case 16: { xy = bb_rect(2); }
         case 17: { xy = bb_rect(3); }
-        // Triangle 18-23
-
+        // Triangle
+        case 18: { xy = bb_triangle(0); }
+        case 19: { xy = bb_triangle(1); }
+        case 20: { xy = bb_triangle(2); }
+        case 21: { xy = bb_triangle(1); }
+        case 22: { xy = bb_triangle(2); }
+        case 23: { xy = bb_triangle(3); }
         // Bezier
-        // case 24: { xy = bb_bezier(0); }
-        // case 25: { xy = bb_bezier(1); }
-        // case 26: { xy = bb_bezier(2); }
-        // case 27: { xy = bb_bezier(1); }
-        // case 28: { xy = bb_bezier(2); }
-        // case 29: { xy = bb_bezier(3); }
+        case 24: { xy = bb_bezier(0); }
+        case 25: { xy = bb_bezier(1); }
+        case 26: { xy = bb_bezier(2); }
+        case 27: { xy = bb_bezier(1); }
+        case 28: { xy = bb_bezier(2); }
+        case 29: { xy = bb_bezier(3); }
 
         // Fallback with fullscreen quad, a lot of overdraw
         default: {
@@ -149,20 +172,6 @@ fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
                 case 5: { xy = vec2<f32>(1.0, 1.0); }
             }
         }
-    }
-
-    // Size of a pixel
-    let ps = 5.0 / f32(min(r_globals.resolution.x, r_globals.resolution.y));
-
-    // Enlarge by 1 pixel (basically manual conservative rasterization)
-    // TODO: This is actually wrong, as not all our bounding boxes are axis-aligned
-    switch (i32(in_vertex_index)) {
-        case 0: { xy = xy + vec2<f32>(-ps, -ps); }
-        case 1: { xy = xy + vec2<f32>(-ps, ps); }
-        case 2: { xy = xy + vec2<f32>(ps, -ps); }
-        case 3: { xy = xy + vec2<f32>(-ps, ps); }
-        case 4: { xy = xy + vec2<f32>(ps, -ps); }
-        case 5: { xy = xy + vec2<f32>(ps, ps); }
     }
 
     //xy = mix(r_globals.bounds.xy, r_globals.bounds.zw, xy * 0.5 + 0.5);
@@ -179,7 +188,7 @@ fn sdf_line(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
     let pa = p - a;
     let ba = b - a;
     let h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    return length(pa - ba*h);
+    return length(pa - ba * h);
 }
 
 fn sdf_circle(p: vec2<f32>, a: vec2<f32>) -> f32 {
@@ -209,8 +218,8 @@ fn sdf_triangle(p: vec2<f32>, p0: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>) -> f3
 }
 
 fn sdf_bezier(pos: vec2<f32>, p0: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>, p3: vec2<f32>) -> f32 {
-    let kNum = 50;
-    var res = vec2<f32>(1e10, 0.0);
+    let kNum = 24;
+    var res = 1e38;
     var a = p0;
 
     var i = 1;
@@ -224,15 +233,13 @@ fn sdf_bezier(pos: vec2<f32>, p0: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>, p3: v
                 p2 * 3.0 * s * t * t + 
                 p3 * t * t * t;
         let d = sdf_line(pos, a, b);
-        if (d < res.x) {
-            res = vec2<f32>(d, t);
-        }
+        res = min(res, d);
         a = b;
 
         i = i + 1;
     }
 
-    return sqrt(res.x);
+    return res;
 }
 
 [[stage(fragment)]]
@@ -264,7 +271,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     // Analytic anti-aliasing
     let w = fwidth(t) * 0.5;
-    let blend = vec4<f32>(1.0, 1.0, 1.0, 1.0 - smoothStep(-w, w, t));
+    let blend = vec4<f32>(1.0, 1.0, 1.0, 1.0 - smoothStep(-w, w, t) + 0.1);
 
     out.color = r_locals.color * blend;
     out.depth = t;

@@ -8,7 +8,12 @@ use wgpu::{
     Adapter, Backends, Device, Instance, Maintain, PresentMode, RequestAdapterOptions, Surface,
     SurfaceConfiguration, TextureFormat, TextureUsages,
 };
-use winit::{dpi::PhysicalSize, event::{Event, VirtualKeyCode, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::Window};
+use winit::{
+    dpi::PhysicalSize,
+    event::{Event, VirtualKeyCode, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::Window,
+};
 use winit_input_helper::WinitInputHelper;
 
 fn main() -> Result<()> {
@@ -24,7 +29,7 @@ fn main() -> Result<()> {
         compatible_surface: Some(&surface),
         ..Default::default()
     }))
-    .ok_or(anyhow!("No compatible graphics adapter"))?;
+    .ok_or_else(|| anyhow!("No compatible graphics adapter"))?;
     let (device, queue) = block_on(adapter.request_device(&Default::default(), None))?;
     let device = Arc::new(device);
 
@@ -43,7 +48,11 @@ fn main() -> Result<()> {
         *flow = ControlFlow::Poll;
         device.poll(Maintain::Poll);
 
-        if let Event::WindowEvent { event: WindowEvent::Focused(x), .. } = ev {
+        if let Event::WindowEvent {
+            event: WindowEvent::Focused(x),
+            ..
+        } = ev
+        {
             focused = x;
         }
 
@@ -59,31 +68,36 @@ fn main() -> Result<()> {
             }
 
             // MacOS Fix: WGPU leaks resources when rendering while a window is covered
-            if !focused { return }
+            if !focused {
+                return;
+            }
 
             let frame = surface.get_current_texture().unwrap();
 
             let t = time.elapsed().as_secs_f32();
             let shapes = vec![
-                Shape::line(Vec2::new(-0.9, 0.4), Vec2::new(-0.5, 0.8))
-                    .with_width(0.04 + t.sin() * 0.02)
-                    .with_color(Vec4::new(1.0, 0.5, 0.5, 1.0)),
+                Shape::line(
+                    Vec2::new(-0.7 + t.sin() * 0.2, 0.4),
+                    Vec2::new(-0.7 + t.cos() * 0.2, 0.8),
+                )
+                .with_radius(0.04 + t.sin() * 0.02)
+                .with_color(Vec4::new(1.0, 0.5, 0.5, 1.0)),
                 Shape::line(Vec2::new(-0.2, 0.45), Vec2::new(0.2, 0.8))
-                    .with_width(0.02)
+                    .with_radius(0.02)
                     .with_outline(Some(0.01 + t.sin() * 0.005))
                     .with_color(Vec4::new(0.5, 1.0, 0.5, 1.0)),
                 Shape::circle(Vec2::new(-0.7, 0.0))
-                    .with_width(0.16 + t.sin() * 0.04)
+                    .with_radius(0.16 + t.sin() * 0.04)
                     .with_color(Vec4::new(0.4, 0.8, 0.8, 1.0)),
                 Shape::circle(Vec2::new(0.0, 0.0))
-                    .with_width(0.12)
+                    .with_radius(0.12)
                     .with_outline(Some(0.04 + t.sin() * 0.02))
                     .with_color(Vec4::new(0.8, 0.4, 0.8, 1.0)),
-                Shape::rect(Vec2::new(0.5, 0.6), Vec2::new(0.9, 0.6), 0.4)
-                    .with_width(0.02 + t.sin() * 0.02)
+                Shape::rect(Vec2::new(0.7, 0.6), Vec2::new(0.2, 0.2), t)
+                    .with_radius(0.02 + t.sin() * 0.02)
                     .with_color(Vec4::new(0.5, 0.5, 1.0, 1.0)),
-                Shape::rect(Vec2::new(0.5, 0.0), Vec2::new(0.9, 0.0), 0.4)
-                    .with_width(0.02 + t.sin() * 0.02)
+                Shape::rect(Vec2::new(0.7, 0.0), Vec2::new(0.2, 0.2), t.sin())
+                    .with_radius(0.02 + t.sin() * 0.02)
                     .with_outline(Some(0.01 + t.sin() * 0.005))
                     .with_color(Vec4::new(0.8, 0.8, 0.4, 1.0)),
                 Shape::triangle(
@@ -98,7 +112,8 @@ fn main() -> Result<()> {
                     Vec2::new(t.cos() * 0.2, -0.4),
                     Vec2::new(0.2, -0.8),
                 )
-                .with_width(0.1)
+                .with_radius(0.02)
+                .with_outline(Some(0.01 + t.sin() * 0.005)),
             ];
 
             let output = RenderOutput {
@@ -126,11 +141,11 @@ fn reconfigure(
     size: PhysicalSize<u32>,
 ) -> TextureFormat {
     let format = surface
-        .get_preferred_format(&adapter)
+        .get_preferred_format(adapter)
         .unwrap_or(TextureFormat::Rgba8UnormSrgb);
 
     surface.configure(
-        &device,
+        device,
         &SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format,

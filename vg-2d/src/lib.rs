@@ -1,26 +1,20 @@
-use dashmap::DashMap;
-use glam::{IVec2, UVec2, Vec2, Vec4};
+use glam::{UVec2, Vec2, Vec4};
 use log::debug;
-use std::{
-    collections::HashMap,
-    mem::{self, Discriminant},
-    sync::Arc,
-};
+use std::{mem, sync::Arc};
 use wgpu::{
-    include_wgsl, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
-    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent,
-    BlendFactor, BlendOperation, BlendState, Buffer, BufferAddress, BufferBinding,
-    BufferBindingType, BufferDescriptor, BufferSize, BufferUsages, Color, ColorTargetState,
-    ColorWrites, CommandBuffer, CommandEncoderDescriptor, CompareFunction, DepthBiasState,
-    DepthStencilState, Device, DynamicOffset, Extent3d, FragmentState, LoadOp, Operations,
-    PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
-    RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, Texture, TextureDescriptor,
-    TextureDimension, TextureFormat, TextureUsages, TextureView, VertexState,
+    include_wgsl, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor,
+    BlendOperation, BlendState, Buffer, BufferAddress, BufferBinding, BufferBindingType,
+    BufferDescriptor, BufferSize, BufferUsages, Color, ColorTargetState, ColorWrites,
+    CommandEncoderDescriptor, CompareFunction, DepthStencilState, Device, DynamicOffset, Extent3d,
+    FragmentState, LoadOp, Operations, PipelineLayout, PipelineLayoutDescriptor, Queue,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+    RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, Texture,
+    TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView, VertexState,
 };
 
-// mod layer;
-// pub use layer::Layer;
+mod shape;
+pub use shape::{Shape, ShapeKind};
 
 // We can have more shapes per layer, but we have to split the draws into groups
 // of MAX_SHAPES to make sure the shape data fits in the uniform buffer
@@ -48,127 +42,17 @@ pub(crate) struct Globals {
 unsafe impl bytemuck::Pod for Globals {}
 unsafe impl bytemuck::Zeroable for Globals {}
 
+
+/// Utility struct defining where we want to render to
 pub struct RenderOutput {
+    /// The texture to render to. Pointed texture must have `TextureUsages::RENDER_ATTACHMENT`
     pub view: TextureView,
+    /// The format of the texture pointed by `view`
     pub format: TextureFormat,
 }
 
-pub struct Shape {
-    kind: ShapeKind,
-    color: Vec4,
-    rounding: f32,
-    outline: Option<f32>,
-}
-
-impl Shape {
-    pub fn line(a: Vec2, b: Vec2) -> Shape {
-        Shape {
-            kind: ShapeKind::Line(a, b),
-            ..Default::default()
-        }
-    }
-
-    pub fn circle(p: Vec2) -> Shape {
-        Shape {
-            kind: ShapeKind::Circle(p),
-            ..Default::default()
-        }
-    }
-
-    pub fn rect(a: Vec2, b: Vec2, th: f32) -> Shape {
-        Shape {
-            kind: ShapeKind::Rect(a, b, th),
-            ..Default::default()
-        }
-    }
-
-    pub fn triangle(a: Vec2, b: Vec2, c: Vec2) -> Shape {
-        Shape {
-            kind: ShapeKind::Triangle(a, b, c),
-            ..Default::default()
-        }
-    }
-
-    pub fn bezier(a: Vec2, b: Vec2, c: Vec2, d: Vec2) -> Shape {
-        Shape {
-            kind: ShapeKind::Bezier(a, b, c, d),
-            ..Default::default()
-        }
-    }
-}
-
-impl Default for Shape {
-    fn default() -> Shape {
-        Shape {
-            kind: ShapeKind::Line(Default::default(), Default::default()),
-            color: Vec4::splat(1.0),
-            rounding: 0.0,
-            outline: None,
-        }
-    }
-}
-
-pub enum ShapeKind {
-    // A line from A to B
-    Line(Vec2, Vec2),
-    Circle(Vec2),
-    Rect(Vec2, Vec2, f32),
-    Triangle(Vec2, Vec2, Vec2),
-    Bezier(Vec2, Vec2, Vec2, Vec2),
-}
-
-impl Shape {
-    fn as_locals(&self) -> Locals {
-        match self.kind {
-            ShapeKind::Line(a, b) => Locals {
-                color: self.color,
-                props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 0.0, 0.0),
-                xyzw: Vec4::new(a.x, a.y, b.x, b.y),
-                uvst: Vec4::ZERO,
-            },
-            ShapeKind::Circle(p) => Locals {
-                color: self.color,
-                props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 1.0, 0.0),
-                xyzw: Vec4::new(p.x, p.y, 0.0, 0.0),
-                uvst: Vec4::ZERO,
-            },
-            ShapeKind::Rect(a, b, th) => Locals {
-                color: self.color,
-                props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 2.0, 0.0),
-                xyzw: Vec4::new(a.x, a.y, b.x, b.y),
-                uvst: Vec4::new(th, 0.0, 0.0, 0.0),
-            },
-            ShapeKind::Triangle(a, b, c) => Locals {
-                color: self.color,
-                props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 3.0, 0.0),
-                xyzw: Vec4::new(a.x, a.y, b.x, b.y),
-                uvst: Vec4::new(c.x, c.y, 0.0, 0.0),
-            },
-            ShapeKind::Bezier(a, b, c, d) => Locals {
-                color: self.color,
-                props: Vec4::new(self.rounding, self.outline.unwrap_or(0.0), 4.0, 0.0),
-                xyzw: Vec4::new(a.x, a.y, b.x, b.y),
-                uvst: Vec4::new(c.x, c.y, d.x, d.y),
-            },
-        }
-    }
-
-    pub fn with_width(mut self, f: f32) -> Shape {
-        self.rounding = f;
-        self
-    }
-
-    pub fn with_outline(mut self, o: Option<f32>) -> Shape {
-        self.outline = o;
-        self
-    }
-
-    pub fn with_color(mut self, c: Vec4) -> Shape {
-        self.color = c;
-        self
-    }
-}
-
+/// Core struct which handles the management of internal wgpu resources and lets
+/// you render [`&[Shapes]`](Shape) onto a swapchain or texture
 pub struct Renderer {
     device: Arc<Device>,
     pipeline_layout: PipelineLayout,
@@ -183,6 +67,8 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    /// Initialize the renderer for a specific output size. Do not forget to
+    /// call [`resize`](Renderer::resize) when your swapchain changes size
     pub fn new(device: Arc<Device>, size: UVec2) -> Renderer {
         let module = device.create_shader_module(&include_wgsl!("shader.wgsl"));
         let align = device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
@@ -280,6 +166,27 @@ impl Renderer {
         }
     }
 
+    /// Render a list of shapes onto the provided Output.
+    ///
+    /// You can choose to clear the texture being drawn onto by providing 
+    /// `Some(color)` to the `clear` parameter.
+    /// 
+    /// `viewport` describes how shape positions and radiuses are interpreted.
+    /// The coordinates are provided as lower-left and upper-right bounds of a
+    /// rectangle looking into the world.
+    /// 
+    /// ## Example
+    /// If you have a `Shape::circle(Vec2::ZERO).with_radius(1.0)` and
+    /// `viewport: (-Vec2::ONE, Vec2::ONE)` the circle will appear as filling
+    /// the entire screen, touching the edges
+    /// 
+    /// # Panics
+    /// * If the provided  `output.view` format does not match what is given in
+    /// `output.format`
+    /// * If the `output.view` points to a texture different size from what this
+    /// renderer was last [`resized`](Renderer::resize) with
+    /// * If the texture `output.view` points to is not configured with 
+    /// `TextureUsages::RENDER_ATTACHMENT`
     pub fn render(
         &mut self,
         queue: &Queue,
@@ -365,10 +272,10 @@ impl Renderer {
         let align = self.device.limits().min_uniform_buffer_offset_alignment as BufferAddress;
         // Copy current shapes into the locals buffer
         let mut data = vec![0; MAX_SHAPES * align as usize];
-        for i in 0..shapes.len() {
+        for (i, shape) in shapes.iter().enumerate() {
             let offset = i * align as usize;
             data[offset..][..mem::size_of::<Locals>()]
-                .copy_from_slice(bytemuck::bytes_of(&shapes[i].as_locals()))
+                .copy_from_slice(bytemuck::bytes_of(&shape.as_locals()))
         }
         queue.write_buffer(&self.locals_buffer, 0, bytemuck::cast_slice(&data));
 
@@ -400,7 +307,7 @@ impl Renderer {
                 }),
             });
 
-            rpass.set_pipeline(&pipeline);
+            rpass.set_pipeline(pipeline);
 
             for i in 0..shapes.len() {
                 let offset = (i * align as usize) as DynamicOffset;
@@ -491,6 +398,8 @@ impl Renderer {
     }
 }
 
+/// Utility function which will generate aspect ratio aware bounds from a window
+/// size. The vertical range of the viewport will be from -1 to 1
 pub fn calculate_bounds(size: UVec2) -> (Vec2, Vec2) {
     let aspect = Vec2::new(size.x as f32 / size.y as f32, 1.0);
     (-Vec2::ONE * aspect, Vec2::ONE * aspect)
