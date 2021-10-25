@@ -183,7 +183,7 @@ impl Renderer {
         }
     }
 
-    /// Render a list of shapes onto the provided Output.
+    /// Render a list of shapes onto the provided output view
     ///
     /// You can choose to clear the texture being drawn onto by providing
     /// `Some(color)` to the `clear` parameter.
@@ -198,11 +198,11 @@ impl Renderer {
     /// the entire screen, touching the edges
     ///
     /// # Panics
-    /// * If the provided  `output.view` format does not match what is given in
-    /// `output.format`
-    /// * If the `output.view` points to a texture different size from what this
+    /// * If the provided  `output` format does not match what was given in
+    /// [`Renderer::new`]
+    /// * If the `output` points to a texture different size from what this
     /// renderer was last [`resized`](Renderer::resize) with
-    /// * If the texture `output.view` points to is not configured with
+    /// * If the texture `output` points to is not configured with
     /// `TextureUsages::RENDER_ATTACHMENT`
     pub fn render(
         &mut self,

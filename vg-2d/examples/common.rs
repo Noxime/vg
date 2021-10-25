@@ -70,7 +70,6 @@ pub fn run<T: 'static>(
                 *flow = ControlFlow::Exit;
             }
 
-
             let size = if let Some(size) = helper.window_resized() {
                 reconfigure(&surface, &device, size, format);
                 Some(UVec2::new(size.width, size.height))
