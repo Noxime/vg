@@ -42,6 +42,7 @@ unsafe impl bytemuck::Zeroable for Locals {}
 #[derive(Clone, Copy)]
 pub(crate) struct Globals {
     pub bounds: Vec4,
+    pub resolution: UVec2,
 }
 
 unsafe impl bytemuck::Pod for Globals {}
@@ -178,6 +179,7 @@ pub struct Renderer {
     globals_buffer: Buffer,
     depth_texture: Texture,
     depth_texture_view: TextureView,
+    size: UVec2,
 }
 
 impl Renderer {
@@ -274,6 +276,7 @@ impl Renderer {
             globals_buffer,
             depth_texture,
             depth_texture_view,
+            size,
         }
     }
 
@@ -288,6 +291,7 @@ impl Renderer {
         // Update per-draw properties
         let globals = Globals {
             bounds: Vec4::new(viewport.0.x, viewport.0.y, viewport.1.x, viewport.1.y),
+            resolution: self.size,
         };
         queue.write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
 
@@ -414,6 +418,7 @@ impl Renderer {
 
         self.depth_texture = t;
         self.depth_texture_view = v;
+        self.size = size;
     }
 
     fn create_pipeline(&self, format: TextureFormat) -> (TextureFormat, RenderPipeline) {

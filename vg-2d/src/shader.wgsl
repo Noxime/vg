@@ -13,6 +13,7 @@ var<uniform> r_locals: Locals;
 [[block]]
 struct Globals {
     bounds: vec4<f32>;
+    resolution: vec2<u32>;
 };
 
 [[group(0), binding(1)]]
@@ -83,11 +84,12 @@ fn bb_rect(i: i32) -> vec2<f32> {
     return vec2<f32>(0.0, 0.0);
 }
 
+// Broken
 fn bb_bezier(i: i32) -> vec2<f32> {
     let r = r_locals.props.x + r_locals.props.y;
 
-    let m = max(max(r_locals.xyzw.xy, r_locals.xyzw.zw), r_locals.uvst.xy);
-    let n = min(min(r_locals.xyzw.xy, r_locals.xyzw.zw), r_locals.uvst.xy);
+    let m = max(max(r_locals.xyzw.xy, r_locals.xyzw.zw), max(r_locals.uvst.xy, r_locals.uvst.zw));
+    let n = min(min(r_locals.xyzw.xy, r_locals.xyzw.zw), min(r_locals.uvst.xy, r_locals.uvst.zw));
 
     switch (i) {
         case 0: { return vec2<f32>(n.x - r, n.y - r); }
@@ -129,12 +131,12 @@ fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
         // Triangle 18-23
 
         // Bezier
-        case 24: { xy = bb_bezier(0); }
-        case 25: { xy = bb_bezier(1); }
-        case 26: { xy = bb_bezier(2); }
-        case 27: { xy = bb_bezier(1); }
-        case 28: { xy = bb_bezier(2); }
-        case 29: { xy = bb_bezier(3); }
+        // case 24: { xy = bb_bezier(0); }
+        // case 25: { xy = bb_bezier(1); }
+        // case 26: { xy = bb_bezier(2); }
+        // case 27: { xy = bb_bezier(1); }
+        // case 28: { xy = bb_bezier(2); }
+        // case 29: { xy = bb_bezier(3); }
 
         // Fallback with fullscreen quad, a lot of overdraw
         default: {
@@ -147,6 +149,20 @@ fn vs_main([[builtin(vertex_index)]] in_vertex_index: u32) -> VertexOutput {
                 case 5: { xy = vec2<f32>(1.0, 1.0); }
             }
         }
+    }
+
+    // Size of a pixel
+    let ps = 5.0 / f32(min(r_globals.resolution.x, r_globals.resolution.y));
+
+    // Enlarge by 1 pixel (basically manual conservative rasterization)
+    // TODO: This is actually wrong, as not all our bounding boxes are axis-aligned
+    switch (i32(in_vertex_index)) {
+        case 0: { xy = xy + vec2<f32>(-ps, -ps); }
+        case 1: { xy = xy + vec2<f32>(-ps, ps); }
+        case 2: { xy = xy + vec2<f32>(ps, -ps); }
+        case 3: { xy = xy + vec2<f32>(-ps, ps); }
+        case 4: { xy = xy + vec2<f32>(ps, -ps); }
+        case 5: { xy = xy + vec2<f32>(ps, ps); }
     }
 
     //xy = mix(r_globals.bounds.xy, r_globals.bounds.zw, xy * 0.5 + 0.5);
@@ -192,41 +208,31 @@ fn sdf_triangle(p: vec2<f32>, p0: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>) -> f3
     return -sqrt(d.x) * sign(d.y);
 }
 
-fn sdf_bezier(pos: vec2<f32>, A: vec2<f32>, B: vec2<f32>, C: vec2<f32>, D: vec2<f32>) -> f32 {
-    let a = B - A;
-    let b = A - 2.0 * B + C;
-    let c = a * 2.0;
-    let d = A - pos;
-    let kk = 1.0 / dot(b, b);
-    let kx = kk * dot(a, b);
-    let ky = kk * (2.0 * dot(a, a) + dot(d, b)) / 3.0;
-    let kz = kk * dot(d, a);      
-    var res = 0.0;
-    let p = ky - kx * kx;
-    let p3 = p * p * p;
-    let q = kx * ( 2.0 * kx * kx - 3.0 * ky) + kz;
-    var h = q * q + 4.0 * p3;
-    if( h >= 0.0) 
-    { 
-        h = sqrt(h);
-        let x = (vec2<f32>(h, -h) - q) / 2.0;
-        let uv = sign(x) * pow(abs(x), vec2<f32>(1.0/3.0));
-        let t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
-        res = dot2(d + (c + b * t) * t);
+fn sdf_bezier(pos: vec2<f32>, p0: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>, p3: vec2<f32>) -> f32 {
+    let kNum = 50;
+    var res = vec2<f32>(1e10, 0.0);
+    var a = p0;
+
+    var i = 1;
+    loop {
+        if (i == kNum) { break; }
+
+        let t = f32(i) / f32(kNum - 1);
+        let s = 1.0 - t;
+        let b = p0 * s * s * s + 
+                p1 * 3.0 * s * s * t + 
+                p2 * 3.0 * s * t * t + 
+                p3 * t * t * t;
+        let d = sdf_line(pos, a, b);
+        if (d < res.x) {
+            res = vec2<f32>(d, t);
+        }
+        a = b;
+
+        i = i + 1;
     }
-    else
-    {
-        let z = sqrt(-p);
-        let v = acos(q / (p * z * 2.0)) / 3.0;
-        let m = cos(v);
-        let n = sin(v) * 1.732050808;
-        let t = clamp(vec3<f32>(m + m, -n - m, n - m) * z - kx, vec3<f32>(0.0), vec3<f32>(1.0));
-        res = min(dot2(d + (c + b * t.x) * t.x),
-                  dot2(d + (c + b * t.y) * t.y));
-        // the third root cannot be the closest
-        // res = min(res,dot2(d+(c+b*t.z)*t.z));
-    }
-    return sqrt( res );
+
+    return sqrt(res.x);
 }
 
 [[stage(fragment)]]
@@ -258,7 +264,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     // Analytic anti-aliasing
     let w = fwidth(t) * 0.5;
-    let blend = vec4<f32>(1.0, 1.0, 1.0, 1.0 - smoothStep(-w, w, t) + 0.1);
+    let blend = vec4<f32>(1.0, 1.0, 1.0, 1.0 - smoothStep(-w, w, t));
 
     out.color = r_locals.color * blend;
     out.depth = t;

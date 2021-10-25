@@ -90,7 +90,7 @@ fn main() -> Result<()> {
             shapes.clear();
             for _ in 0..(64*1024) {
                 shapes.push(
-                    Shape::line(rng.gen::<Vec2>() * 2.0 - 1.0, rng.gen::<Vec2>() * 2.0 - 1.0)
+                    Shape::circle(rng.gen::<Vec2>() * 2.0 - 1.0)
                         .with_width(rng.gen_range(0.0..0.01))
                         .with_color(rng.gen()),
                 );

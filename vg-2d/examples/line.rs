@@ -95,10 +95,10 @@ fn main() -> Result<()> {
                 Shape::bezier(
                     Vec2::new(-0.2, -0.8),
                     Vec2::new(t.sin() * 0.2, -0.4),
+                    Vec2::new(t.cos() * 0.2, -0.4),
                     Vec2::new(0.2, -0.8),
-                    Vec2::new(0.2, -0.4),
                 )
-                .with_width(0.01)
+                .with_width(0.1)
             ];
 
             let output = RenderOutput {
