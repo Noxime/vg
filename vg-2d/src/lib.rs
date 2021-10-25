@@ -42,7 +42,6 @@ pub(crate) struct Globals {
 unsafe impl bytemuck::Pod for Globals {}
 unsafe impl bytemuck::Zeroable for Globals {}
 
-
 /// Utility struct defining where we want to render to
 pub struct RenderOutput {
     /// The texture to render to. Pointed texture must have `TextureUsages::RENDER_ATTACHMENT`
@@ -168,24 +167,24 @@ impl Renderer {
 
     /// Render a list of shapes onto the provided Output.
     ///
-    /// You can choose to clear the texture being drawn onto by providing 
+    /// You can choose to clear the texture being drawn onto by providing
     /// `Some(color)` to the `clear` parameter.
-    /// 
+    ///
     /// `viewport` describes how shape positions and radiuses are interpreted.
     /// The coordinates are provided as lower-left and upper-right bounds of a
     /// rectangle looking into the world.
-    /// 
+    ///
     /// ## Example
     /// If you have a `Shape::circle(Vec2::ZERO).with_radius(1.0)` and
     /// `viewport: (-Vec2::ONE, Vec2::ONE)` the circle will appear as filling
     /// the entire screen, touching the edges
-    /// 
+    ///
     /// # Panics
     /// * If the provided  `output.view` format does not match what is given in
     /// `output.format`
     /// * If the `output.view` points to a texture different size from what this
     /// renderer was last [`resized`](Renderer::resize) with
-    /// * If the texture `output.view` points to is not configured with 
+    /// * If the texture `output.view` points to is not configured with
     /// `TextureUsages::RENDER_ATTACHMENT`
     pub fn render(
         &mut self,

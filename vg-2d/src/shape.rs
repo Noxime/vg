@@ -66,7 +66,7 @@ impl Shape {
     }
 
     /// Create a new cubic Bézier curve with ends at A and D, and control points
-    /// at B and C, respectively. Do not forget to set the width with 
+    /// at B and C, respectively. Do not forget to set the width with
     /// [`with_radius`](Shape::with_radius)
     pub fn bezier(a: Vec2, b: Vec2, c: Vec2, d: Vec2) -> Shape {
         Shape {
@@ -76,7 +76,7 @@ impl Shape {
     }
 
     /// Either the "rounding" or width, depending what shape is being drawn
-    /// 
+    ///
     /// In vg-2d, shapes like lines or circles are zero-width by default, so
     /// they get their width from the rounding effect
     pub fn with_radius(mut self, r: f32) -> Shape {
@@ -144,7 +144,7 @@ impl Shape {
             xyzw: Vec4::ZERO,
             uvst: Vec4::ZERO,
         }
-    }    
+    }
 }
 
 impl Default for Shape {
