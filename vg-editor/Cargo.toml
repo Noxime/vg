@@ -1,0 +1,15 @@
+[package]
+name = "vg-editor"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+vg-runtime = { path = "../vg-runtime" }
+vg-interface = { path = "../vg-interface" }
+vg-network = { path = "../vg-network" }
+
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+
+macroquad = "0.3"

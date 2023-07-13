@@ -1,4 +1,2 @@
-target/*
-rust/target/*
-test/target/*
+target/
 .DS_Store

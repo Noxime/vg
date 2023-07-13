@@ -1,0 +1,16 @@
+[package]
+name = "vg-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vg-interface = { path = "../vg-interface" }
+
+anyhow = "1"
+
+wasmtime = "10"
+wasmtime-wasi = "10"
+
+generational-arena = "0.2"
+get-size = { version = "0.1", features = ["derive"] }
+

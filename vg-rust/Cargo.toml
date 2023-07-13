@@ -1,0 +1,15 @@
+[package]
+name = "vg"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Public
+vg-interface = { path = "../vg-interface" }
+glam = "0.24"
+
+# Private
+futures-executor = "0.3"
+futures-util = "0.3"
+futures-channel = "0.3"
+async-notify = "0.2"

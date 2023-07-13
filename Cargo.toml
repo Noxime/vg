@@ -1,4 +1,3 @@
 [workspace]
-members = ["native", "rust", "rust/derive", "rust/vg-types", "rust/vg-builder", "cargo-vg", "2d"]
-exclude = ["test", "vg-next"]
+members = ["vg-*", "my-game"]
 resolver = "2"
