@@ -60,8 +60,17 @@ impl SignalingTopology<NoCallbacks, VgState> for VgTopology {
             match req {
                 PeerRequest::Signal { receiver, data } => {
                     trace!(peer = ?peer_id, target = ?receiver, "Signaling");
+
+                    let msg = Message::Text(
+                        JsonPeerEvent::Signal {
+                            sender: peer_id,
+                            data,
+                        }
+                        .to_string(),
+                    );
+
                     let room = state.room_mut(key.clone());
-                    room.send_to(receiver, Message::Text(data.to_string()));
+                    room.send_to(receiver, msg);
                 }
                 PeerRequest::KeepAlive => {
                     trace!(peer = ?peer_id, "Keep alive");

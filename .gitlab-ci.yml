@@ -30,6 +30,7 @@ deploy:
     - chmod 600 ~/.ssh/id_rsa
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - rsync -ravO target/x86_64-unknown-linux-gnu/release/vg-signaling root@frontend.noxim.xyz:/opt/vg-signaling/
+    - ssh root@frontend.noxim.xyz "systemctl restart vg-signaling"
   only:
     - main
 

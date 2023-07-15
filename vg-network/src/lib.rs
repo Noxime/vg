@@ -1,40 +1,57 @@
 use std::future::Future;
 
-use anyhow::Result;
-use local::Local;
-use remote::Remote;
-use vg_interface::{Request, Response};
+use anyhow::{anyhow, Result};
+use socket::Socket;
+use tracing::debug;
+use vg_interface::{Request, Response, WaitReason};
 use vg_runtime::executor::*;
 
-mod local;
-mod remote;
 mod socket;
 
-pub enum Host<E: Executor = DefaultExecutor> {
-    Local(Local<E::Instance>),
-    Remote(Remote),
+pub struct Host<E: Executor = DefaultExecutor> {
+    instance: E::Instance,
+    socket: Socket,
+}
+
+#[derive(Debug, Clone)]
+pub struct HostConfig {
+    pub debug: bool,
+    pub url: String,
+}
+
+impl Default for HostConfig {
+    fn default() -> Self {
+        Self {
+            debug: true,
+            url: "ws://vg.noxim.xyz:3536".into(),
+        }
+    }
 }
 
 impl<E: Executor> Host<E> {
-    pub fn start(
+    pub fn new(
         wasm: &[u8],
-        debug: bool,
         func: impl FnMut(Request) -> Response + 'static,
+        config: HostConfig,
     ) -> Result<(Self, impl Future<Output = Result<()>>)> {
-        let instance = E::create(wasm, debug, func)?;
-        let (local, driver) = Local::new(instance);
-        Ok((Self::Local(local), driver))
-    }
+        debug!(?config, "Creating host");
 
-    pub fn connect(url: &str) -> Result<(Self, impl Future<Output = Result<()>>)> {
-        let (remote, driver) = Remote::new(url);
-        Ok((Self::Remote(remote), driver))
+        let instance = E::create(wasm, config.debug, func)?;
+        let (socket, driver) = Socket::new(&config.url);
+
+        let driver = async { driver.await.map_err(|err| anyhow!("Socket error: {err}")) };
+
+        Ok((Host { instance, socket }, driver))
     }
 
     pub fn tick(&mut self) {
-        match self {
-            Host::Local(local) => local.tick(),
-            Host::Remote(remote) => remote.tick(),
+        self.socket.poll();
+
+        loop {
+            match self.instance.step() {
+                WaitReason::Startup => (),
+                WaitReason::Present => break,
+            }
         }
     }
 }

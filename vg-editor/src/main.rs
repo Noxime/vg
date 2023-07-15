@@ -1,17 +1,20 @@
 use anyhow::Result;
 use clap::Parser;
 use macroquad::prelude::*;
-use std::{path::PathBuf, time::Duration};
+use std::{f32::consts::E, path::PathBuf, time::Duration};
 use tokio::runtime::Runtime;
 use tracing_subscriber::EnvFilter;
 use vg_interface::{Request, Response};
-use vg_network::Host;
+use vg_network::{Host, HostConfig};
 use vg_runtime::executor::DefaultExecutor;
 
 #[derive(Parser)]
 struct Args {
     /// Path to WebAssembly module
     path: PathBuf,
+    /// URL of signaling server
+    #[arg(default_value = "ws://vg.noxim.xyz:3536/")]
+    url: String,
 }
 
 #[tokio::main]
@@ -31,22 +34,24 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     let wasm = tokio::fs::read(args.path).await?;
+    let config = HostConfig {
+        url: args.url,
+        ..Default::default()
+    };
 
-    server(&wasm).await?;
-    // tokio::try_join!(server(&wasm), client(&wasm),)?;
+    tokio::try_join!(run(&wasm, config.clone()), run(&wasm, config.clone()))?;
 
     Ok(())
 }
 
-async fn server(wasm: &[u8]) -> Result<()> {
+async fn run(wasm: &[u8], config: HostConfig) -> Result<()> {
     let func = |_: Request| Response::Empty;
-
-    let (mut host, driver) = Host::<DefaultExecutor>::start(&wasm, true, func)?;
+    let (mut host, driver) = Host::<DefaultExecutor>::new(&wasm, func, config)?;
 
     tokio::spawn(async {
         match driver.await {
-            Ok(()) => debug!("Server closed"),
-            Err(err) => error!("Server error: {err}"),
+            Ok(()) => debug!("Driver closed"),
+            Err(err) => error!("Driver error: {err}"),
         }
     });
 
@@ -56,19 +61,3 @@ async fn server(wasm: &[u8]) -> Result<()> {
         ticker.tick().await;
     }
 }
-
-// async fn client(wasm: &[u8]) -> Result<()> {
-//     let (mut host, driver) = Host::<DefaultExecutor>::connect("ws://localhost:3536")?;
-
-//     tokio::spawn(async {
-//         match driver.await {
-//             Ok(()) => debug!("Client closed"),
-//             Err(err) => error!("Client error: {err}"),
-//         }
-//     });
-
-//     loop {
-//         host.tick();
-//         tokio::task::yield_now().await;
-//     }
-// }
