@@ -6,6 +6,7 @@ everything:
   stage: build
   image: rustlang/rust:nightly
   script:
+    - apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
     - rustup target add wasm32-wasi
     - cargo test --all --verbose
 
@@ -16,7 +17,7 @@ signaling:
     - cargo build --package vg-signaling --release --verbose --target x86_64-unknown-linux-gnu
   artifacts:
     paths:
-      - target/
+      - target/x86_64-unknown-linux-gnu/release/vg-signaling
 
 deploy:
   stage: deploy
