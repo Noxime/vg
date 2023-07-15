@@ -6,6 +6,7 @@ everything:
   stage: build
   image: rustlang/rust:nightly
   script:
+    - rustup target add wasm32-wasi
     - cargo test --all --verbose
 
 signaling:
