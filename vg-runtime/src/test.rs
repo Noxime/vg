@@ -1,3 +1,2 @@
 #[test]
-fn create_runtime() {
-}
+fn create_runtime() {}

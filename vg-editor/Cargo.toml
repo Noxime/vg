@@ -2,14 +2,16 @@
 name = "vg-editor"
 version = "0.1.0"
 edition = "2021"
-
+default-run = "vg-editor"
 
 [dependencies]
-vg-runtime = { path = "../vg-runtime" }
-vg-interface = { path = "../vg-interface" }
-vg-network = { path = "../vg-network" }
+vg-runtime = { workspace = true }
+vg-interface = { workspace = true }
+vg-network = { workspace = true }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = "1"
 
 macroquad = "0.3"

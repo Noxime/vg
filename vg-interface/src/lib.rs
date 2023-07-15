@@ -1,20 +1,20 @@
 //! Types for communicating between vg-runtime and vg-rust
-pub use nanoserde::{SerBin, DeBin};
+pub use nanoserde::{DeBin, SerBin};
 
-#[derive(SerBin, DeBin)]
+#[derive(SerBin, DeBin, Debug)]
 pub enum Request {
     Draw(Draw),
 }
 
-#[derive(SerBin, DeBin)]
+#[derive(SerBin, DeBin, Debug)]
 pub enum Draw {
     Line {
         color: (f32, f32, f32, f32),
         points: Vec<(f32, f32)>,
-    }
+    },
 }
 
-#[derive(SerBin, DeBin)]
+#[derive(SerBin, DeBin, Debug)]
 pub enum Response {
     Empty,
 }

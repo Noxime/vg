@@ -1,28 +1,40 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use tracing::trace;
 use vg_interface::{DeBin, Request, Response, SerBin, WaitReason};
 use wasmtime::*;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
 use crate::executor::{GlobalData, MemoryData, TableData, PAGE_SIZE};
 
-pub struct WasmtimeExecutor<F> {
-    _phantom: PhantomData<F>,
-}
+pub struct WasmtimeExecutor {}
 
-pub struct WasmtimeInner<F> {
+pub struct WasmtimeInner {
     // TODO: His ass is NOT rollbackable!
     wasi: WasiCtx,
     response: Vec<u8>,
-    func: F,
+    func: Box<dyn FnMut(Request) -> Response>,
 }
 
-impl<F: Fn(Request) -> Response> super::Executor<F> for WasmtimeExecutor<F> {
-    type Instance = WasmtimeInstance<F>;
+impl super::Executor for WasmtimeExecutor {
+    type Instance = WasmtimeInstance;
 
-    fn create(wasm: &[u8], debug: bool, func: F) -> Result<WasmtimeInstance<F>> {
-        let engine = Engine::new(&Config::new().debug_info(debug))?;
+    fn create(
+        wasm: &[u8],
+        debug: bool,
+        func: impl FnMut(Request) -> Response + 'static,
+    ) -> Result<WasmtimeInstance> {
+        let engine = Engine::new(
+            &Config::new()
+                .debug_info(debug)
+                .wasm_backtrace(debug)
+                .wasm_backtrace_details(
+                    debug
+                        .then_some(WasmBacktraceDetails::Enable)
+                        .unwrap_or(WasmBacktraceDetails::Disable),
+                ),
+        )?;
 
         let module = Module::new(&engine, wasm)?;
         let module = Arc::new(WasmtimeModule { engine, module });
@@ -37,27 +49,27 @@ pub struct WasmtimeModule {
 }
 
 impl WasmtimeModule {
-    pub fn instantiate<F>(self: &Arc<Self>, func: F) -> Result<WasmtimeInstance<F>>
-    where
-        F: Fn(Request) -> Response,
-    {
+    pub fn instantiate(
+        self: &Arc<Self>,
+        func: impl FnMut(Request) -> Response + 'static,
+    ) -> Result<WasmtimeInstance> {
         let mut store = Store::new(
             &self.engine,
             WasmtimeInner {
                 wasi: WasiCtxBuilder::new().inherit_stdout().build(),
                 response: vec![],
-                func,
+                func: Box::new(func),
             },
         );
 
         // Start out instance with WASI imports
-        let mut linker = Linker::<WasmtimeInner<_>>::new(&self.engine);
+        let mut linker = Linker::<WasmtimeInner>::new(&self.engine);
         wasmtime_wasi::add_to_linker(&mut linker, |inner| &mut inner.wasi)?;
 
         linker.func_wrap(
             "env",
             "__vg_request",
-            |mut caller: Caller<'_, WasmtimeInner<_>>, ptr: i32, len: i32| -> Result<i32> {
+            |mut caller: Caller<'_, WasmtimeInner>, ptr: i32, len: i32| -> Result<i32> {
                 let mem = caller
                     .get_export("memory")
                     .ok_or(anyhow!("No memory on module"))?
@@ -67,9 +79,10 @@ impl WasmtimeModule {
                 // Deserialize request from instance memory
                 let bytes = &mem.data(&caller)[ptr as usize..][..len as usize];
                 let request = Request::deserialize_bin(bytes)?;
+                trace!(request = ?request, "__vg_request");
 
                 // Call to engine implementation
-                let func: &mut F = &mut caller.data_mut().func;
+                let func = &mut caller.data_mut().func;
                 let response = (func)(request);
 
                 // Store response for later fetch
@@ -81,7 +94,7 @@ impl WasmtimeModule {
         linker.func_wrap(
             "env",
             "__vg_response",
-            |mut caller: Caller<'_, WasmtimeInner<_>>, ptr: i32| -> Result<()> {
+            |mut caller: Caller<'_, WasmtimeInner>, ptr: i32| -> Result<()> {
                 let mem = caller
                     .get_export("memory")
                     .ok_or(anyhow!("No memory on module"))?
@@ -113,13 +126,13 @@ impl WasmtimeModule {
     }
 }
 
-pub struct WasmtimeInstance<F> {
+pub struct WasmtimeInstance {
     // module: Arc<WasmtimeModule>,
-    store: Store<WasmtimeInner<F>>,
+    store: Store<WasmtimeInner>,
     instance: Instance,
 }
 
-impl<F> super::Instance for WasmtimeInstance<F> {
+impl super::Instance for WasmtimeInstance {
     fn step(&mut self) -> WaitReason {
         let func = self
             .instance
@@ -132,6 +145,8 @@ impl<F> super::Instance for WasmtimeInstance<F> {
     }
 
     fn get_data(&mut self) -> super::InstanceData {
+        trace!("Serializing instance data");
+
         let exports = self.instance.exports(&mut self.store);
         let mut globals = vec![];
         let mut tables = vec![];
@@ -212,6 +227,8 @@ impl<F> super::Instance for WasmtimeInstance<F> {
     }
 
     fn set_data(&mut self, data: &super::InstanceData) {
+        trace!("Deserializing instance data");
+
         for (name, data) in &data.memories {
             let memory = self
                 .instance

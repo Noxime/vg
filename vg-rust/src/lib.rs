@@ -1,10 +1,13 @@
 #![feature(fn_traits, unboxed_closures)]
 
+mod consts;
 mod executor;
 mod ffi;
-mod consts;
-pub use executor::{spawn, start, wait, JoinHandle};
+mod math;
+
 pub use consts::*;
+pub use executor::{spawn, start, wait, JoinHandle};
+pub use math::{F32Ext, V};
 use vg_interface::*;
 
 pub use glam::{self, Mat3, Mat4, Vec2, Vec3, Vec4};

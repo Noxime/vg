@@ -4,16 +4,20 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use get_size::GetSize;
-use vg_interface::WaitReason;
+use vg_interface::{Request, Response, WaitReason};
 
 /// Executor recommended for this platform
-pub type DefaultExecutor<F> = wasmtime::WasmtimeExecutor<F>;
+pub type DefaultExecutor = wasmtime::WasmtimeExecutor;
 
 /// WASM executor capable of producing Instances
-pub trait Executor<F>: Sized {
+pub trait Executor: Sized {
     type Instance: Instance;
 
-    fn create(wasm: &[u8], debug: bool, func: F) -> Result<Self::Instance>;
+    fn create(
+        wasm: &[u8],
+        debug: bool,
+        func: impl FnMut(Request) -> Response + 'static,
+    ) -> Result<Self::Instance>;
 }
 
 /// Instance of a WebAssembly module that can be de/serialized

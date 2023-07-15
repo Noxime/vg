@@ -1,3 +1,14 @@
 [workspace]
 members = ["vg-*", "my-game"]
 resolver = "2"
+
+[workspace.dependencies]
+vg-interface = { path = "vg-interface" }
+vg-network = { path = "vg-network" }
+vg-runtime = { path = "vg-runtime" }
+vg-scene = { path = "vg-scene" }
+
+# TODO: https://github.com/johanhelsing/matchbox/pull/225
+matchbox_signaling = { git = "https://github.com/vectorgameexperts/matchbox", branch = "issue-202" }
+matchbox_protocol = { git = "https://github.com/vectorgameexperts/matchbox", branch = "issue-202" }
+matchbox_socket = { git = "https://github.com/vectorgameexperts/matchbox", branch = "issue-202" }

@@ -1,8 +1,11 @@
+use anyhow::Result;
 use clap::Parser;
 use macroquad::prelude::*;
-use std::path::PathBuf;
-use vg_interface::{Draw, Request, Response};
-use vg_network::Server;
+use std::{path::PathBuf, time::Duration};
+use tokio::runtime::Runtime;
+use tracing_subscriber::EnvFilter;
+use vg_interface::{Request, Response};
+use vg_network::Host;
 use vg_runtime::executor::DefaultExecutor;
 
 #[derive(Parser)]
@@ -11,37 +14,61 @@ struct Args {
     path: PathBuf,
 }
 
-#[macroquad::main("vg")]
-async fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::from_default_env()
+                .add_directive("cranelift_codegen=warn".parse()?)
+                .add_directive("wasmtime_cranelift=warn".parse()?)
+                .add_directive("wasmtime_jit=warn".parse()?),
+        )
+        .init();
+
+    let runtime = Runtime::new()?;
+    let _runtime_guard = runtime.enter();
+
     let args = Args::parse();
-    let wasm = std::fs::read(args.path)?;
 
-    let func = |request: Request| match request {
-        Request::Draw(Draw::Line {
-            color: (r, g, b, a),
-            points,
-        }) => {
-            for win in points.windows(2) {
-                draw_line(
-                    win[0].0,
-                    win[0].1,
-                    win[1].0,
-                    win[1].1,
-                    1.0,
-                    Color { r, g, b, a },
-                );
-            }
-            Response::Empty
+    let wasm = tokio::fs::read(args.path).await?;
+
+    server(&wasm).await?;
+    // tokio::try_join!(server(&wasm), client(&wasm),)?;
+
+    Ok(())
+}
+
+async fn server(wasm: &[u8]) -> Result<()> {
+    let func = |_: Request| Response::Empty;
+
+    let (mut host, driver) = Host::<DefaultExecutor>::start(&wasm, true, func)?;
+
+    tokio::spawn(async {
+        match driver.await {
+            Ok(()) => debug!("Server closed"),
+            Err(err) => error!("Server error: {err}"),
         }
-    };
+    });
 
-    let mut server = Server::<_, DefaultExecutor<_>>::start(&wasm, true, func)?;
-
+    let mut ticker = tokio::time::interval(Duration::from_secs(1));
     loop {
-        clear_background(BLACK);
-
-        server.tick();
-
-        next_frame().await;
+        host.tick();
+        ticker.tick().await;
     }
 }
+
+// async fn client(wasm: &[u8]) -> Result<()> {
+//     let (mut host, driver) = Host::<DefaultExecutor>::connect("ws://localhost:3536")?;
+
+//     tokio::spawn(async {
+//         match driver.await {
+//             Ok(()) => debug!("Client closed"),
+//             Err(err) => error!("Client error: {err}"),
+//         }
+//     });
+
+//     loop {
+//         host.tick();
+//         tokio::task::yield_now().await;
+//     }
+// }

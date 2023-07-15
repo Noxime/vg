@@ -1,38 +1,40 @@
+use std::future::Future;
+
 use anyhow::Result;
-use instant::Duration;
 use local::Local;
 use remote::Remote;
+use vg_interface::{Request, Response};
 use vg_runtime::executor::*;
 
 mod local;
-mod messages;
 mod remote;
+mod socket;
 
-pub enum Server<F, E: Executor<F> = DefaultExecutor<F>> {
+pub enum Host<E: Executor = DefaultExecutor> {
     Local(Local<E::Instance>),
     Remote(Remote),
 }
 
-impl<F, E: Executor<F>> Server<F, E> {
-    pub fn start(wasm: &[u8], debug: bool, func: F) -> Result<Self> {
+impl<E: Executor> Host<E> {
+    pub fn start(
+        wasm: &[u8],
+        debug: bool,
+        func: impl FnMut(Request) -> Response + 'static,
+    ) -> Result<(Self, impl Future<Output = Result<()>>)> {
         let instance = E::create(wasm, debug, func)?;
-        Ok(Self::Local(Local::new(instance)))
+        let (local, driver) = Local::new(instance);
+        Ok((Self::Local(local), driver))
     }
 
-    pub fn connect() -> Result<Self> {
-        Ok(Self::Remote(Remote::new()))
+    pub fn connect(url: &str) -> Result<(Self, impl Future<Output = Result<()>>)> {
+        let (remote, driver) = Remote::new(url);
+        Ok((Self::Remote(remote), driver))
     }
 
     pub fn tick(&mut self) {
         match self {
-            Server::Local(local) => local.tick(),
-            Server::Remote(_) => todo!(),
+            Host::Local(local) => local.tick(),
+            Host::Remote(remote) => remote.tick(),
         }
     }
 }
-
-pub struct ServerConfig {
-    tickrate: Duration,
-}
-
-pub enum Event {}

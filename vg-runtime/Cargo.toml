@@ -7,10 +7,9 @@ edition = "2021"
 vg-interface = { path = "../vg-interface" }
 
 anyhow = "1"
-
-wasmtime = "10"
-wasmtime-wasi = "10"
-
+tracing = "0.1"
 generational-arena = "0.2"
 get-size = { version = "0.1", features = ["derive"] }
 
+wasmtime = "10"
+wasmtime-wasi = "10"

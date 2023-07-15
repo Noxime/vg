@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # Public
-vg-interface = { path = "../vg-interface" }
+vg-interface = { workspace = true }
 glam = "0.24"
 
 # Private
