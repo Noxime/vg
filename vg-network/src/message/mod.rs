@@ -4,14 +4,20 @@ use serde::{de::DeserializeOwned, Serialize};
 
 mod clientbound;
 mod serverbound;
+mod symmetric;
+
+pub use clientbound::Clientbound;
+pub use serverbound::Serverbound;
+pub use symmetric::Symmetric;
 
 /// Delivery requirements for this kind of message
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Delivery {
     Reliable,
     Ordered,
     Unreliable,
 }
+
 impl Delivery {
     pub fn as_config(&self) -> ChannelConfig {
         match self {

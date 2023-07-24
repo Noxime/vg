@@ -1,51 +1,51 @@
-use anyhow::Result;
+use std::collections::HashMap;
+
+use anyhow::{anyhow, Result};
+use instant::{Duration, Instant};
 use matchbox_socket::{
     MessageLoopFuture, MultipleChannels, PeerId, PeerState, WebRtcChannel, WebRtcSocket,
     WebRtcSocketBuilder,
 };
-use tracing::{debug, trace};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
-    message::{Delivery, Message},
+    message::{self, Clientbound, Delivery, Message, Serverbound, Symmetric},
     Flags,
 };
 
-pub struct Socket {
-    socket: WebRtcSocket<MultipleChannels>,
-    reliable: WebRtcChannel,
-    ordered: WebRtcChannel,
-    unreliable: WebRtcChannel,
-    /// Does this socket appear to have Host role assigned to it
-    is_host: bool,
+pub struct SocketData {
+    pub socket: WebRtcSocket<MultipleChannels>,
+    pub reliable: WebRtcChannel,
+    pub ordered: WebRtcChannel,
+    pub unreliable: WebRtcChannel,
 }
 
-impl Socket {
-    pub fn new(url: &str) -> (Socket, MessageLoopFuture) {
-        let (mut socket, driver) = WebRtcSocketBuilder::new(url)
-            .reconnect_attempts(None)
-            .add_channel(Delivery::Reliable.as_config())
-            .add_channel(Delivery::Ordered.as_config())
-            .add_channel(Delivery::Unreliable.as_config())
-            .build();
-
-        (
-            Socket {
-                reliable: socket.take_channel(0).unwrap(),
-                ordered: socket.take_channel(1).unwrap(),
-                unreliable: socket.take_channel(2).unwrap(),
-                socket,
-                is_host: false,
-            },
-            driver,
-        )
-    }
-
-    pub fn send(&mut self, msg: &impl Message) -> Result<()> {
+impl SocketData {
+    pub fn broadcast(&mut self, msg: &impl Message) -> Result<()> {
         let delivery = Message::delivery(msg);
         let bytes = Message::serialize(msg)?;
         let packet = bytes.into_boxed_slice();
+        let delivery = msg.delivery();
 
-        trace!(?delivery, len = packet.len(), "Send");
+        // Send to all connected peers
+        for peer in self.socket.connected_peers().collect::<Vec<_>>() {
+            self.send_raw(peer, delivery, packet.clone())?;
+        }
+
+        Ok(())
+    }
+
+    pub fn send(&mut self, peer: PeerId, msg: &impl Message) -> Result<()> {
+        let delivery = Message::delivery(msg);
+        let bytes = Message::serialize(msg)?;
+        let packet = bytes.into_boxed_slice();
+        let delivery = msg.delivery();
+
+        self.send_raw(peer, delivery, packet)
+    }
+
+    pub fn send_raw(&mut self, peer: PeerId, delivery: Delivery, packet: Box<[u8]>) -> Result<()> {
+        trace!(?peer, ?delivery, len = packet.len(), "Send");
 
         let channel = match delivery {
             Delivery::Reliable => &mut self.reliable,
@@ -53,38 +53,50 @@ impl Socket {
             Delivery::Unreliable => &mut self.unreliable,
         };
 
-        // Send to all connected peers
-        for peer in self.socket.connected_peers() {
-            channel.send(packet.clone(), peer);
-        }
+        channel.send(packet, peer);
 
         Ok(())
     }
 
-    pub fn poll(&mut self) {
-        for (peer, state) in self.socket.update_peers() {
-            debug!(?peer, ?state, "Peer state change");
-            self.update_flags(peer, state);
-        }
+    /// Receive all pending messages from the network
+    pub fn receive<T: Message>(&mut self) -> impl Iterator<Item = (PeerId, T)> {
+        // Receive messages from all channels
+        let packets = []
+            .into_iter()
+            .chain(
+                self.reliable
+                    .receive()
+                    .into_iter()
+                    .inspect(|(peer, packet)| debug!(?peer, ?packet, "Reliable")),
+            )
+            .chain(
+                self.ordered
+                    .receive()
+                    .into_iter()
+                    .inspect(|(peer, packet)| debug!(?peer, ?packet, "Ordered")),
+            )
+            .chain(
+                self.unreliable
+                    .receive()
+                    .into_iter()
+                    .inspect(|(peer, packet)| debug!(?peer, ?packet, "Unreliable")),
+            );
 
-        for (peer, packet) in self.reliable.receive() {
-            debug!(?peer, ?packet, "Reliable");
-        }
-        for (peer, packet) in self.unreliable.receive() {
-            debug!(?peer, ?packet, "Unreliable");
-        }
+        // Deserialize message data
+        filter_errors(packets.map(|(p, b)| Message::deserialize(&b).map(|m| (p, m))))
     }
+}
 
-    /// Looks for magic flag events
-    pub fn update_flags(&mut self, peer: PeerId, state: PeerState) {
-        if state != PeerState::Disconnected {
-            return;
+
+
+
+/// Get rid of Errs, logging them to stderr
+fn filter_errors<T>(i: impl Iterator<Item = Result<T>>) -> impl Iterator<Item = T> {
+    i.filter_map(|t| match t {
+        Ok(value) => Some(value),
+        Err(err) => {
+            error!(?err, "Message error");
+            None
         }
-
-        let Ok(flags) = Flags::decode(peer) else { return };
-
-        // Unpack bits
-        debug!(?flags, "Received flags");
-        self.is_host = flags.is_host;
-    }
+    })
 }

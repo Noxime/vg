@@ -1,18 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Delivery, Message};
+use super::{Delivery, Message, Symmetric};
 
+/// Messages sent by server, received by client
 #[derive(Serialize, Deserialize)]
 pub enum Clientbound {
-    Ping,
-    Pong,
+    Symmetric(Symmetric),
 }
 
 impl Message for Clientbound {
     fn delivery(&self) -> Delivery {
         match self {
-            Clientbound::Ping => Delivery::Unreliable,
-            Clientbound::Pong => Delivery::Unreliable,
+            Clientbound::Symmetric(s) => s.delivery(),
         }
     }
 }
