@@ -6,7 +6,8 @@ use axum::extract::ws::Message;
 use futures_util::StreamExt;
 use matchbox_protocol::{JsonPeerEvent, JsonPeerRequest, PeerRequest};
 use matchbox_signaling::{NoCallbacks, SignalingTopology, WsStateMeta};
-use tracing::{error, trace};
+use tracing::{debug, error, trace};
+use vg_network::Flags;
 
 use crate::state::VgState;
 
@@ -45,6 +46,13 @@ impl SignalingTopology<NoCallbacks, VgState> for VgTopology {
                 let msg = Message::Text(JsonPeerEvent::NewPeer(peer_id).to_string());
                 room.host().unwrap().send(msg);
             }
+
+            // This bit is slightly cursed but we use a fake peer leave event to signal to
+            // peers what role they have in their room (server or client)
+            let flags = Flags { is_host };
+            debug!(?flags, "Sending flags");
+            let msg = Message::Text(JsonPeerEvent::PeerLeft(flags.encode()).to_string());
+            sender.send(Ok(msg)).unwrap();
         }
 
         // As long as signaling connection is active

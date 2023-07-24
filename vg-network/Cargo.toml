@@ -5,12 +5,15 @@ edition = "2021"
 
 
 [dependencies]
-vg-runtime = { workspace = true }
 vg-interface = { workspace = true }
 
 anyhow = "1"
 instant = "0.1"
 matchbox_socket = { workspace = true }
 futures = "0.3"
+uuid = "1"
+
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
 
 tracing = "0.1"

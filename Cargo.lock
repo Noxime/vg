@@ -4153,12 +4153,14 @@ name = "vg-network"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "futures",
  "instant",
  "matchbox_socket",
+ "serde",
  "tracing",
+ "uuid",
  "vg-interface",
- "vg-runtime",
 ]
 
 [[package]]
@@ -4198,6 +4200,8 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+ "vg-network",
 ]
 
 [[package]]

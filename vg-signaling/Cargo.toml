@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+vg-network = { workspace = true }
+
 matchbox_signaling = { workspace =  true }
 matchbox_protocol = { workspace =  true }
 tracing = "0.1"
@@ -17,3 +19,4 @@ async-trait = "0.1"
 dashmap = "5"
 futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
+uuid = "1"

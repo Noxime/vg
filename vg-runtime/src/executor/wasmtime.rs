@@ -27,6 +27,7 @@ impl super::Executor for WasmtimeExecutor {
     ) -> Result<WasmtimeInstance> {
         let engine = Engine::new(
             &Config::new()
+                .cache_config_load_default()?
                 .debug_info(debug)
                 .wasm_backtrace(debug)
                 .wasm_backtrace_details(

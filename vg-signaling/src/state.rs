@@ -6,7 +6,7 @@ use matchbox_protocol::{JsonPeerEvent, PeerId};
 use matchbox_signaling::SignalingState;
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedSender;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 
 type AxumSender = UnboundedSender<Result<axum::extract::ws::Message, axum::Error>>;
 
@@ -36,6 +36,7 @@ impl Connection {
     }
 
     pub fn send(&self, msg: Message) {
+        trace!(peer = ?self.peer, message = ?msg, "Message");
         if let Err(err) = self.sender.send(Ok(msg)) {
             error!(peer = ?self.peer, "Could not send message: {err}");
         }
