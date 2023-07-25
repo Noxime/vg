@@ -78,7 +78,7 @@ async fn run_host(mut instance: impl Instance, mut socket: Socket) -> Result<()>
 
         // It is time for a server tick
         let elapsed = instant.elapsed();
-        if elapsed > Duration::from_secs(3) {
+        if elapsed > Duration::from_millis(10) {
             // Execute one tick
             loop {
                 match instance.step() {

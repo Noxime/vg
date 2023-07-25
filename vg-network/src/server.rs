@@ -32,7 +32,8 @@ impl HostData {
                 warn!(?peer, "Server received a pong (not supposed to)");
             }
             Serverbound::Sync => {
-                debug!(?peer, len = self.state.len(), chunks = self.state.len() / 1024 + 1, "Synchronize");
+                let num_chunks = (self.state.len() + 1023) / 1024;
+                debug!(?peer, len = self.state.len(), chunks = num_chunks, "Synchronize");
 
                 // SCPT (WebRTC (Matchbox)) maximum packet size is 1280 something bytes
                 for chunk in self.state.chunks(1024) {

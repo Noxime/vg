@@ -23,7 +23,7 @@ impl Message for Clientbound {
         match self {
             Clientbound::Symmetric(s) => s.delivery(),
             Clientbound::Tick { .. } => Delivery::Reliable,
-            Clientbound::SyncFragment { .. } => Delivery::Unreliable,
+            Clientbound::SyncFragment { .. } => Delivery::Reliable,
         }
     }
 }
