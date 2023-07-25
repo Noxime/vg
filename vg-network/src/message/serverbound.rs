@@ -6,12 +6,14 @@ use super::{Delivery, Message, Symmetric};
 #[derive(Serialize, Deserialize)]
 pub enum Serverbound {
     Symmetric(Symmetric),
+    Sync,
 }
 
 impl Message for Serverbound {
     fn delivery(&self) -> Delivery {
         match self {
             Serverbound::Symmetric(m) => m.delivery(),
+            Serverbound::Sync => Delivery::Reliable,
         }
     }
 }

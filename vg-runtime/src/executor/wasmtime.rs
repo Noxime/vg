@@ -247,7 +247,7 @@ impl super::Instance for WasmtimeInstance {
                 .data_mut(&mut self.store)
                 .chunks_mut(PAGE_SIZE)
                 .zip(&data.pages)
-                .for_each(|(page, data)| page.copy_from_slice(data));
+                .for_each(|(page, data)| page.copy_from_slice(&data.bytes));
         }
 
         for (name, data) in &data.globals {

@@ -1,9 +1,10 @@
 pub mod wasmtime;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use anyhow::Result;
 use get_size::GetSize;
+use serde::{de::Visitor, Deserialize, Serialize};
 use vg_interface::{Request, Response, WaitReason};
 
 /// Executor recommended for this platform
@@ -31,9 +32,53 @@ pub trait Instance {
 }
 
 pub const PAGE_SIZE: usize = 65_536;
-pub type PageData = [u8; PAGE_SIZE];
 
-#[derive(GetSize)]
+#[derive(GetSize, Hash)]
+// #[derive(GetSize, Serialize, Deserialize, Hash)]
+pub struct PageData {
+    // TODO: Get rid of this allocation
+    // There was an issue with serde overflowing the stack decoding 64k pages
+    // #[serde(with = "serde_arrays")]
+    bytes: [u8; PAGE_SIZE],
+}
+
+impl Serialize for PageData {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(&self.bytes)
+    }
+}
+
+struct PageVisitor;
+impl Visitor<'_> for PageVisitor {
+    type Value = PageData;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "Expected {PAGE_SIZE} bytes")
+    }
+
+    fn visit_bytes<E>(self, v: &[u8]) -> std::result::Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        let mut bytes = [0; PAGE_SIZE];
+        bytes.copy_from_slice(v);
+        Ok(PageData { bytes })
+    }
+}
+
+impl<'de> Deserialize<'de> for PageData {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_bytes(PageVisitor)
+    }
+}
+//*/
+#[derive(GetSize, Serialize, Deserialize, Hash)]
 pub struct MemoryData {
     pub pages: Vec<PageData>,
 }
@@ -51,13 +96,15 @@ impl MemoryData {
         Self {
             pages: bytes
                 .chunks(PAGE_SIZE)
-                .map(|page| page.try_into().expect("Non PAGE_SIZE aligned page"))
+                .map(|page| PageData {
+                    bytes: page.try_into().expect("Must be aligned to PAGE_SIZE"),
+                })
                 .collect(),
         }
     }
 }
 
-#[derive(GetSize)]
+#[derive(GetSize, Serialize, Deserialize, Hash)]
 pub enum GlobalData {
     I32(i32),
     I64(i64),
@@ -65,7 +112,7 @@ pub enum GlobalData {
     F64(u64),
 }
 
-#[derive(GetSize)]
+#[derive(GetSize, Serialize, Deserialize, Hash)]
 pub enum TableData {
     I32(Vec<i32>),
     I64(Vec<i64>),
@@ -85,9 +132,9 @@ impl TableData {
     }
 }
 
-#[derive(GetSize)]
+#[derive(GetSize, Serialize, Deserialize, Hash)]
 pub struct InstanceData {
-    pub memories: HashMap<String, MemoryData>,
-    pub globals: HashMap<String, GlobalData>,
-    pub tables: HashMap<String, TableData>,
+    pub memories: BTreeMap<String, MemoryData>,
+    pub globals: BTreeMap<String, GlobalData>,
+    pub tables: BTreeMap<String, TableData>,
 }

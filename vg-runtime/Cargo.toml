@@ -10,6 +10,8 @@ anyhow = "1"
 tracing = "0.1"
 generational-arena = "0.2"
 get-size = { version = "0.1", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_arrays = "0.1"
 
 wasmtime = "10"
 wasmtime-wasi = "10"
