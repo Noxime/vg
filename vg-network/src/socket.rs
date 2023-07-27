@@ -20,6 +20,7 @@ pub struct Socket {
     pub unreliable: WebRtcChannel,
     pub queue: VecDeque<(PeerId, Packet)>,
     pub role: Option<Role>,
+    pub stats: SocketStats,
 }
 
 /// The assigned room role for this socket
@@ -29,6 +30,28 @@ pub enum Role {
     Host,
     /// This socket is a client
     Client,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SocketStats {
+    sent_bytes: usize,
+    sent_packets: usize,
+    recv_bytes: usize,
+    recv_packets: usize,
+}
+
+impl SocketStats {
+    pub fn total_bytes(&self) -> usize {
+        self.recv_bytes + self.sent_bytes
+    }
+
+    pub fn total_packets(&self) -> usize {
+        self.recv_packets + self.sent_packets
+    }
+
+    pub fn average_bytes(&self) -> usize {
+        self.total_bytes() / self.total_packets()
+    }
 }
 
 impl Socket {
@@ -48,6 +71,12 @@ impl Socket {
                 socket,
                 queue: Default::default(),
                 role: None,
+                stats: SocketStats {
+                    sent_bytes: 0,
+                    sent_packets: 0,
+                    recv_bytes: 0,
+                    recv_packets: 0,
+                },
             },
             driver,
         ))
@@ -108,8 +137,11 @@ impl Socket {
         self.send_raw(peer, delivery, packet)
     }
 
-    pub fn send_raw(&mut self, peer: PeerId, delivery: Delivery, packet: Box<[u8]>) -> Result<()> {
+    fn send_raw(&mut self, peer: PeerId, delivery: Delivery, packet: Box<[u8]>) -> Result<()> {
         trace!(?peer, ?delivery, len = packet.len(), "Send");
+
+        self.stats.sent_packets += 1;
+        self.stats.sent_bytes += packet.len();
 
         let channel = match delivery {
             Delivery::Reliable => &mut self.reliable,
@@ -151,7 +183,15 @@ impl Socket {
 
         // Deserialize message data
         let Some((peer, packet)) = self.queue.pop_front() else { return Ok(None) };
+
+        self.stats.recv_packets += 1;
+        self.stats.recv_bytes += packet.len();
+
         let message = Message::deserialize(&packet)?;
         Ok(Some((peer, message)))
+    }
+
+    pub fn stats(&self) -> SocketStats {
+        self.stats
     }
 }

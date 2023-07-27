@@ -1,17 +1,32 @@
 [package]
 name = "vg-editor"
-version = "0.1.0"
-edition = "2021"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+homepage = { workspace = true }
+publish = { workspace = true }
+
 default-run = "vg-editor"
 
 [dependencies]
-vg-runtime = { workspace = true }
-vg-interface = { workspace = true }
-vg-network = { workspace = true }
+# vg-runtime = { workspace = true }
+# vg-interface = { workspace = true }
+# vg-network = { workspace = true }
+# vg-engine = { workspace = true }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tokio = "1"
+tracing-log = "0.1"
+pollster = "0.3"
 
-macroquad = "0.3"
+egui = "0.22"
+egui-winit = "0.22"
+egui-wgpu = { version = "0.22", features = ["winit"] }
+egui_extras = "0.22"
+egui_tiles = "0.2"
+
+chrono = "0.4"
+dashmap = "5"

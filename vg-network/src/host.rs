@@ -33,7 +33,12 @@ impl HostData {
             }
             Serverbound::Sync => {
                 let num_chunks = (self.state.len() + 1023) / 1024;
-                debug!(?peer, len = self.state.len(), chunks = num_chunks, "Synchronize");
+                debug!(
+                    ?peer,
+                    len = self.state.len(),
+                    chunks = num_chunks,
+                    "Synchronize"
+                );
 
                 // SCPT (WebRTC (Matchbox)) maximum packet size is 1280 something bytes
                 for chunk in self.state.chunks(1024) {
@@ -57,12 +62,16 @@ impl HostData {
         state: &S,
         tick_delta: Duration,
     ) -> Result<()> {
-        self.state = bincode::serialize(state)?;
-        let hash = state.default_hash();
+        self.state = state.default_serialize()?;
+        let hash: [u8; 8] = state.default_hash();
 
         {
-            let check: S = bincode::deserialize(&self.state)?;
-            assert_eq!(hash, check.default_hash(), "Serialized and deserialized hash mismatch");
+            let check = S::default_deserialize(&self.state)?;
+            assert_eq!(
+                hash,
+                check.default_hash(),
+                "Serialized and deserialized hash mismatch"
+            );
         }
 
         debug!(?hash, "Server tick");

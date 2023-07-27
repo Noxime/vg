@@ -38,7 +38,7 @@ impl TickConfirm {
     /// Possibly deserialize
     pub fn state<S: StateData>(&self) -> Result<Option<S>> {
         if let Some(bytes) = &self.state {
-            let state: S = bincode::deserialize(&bytes)?;
+            let state = S::default_deserialize(&bytes)?;
             let hash = state.default_hash();
 
             debug!(?hash, len = bytes.len(), "Deserializing");

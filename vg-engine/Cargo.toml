@@ -1,0 +1,28 @@
+[package]
+name = "vg-engine"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+homepage = { workspace = true }
+publish = { workspace = true }
+
+[lib]
+name = "vg_lib"
+crate_type = ["cdylib", "lib"]
+
+[dependencies]
+vg-runtime = { workspace = true }
+vg-interface = { workspace = true }
+vg-network = { workspace = true }
+
+winit = { version = "0.28" }
+
+anyhow = "1"
+log = "0.4"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+
+[target.'cfg(target_os = "android")'.dependencies]
+winit = { version = "0.28", features = ["android-native-activity"] }
+android_logger = "0.13.0"

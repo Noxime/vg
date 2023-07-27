@@ -2,7 +2,7 @@ use std::ops::FnOnce;
 
 use crate::{Vec2, Vec3, Vec4};
 
-/// More general version of Into<f32>
+/// More general version of `Into<f32>`
 pub trait F32Ext {
     fn to(self) -> f32;
 }

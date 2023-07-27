@@ -1,8 +1,18 @@
 [workspace]
-members = ["vg-*", "my-game"]
+members = ["vg-*"]
+exclude = ["my-game"]
 resolver = "2"
 
+[workspace.package]
+version = "0.1.0"
+authors = ["Noxim <aaro.peramaa@gmail.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+homepage = "https://noxim.xyz"
+publish = false
+
 [workspace.dependencies]
+vg-engine = { path = "vg-engine" }
 vg-interface = { path = "vg-interface" }
 vg-network = { path = "vg-network" }
 vg-runtime = { path = "vg-runtime" }
@@ -12,3 +22,9 @@ vg-scene = { path = "vg-scene" }
 matchbox_signaling = { git = "https://github.com/vectorgameexperts/matchbox", branch = "issue-202" }
 matchbox_protocol = { git = "https://github.com/vectorgameexperts/matchbox", branch = "issue-202" }
 matchbox_socket = { git = "https://github.com/vectorgameexperts/matchbox", branch = "issue-202" }
+
+# [profile.dev]
+# opt-level = 3
+
+[profile.release]
+debug = true
