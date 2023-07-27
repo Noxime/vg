@@ -20,7 +20,7 @@ engine-desktop:
 
 engine-android:
   stage: build
-  image: rustlang/rust:1.67
+  image: rust:1.67
   script:
     - cargo install cargo-apk
     - cargo apk build --manifest-path vg-engine/Cargo.toml
