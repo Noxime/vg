@@ -11,6 +11,7 @@ vg is an indefinitely-work-in-progress game engine focused on rapid prototyping.
 * vg-signaling: A matchmaking server
 
 ## Libraries
+* vg-asset: Asset management library
 * vg-interface: Common types between vg-runtime and vg-rust
 * vg-network: Network socket and rollback abstraction
 * vg-runtime: WebAssembly runtime for state management

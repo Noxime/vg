@@ -1,4 +1,13 @@
-use winit::event::Event;
+use std::sync::Arc;
+
+use head::Head;
+use vg_asset::Assets;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::EventLoopWindowTarget,
+};
+
+mod head;
 
 #[cfg(target_os = "android")]
 pub mod platform {
@@ -12,17 +21,94 @@ pub mod platform {
     pub use desktop::*;
 }
 
-pub enum UserEvent {}
+pub struct Engine {
+    config: EngineConfig,
+    head: Option<Head>,
+    /// Is engine instance alive? False if should exit
+    alive: bool,
+    /// Is the app lifetime between Resume and Suspended events
+    between_resumes: bool,
+    /// Asset server
+    assets: Arc<Assets>,
+}
 
-pub struct Engine {}
+#[derive(Clone)]
+pub struct EngineConfig {
+    /// Run in headless mode
+    pub headless: bool,
+    /// File system path to game binary
+    pub path: String,
+}
+
+impl EngineConfig {
+    pub fn new() -> EngineConfig {
+        EngineConfig {
+            headless: false,
+            path: String::from("target/wasm32-wasi/debug/my-game.wasm"),
+        }
+    }
+}
+
+/// Some platforms don't have proper Resumed/Suspended lifecycles. Important for
+/// when using an external event loop
+fn has_app_lifecycle() -> bool {
+    ["android", "ios"].contains(&std::env::consts::OS)
+}
 
 impl Engine {
+    /// Create a new engine instance with default configuration
     pub fn new() -> Engine {
-        Engine {}
+        Engine::with_config(EngineConfig::new())
     }
 
-    pub fn event(&mut self, _event: Event<UserEvent>) {
+    /// Create a new engine with specified configuration
+    pub fn with_config(config: EngineConfig) -> Engine {
+        Engine {
+            head: None,
+            config,
+            alive: true,
+            between_resumes: !has_app_lifecycle(),
+            assets: Assets::new(),
+        }
+    }
 
+    pub fn config_mut(&mut self) -> &mut EngineConfig {
+        &mut self.config
+    }
+
+    /// Process a winit event
+    pub fn event(&mut self, event: &Event<()>, target: &EventLoopWindowTarget<()>) {
+        self.ensure_window(target);
+
+        match event {
+            Event::Resumed => self.between_resumes = true,
+            Event::Suspended => self.between_resumes = false,
+            Event::WindowEvent { window_id, event } if self.is_my_window(window_id) => {
+                match event {
+                    WindowEvent::Resized(size) => {
+                        self.resize(*size);
+                    }
+                    WindowEvent::CloseRequested => {
+                        self.alive = false;
+                    }
+                    _ => (),
+                }
+            }
+            Event::RedrawRequested(window_id) if self.is_my_window(window_id) => {
+                self.render();
+            }
+            Event::MainEventsCleared => {
+                self.redraw();
+            }
+            _ => (),
+        }
+    }
+
+    /// Is this engine instance still active
+    ///
+    /// If this returns false, game should exit
+    pub fn alive(&self) -> bool {
+        self.alive
     }
 }
 

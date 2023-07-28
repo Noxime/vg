@@ -13,7 +13,7 @@ default-run = "vg-editor"
 # vg-runtime = { workspace = true }
 # vg-interface = { workspace = true }
 # vg-network = { workspace = true }
-# vg-engine = { workspace = true }
+vg-engine = { workspace = true }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

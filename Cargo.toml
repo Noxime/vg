@@ -12,6 +12,7 @@ homepage = "https://noxim.xyz"
 publish = false
 
 [workspace.dependencies]
+vg-asset = { path = "vg-asset" }
 vg-engine = { path = "vg-engine" }
 vg-interface = { path = "vg-interface" }
 vg-network = { path = "vg-network" }

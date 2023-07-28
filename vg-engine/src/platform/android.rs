@@ -8,15 +8,17 @@ fn android_main(app: AndroidApp) {
         android_logger::Config::default().with_max_level(log::LevelFilter::Trace),
     );
 
-    let event_loop = EventLoopBuilder::with_user_event()
-        .with_android_app(app)
-        .build();
+    let event_loop = EventLoopBuilder::new().with_android_app(app).build();
 
     let mut engine = crate::Engine::new();
-    event_loop.run(move |event, _, control_flow| {
-        // Run as fast as possible
-        control_flow.set_poll();
-        engine.event(event);
+    event_loop.run(move |event, target, control_flow| {
+        engine.event(&event, target);
+
+        if engine.alive() {
+            control_flow.set_poll();
+        } else {
+            control_flow.set_exit();
+        }
     })
 }
 

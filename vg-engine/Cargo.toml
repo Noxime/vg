@@ -8,21 +8,26 @@ homepage = { workspace = true }
 publish = { workspace = true }
 
 [lib]
-name = "vg_lib"
+# TODO: cargo-apk mistakenly looks for libvg-engine
+# name = "vg_lib"
 crate_type = ["cdylib", "lib"]
 
 [dependencies]
-vg-runtime = { workspace = true }
-vg-interface = { workspace = true }
-vg-network = { workspace = true }
+vg-asset = { workspace = true }
+# vg-runtime = { workspace = true }
+# vg-interface = { workspace = true }
+# vg-network = { workspace = true }
 
 winit = { version = "0.28" }
 
 anyhow = "1"
-log = "0.4"
+tracing = "0.1"
+
+three-d = "0.15"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 
 [target.'cfg(target_os = "android")'.dependencies]
 winit = { version = "0.28", features = ["android-native-activity"] }
+log = "0.4"
 android_logger = "0.13.0"

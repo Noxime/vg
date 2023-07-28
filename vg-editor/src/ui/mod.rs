@@ -4,12 +4,14 @@ use egui::*;
 use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree, UiResponse,
 };
+use egui_winit::winit::{event::Event as WinitEvent, event_loop::EventLoopWindowTarget};
 
+mod controller;
 mod logger;
 
 use crate::tracing::Tracing;
 
-use self::logger::Logger;
+use self::{controller::Controller, logger::Logger};
 pub struct EditorUi {
     tree: Tree<Pane>,
     behavior: TreeBehavior,
@@ -23,10 +25,12 @@ struct Pane {
 
 enum PaneKind {
     Logger(Logger),
+    Controller(Controller),
 }
 
 enum NewPane {
     Logger,
+    Controller,
 }
 
 struct TreeBehavior {
@@ -50,7 +54,7 @@ impl Behavior<Pane> for TreeBehavior {
 
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
         ui.horizontal(|ui| {
-            ui.menu_button("Edit", |ui| {
+            ui.menu_button("Rename", |ui| {
                 TextEdit::singleline(&mut pane.name)
                     .desired_width(60.0)
                     .show(ui);
@@ -63,6 +67,7 @@ impl Behavior<Pane> for TreeBehavior {
 
         match &mut pane.kind {
             PaneKind::Logger(logger) => logger.ui(ui),
+            PaneKind::Controller(controller) => controller.ui(ui),
         };
 
         UiResponse::None
@@ -79,9 +84,12 @@ impl Behavior<Pane> for TreeBehavior {
             self.remove = Some(id);
         }
 
-        ui.menu_button("Open", |ui| {
+        ui.menu_button("New", |ui| {
             if ui.button("Logger").clicked() {
                 self.insert = Some((id, NewPane::Logger));
+            }
+            if ui.button("Controller").clicked() {
+                self.insert = Some((id, NewPane::Controller));
             }
         });
     }
@@ -104,19 +112,27 @@ impl EditorUi {
 
         let root = tiles.insert_tab_tile(vec![]);
 
-        EditorUi {
+        let mut this = EditorUi {
             tree: Tree::new(root, tiles),
             behavior: TreeBehavior::new(),
             tracing,
-        }
+        };
+
+        let logger = this.tree.tiles.insert_pane(this.create(NewPane::Logger));
+        let engine = this
+            .tree
+            .tiles
+            .insert_pane(this.create(NewPane::Controller));
+        let root = this.tree.tiles.insert_vertical_tile(vec![engine, logger]);
+
+        this.set_root(root);
+        this
     }
 
     pub fn update(&mut self, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             if self.tree.is_empty() {
-                if ui.button("uh oh").clicked() {
-                    self.behavior.insert = Some((self.root(), NewPane::Logger));
-                }
+                self.behavior.insert = Some((self.root(), NewPane::Controller));
             }
 
             // Handle new UI elements n shit
@@ -130,6 +146,17 @@ impl EditorUi {
 
             self.tree.ui(&mut self.behavior, ui);
         });
+    }
+
+    pub fn event(&mut self, event: &WinitEvent<()>, target: &EventLoopWindowTarget<()>) {
+        for tile in self.tree.tiles.tiles_mut() {
+            if let Tile::Pane(pane) = tile {
+                match &mut pane.kind {
+                    PaneKind::Logger(_) => (),
+                    PaneKind::Controller(c) => c.event(event, target),
+                }
+            }
+        }
     }
 
     /// Get the ID of the root tile, creating if it does not exist somehow
@@ -153,6 +180,10 @@ impl EditorUi {
             NewPane::Logger => Pane {
                 name: "Logger".into(),
                 kind: PaneKind::Logger(Logger::new(Arc::clone(&self.tracing))),
+            },
+            NewPane::Controller => Pane {
+                name: "Controller".into(),
+                kind: PaneKind::Controller(Controller::new()),
             },
         }
     }

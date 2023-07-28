@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use clap::Parser;
 use egui::Context;
 use egui_wgpu::{
     renderer::ScreenDescriptor,
@@ -8,6 +7,7 @@ use egui_wgpu::{
 };
 use egui_winit::{
     winit::{
+        dpi::LogicalSize,
         event::{Event as WinitEvent, WindowEvent},
         event_loop::{EventLoop, EventLoopBuilder},
         window::WindowBuilder,
@@ -15,29 +15,17 @@ use egui_winit::{
     State,
 };
 use pollster::block_on;
-use std::path::PathBuf;
 
 mod tracing;
 mod ui;
 
-#[derive(Parser)]
-struct Args {
-    /// Path to WebAssembly module
-    path: PathBuf,
-    /// URL of signaling server
-    #[arg(long, default_value = "ws://vg.noxim.xyz:3536/")]
-    url: String,
-}
-
-enum EditorEvent {}
-
 fn main() -> Result<()> {
-    let args = Args::parse();
     let tracing = tracing::init();
 
-    let event_loop: EventLoop<EditorEvent> = EventLoopBuilder::with_user_event().build();
+    let event_loop: EventLoop<()> = EventLoopBuilder::new().build();
     let editor_window = WindowBuilder::new()
         .with_title("VG Editor")
+        .with_inner_size(LogicalSize::new(1600, 900))
         .build(&event_loop)?;
 
     let instance = Instance::new(Default::default());
@@ -61,13 +49,13 @@ fn main() -> Result<()> {
     let egui_ctx = Context::default();
     let mut ui = ui::EditorUi::new(tracing);
 
-    event_loop.run(move |event, _target, control_flow| {
+    event_loop.run(move |event, target, control_flow| {
         control_flow.set_poll();
 
-        match event {
+        match &event {
             WinitEvent::WindowEvent { window_id, event } => {
                 // This is an event for our editor window
-                if window_id == editor_window.id() {
+                if *window_id == editor_window.id() {
                     match event {
                         WindowEvent::Resized(size) => {
                             if size.width != 0 && size.height != 0 {
@@ -87,7 +75,7 @@ fn main() -> Result<()> {
                 }
             }
             WinitEvent::RedrawRequested(window_id) => {
-                if window_id == editor_window.id() {
+                if *window_id == editor_window.id() {
                     // Repaint editor
                     let new_input = egui_state.take_egui_input(&editor_window);
                     let full_output = egui_ctx.run(new_input, |ctx| ui.update(ctx));
@@ -145,5 +133,8 @@ fn main() -> Result<()> {
             }
             _ => {}
         };
+
+        // Pass events to all engines. They will filter their own events correctly
+        ui.event(&event, target);
     })
 }
