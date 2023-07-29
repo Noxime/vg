@@ -132,18 +132,14 @@ impl EditorLayer {
 
 impl<S: Subscriber> Layer<S> for EditorLayer {
     fn on_event(&self, event: &Event<'_>, _ctx: Context<'_, S>) {
-        if *event.metadata().level() > Level::INFO {
-            return
+        // Filter non-vg messages above Info level
+        if !event.metadata().target().starts_with("vg_") {
+            if *event.metadata().level() > Level::INFO  {
+                return
+            }
         }
-
+        
         let time = Local::now();
-        // Gather metadata, from both log and tracing
-        // let normalized_metadata = event.normalized_metadata().map(|metadata| {
-        //     &*Box::leak(Box::new(metadata))
-        // });
-        // let mut fields = BTreeMap::new();
-
-        // event.record(&mut FieldVisitor(&mut fields));
 
         let metadata = if let Some(m) = event.normalized_metadata() {
             let new = Metadata::new(

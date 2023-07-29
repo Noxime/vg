@@ -30,6 +30,7 @@ impl<T: AssetKind> Asset<T> {
             match self.eraser.try_recv() {
                 Ok(()) => {
                     self.value = None;
+                    tracing::trace!(kind = Self::name(), "Erased");
                 }
                 Err(mpsc::TryRecvError::Empty) => break,
                 Err(mpsc::TryRecvError::Disconnected) => unreachable!("Lost track of asset source"),
@@ -39,9 +40,14 @@ impl<T: AssetKind> Asset<T> {
         // Try populate value
         if self.value.is_none() {
             self.value = T::produce(&mut self.data);
+            tracing::trace!(kind = Self::name(), "Produced");
         }
 
         self.value.as_mut()
+    }
+
+    fn name() -> &'static str {
+        std::any::type_name::<T>()
     }
 }
 

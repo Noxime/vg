@@ -5,24 +5,21 @@ use std::collections::BTreeMap;
 use anyhow::Result;
 use get_size::GetSize;
 use serde::{de::Visitor, Deserialize, Serialize};
+use vg_asset::AssetKind;
 use vg_interface::{Request, Response, WaitReason};
 
-/// Executor recommended for this platform
-pub type DefaultExecutor = wasmtime::WasmtimeExecutor;
+/// Instance type capable of executing WebAssemmbly
+pub type WasmInstance = wasmtime::WasmtimeInstance;
 
-/// WASM executor capable of producing Instances
-pub trait Executor: Sized {
-    type Instance: Instance;
-
-    fn create(
-        wasm: &[u8],
+/// Instance of a game that can be de/serialized
+pub trait Instance: AssetKind {
+    /// Create a new instance from bytes
+    fn new(
+        bytes: &[u8],
         debug: bool,
         func: impl FnMut(Request) -> Response + 'static,
-    ) -> Result<Self::Instance>;
-}
+    ) -> Result<Self>;
 
-/// Instance of a WebAssembly module that can be de/serialized
-pub trait Instance {
     /// Step instance state by one. Note that this is different from a _tick_
     fn step(&mut self) -> WaitReason;
     /// Serialize instance data

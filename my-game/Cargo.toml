@@ -2,7 +2,6 @@ cargo-features = ["per-package-target"]
 
 [package]
 name = "my-game"
-
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }

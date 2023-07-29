@@ -1,14 +1,13 @@
-use std::sync::Arc;
+use std::{sync::Arc, path::Path};
 
 use anyhow::{anyhow, Result};
 use tracing::trace;
+use vg_asset::{AssetKind, BinAsset, Assets, Asset};
 use vg_interface::{DeBin, Request, Response, SerBin, WaitReason};
 use wasmtime::*;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
 use crate::executor::{GlobalData, MemoryData, TableData, PAGE_SIZE};
-
-pub struct WasmtimeExecutor {}
 
 pub struct WasmtimeInner {
     // TODO: His ass is NOT rollbackable!
@@ -16,34 +15,6 @@ pub struct WasmtimeInner {
     response: Vec<u8>,
     func: Box<dyn FnMut(Request) -> Response>,
 }
-
-impl super::Executor for WasmtimeExecutor {
-    type Instance = WasmtimeInstance;
-
-    fn create(
-        wasm: &[u8],
-        debug: bool,
-        func: impl FnMut(Request) -> Response + 'static,
-    ) -> Result<WasmtimeInstance> {
-        let engine = Engine::new(
-            &Config::new()
-                .cache_config_load_default()?
-                .debug_info(debug)
-                .wasm_backtrace(debug)
-                .wasm_backtrace_details(
-                    debug
-                        .then_some(WasmBacktraceDetails::Enable)
-                        .unwrap_or(WasmBacktraceDetails::Disable),
-                ),
-        )?;
-
-        let module = Module::new(&engine, wasm)?;
-        let module = Arc::new(WasmtimeModule { engine, module });
-
-        module.instantiate(func)
-    }
-}
-
 pub struct WasmtimeModule {
     engine: Engine,
     module: Module,
@@ -133,7 +104,46 @@ pub struct WasmtimeInstance {
     instance: Instance,
 }
 
+impl AssetKind for WasmtimeInstance {
+    /// Bytecode source
+    type Data = Asset<BinAsset>;
+
+    fn new(assets: &Arc<Assets>, path: &Path) -> Self::Data {
+        assets.get(path)
+    }
+
+    fn produce(data: &mut Self::Data) -> Option<Self> {
+        let bin = data.get()?;
+        super::Instance::new(&bin.bytes, false, |_| Response::Empty).ok()
+    }
+}
+
 impl super::Instance for WasmtimeInstance {
+    fn new(
+        wasm: &[u8],
+        debug: bool,
+        func: impl FnMut(Request) -> Response + 'static,
+    ) -> Result<WasmtimeInstance> {
+        tracing::debug!(len = wasm.len(), "Creating new Wasmtime instance");
+
+        let engine = Engine::new(
+            &Config::new()
+                .cache_config_load_default()?
+                .debug_info(debug)
+                .wasm_backtrace(debug)
+                .wasm_backtrace_details(
+                    debug
+                        .then_some(WasmBacktraceDetails::Enable)
+                        .unwrap_or(WasmBacktraceDetails::Disable),
+                ),
+        )?;
+
+        let module = Module::new(&engine, wasm)?;
+        let module = Arc::new(WasmtimeModule { engine, module });
+
+        module.instantiate(func)
+    }
+
     fn step(&mut self) -> WaitReason {
         let func = self
             .instance

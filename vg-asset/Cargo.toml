@@ -9,8 +9,8 @@ publish = { workspace = true }
 
 [dependencies]
 anyhow = "1"
-notify = "6"
 dashmap = "5"
 tracing = "0.1"
 
 tokio = { version = "1", features = ["full"] }
+notify = { version = "6", default-features = false, features = ["macos_fsevent"] }

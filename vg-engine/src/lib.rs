@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use head::Head;
-use vg_asset::Assets;
+use vg_asset::{Assets, Asset};
+use vg_runtime::executor::WasmInstance;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::EventLoopWindowTarget,
 };
 
 mod head;
+mod runtime;
 
 #[cfg(target_os = "android")]
 pub mod platform {
@@ -30,6 +32,8 @@ pub struct Engine {
     between_resumes: bool,
     /// Asset server
     assets: Arc<Assets>,
+    /// Game logic instance
+    instance: Asset<WasmInstance>,
 }
 
 #[derive(Clone)]
@@ -63,17 +67,26 @@ impl Engine {
 
     /// Create a new engine with specified configuration
     pub fn with_config(config: EngineConfig) -> Engine {
+        let assets = Assets::new();
         Engine {
             head: None,
-            config,
             alive: true,
             between_resumes: !has_app_lifecycle(),
-            assets: Assets::new(),
+            instance: assets.get(&config.path),
+            assets,
+            config,
         }
     }
 
+    /// Access the engine configuration. Changes are not guaranteed to apply in
+    /// real time
     pub fn config_mut(&mut self) -> &mut EngineConfig {
         &mut self.config
+    }
+
+    /// Access the asset server
+    pub fn assets(&self) -> &Arc<Assets> {
+        &self.assets
     }
 
     /// Process a winit event
@@ -98,6 +111,8 @@ impl Engine {
                 self.render();
             }
             Event::MainEventsCleared => {
+                self.run_frame();
+
                 self.redraw();
             }
             _ => (),

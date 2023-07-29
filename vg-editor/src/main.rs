@@ -14,12 +14,12 @@ use egui_winit::{
     },
     State,
 };
-use pollster::block_on;
 
 mod tracing;
 mod ui;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let tracing = tracing::init();
 
     let event_loop: EventLoop<()> = EventLoopBuilder::new().build();
@@ -31,10 +31,12 @@ fn main() -> Result<()> {
     let instance = Instance::new(Default::default());
     let surface = unsafe { instance.create_surface(&editor_window)? };
 
-    let adapter = block_on(instance.request_adapter(&Default::default()))
+    let adapter = instance
+        .request_adapter(&Default::default())
+        .await
         .ok_or(anyhow!("No graphics adapter"))?;
 
-    let (device, queue) = block_on(adapter.request_device(&Default::default(), None))?;
+    let (device, queue) = adapter.request_device(&Default::default(), None).await?;
 
     let size = editor_window.inner_size();
     let mut surface_config = surface

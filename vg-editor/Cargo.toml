@@ -10,7 +10,7 @@ publish = { workspace = true }
 default-run = "vg-editor"
 
 [dependencies]
-# vg-runtime = { workspace = true }
+vg-asset = { workspace = true }
 # vg-interface = { workspace = true }
 # vg-network = { workspace = true }
 vg-engine = { workspace = true }
@@ -20,7 +20,7 @@ clap = { version = "4", features = ["derive"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-log = "0.1"
-pollster = "0.3"
+tokio = { version = "1", features = ["full"] }
 
 egui = "0.22"
 egui-winit = "0.22"

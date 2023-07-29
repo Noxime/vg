@@ -5,7 +5,7 @@ use std::{
 
 use dashmap::{DashMap, DashSet};
 use tokio::sync::Notify;
-use tracing::trace;
+use tracing::{debug, trace};
 
 use crate::{Asset, AssetKind};
 
@@ -13,6 +13,12 @@ pub struct Assets {
     paths: DashMap<PathBuf, FileData>,
     missing: DashSet<PathBuf>,
     notify: Notify,
+}
+
+/// Replaces backslashes with frontslashes
+fn normalize_path(path: &Path) -> PathBuf {
+    let string = path.to_string_lossy().replace("\\", "/");
+    PathBuf::from(string)
 }
 
 impl Assets {
@@ -26,12 +32,14 @@ impl Assets {
 
     /// Access asset, returning None if not yet available
     pub fn get<T: AssetKind>(self: &Arc<Self>, path: impl AsRef<Path>) -> Asset<T> {
-        // let path = path.as_ref().to_path_buf();
-        // let entry = self.paths.entry(path).or_default();
-        Asset::new(self, path.as_ref())
+        let path = normalize_path(path.as_ref());
+        debug!(path = ?path, kind = std::any::type_name::<T>(), "Created asset");
+        let asset = Asset::new(self, &path);
+        self.notify.notify_waiters();
+        asset
     }
 
-    /// Calls `f` for every path still unloaded
+    /// List every asset path that should be loaded
     pub fn missing(&self) -> impl Iterator<Item = PathBuf> + '_ {
         self.missing.iter().map(|item| item.to_path_buf())
     }
@@ -43,17 +51,18 @@ impl Assets {
 
     /// Update the file data for a path
     pub fn update(&self, path: impl AsRef<Path>, bytes: Vec<u8>) {
-        self.missing.remove(path.as_ref());
+        let path = normalize_path(path.as_ref());
+        self.missing.remove(&path);
         self.paths
-            .entry(path.as_ref().to_path_buf())
-            .or_default()
+            .entry(path.clone())
+            .or_insert_with(|| FileData::new(path))
             .send(bytes);
     }
 
     pub(crate) fn subscribe_eraser(&self, path: &Path) -> mpsc::Receiver<()> {
         self.paths
             .entry(path.to_path_buf())
-            .or_default()
+            .or_insert_with(|| FileData::new(path.to_path_buf()))
             .subscribe_eraser()
     }
 
@@ -61,12 +70,11 @@ impl Assets {
         self.missing.insert(path.to_path_buf());
         self.paths
             .entry(path.to_path_buf())
-            .or_default()
+            .or_insert_with(|| FileData::new(path.to_path_buf()))
             .subscribe_sender()
     }
 }
 
-#[derive(Default)]
 struct FileData {
     /// TODO: Only really used for traces
     path: PathBuf,
@@ -79,7 +87,17 @@ struct FileData {
 }
 
 impl FileData {
-    /// Notify all dependent assets to clear their inner value, while  garbage
+    fn new(path: PathBuf) -> FileData {
+        trace!(?path, "New file data");
+        FileData {
+            path,
+            dependencies: Default::default(),
+            direct: Default::default(),
+            contents: Default::default(),
+        }
+    }
+
+    /// Notify all dependent assets to clear their inner value, while garbage
     /// collecting dead references
     fn erase(&self) {
         let mut deps = self.dependencies.lock().unwrap();

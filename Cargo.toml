@@ -1,6 +1,6 @@
 [workspace]
-members = ["vg-*"]
-exclude = ["my-game"]
+members = ["vg-*", "my-game"]
+# exclude = ["my-game"]
 resolver = "2"
 
 [workspace.package]

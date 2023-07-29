@@ -14,8 +14,8 @@ crate_type = ["cdylib", "lib"]
 
 [dependencies]
 vg-asset = { workspace = true }
-# vg-runtime = { workspace = true }
-# vg-interface = { workspace = true }
+vg-runtime = { workspace = true }
+vg-interface = { workspace = true }
 # vg-network = { workspace = true }
 
 winit = { version = "0.28" }

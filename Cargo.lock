@@ -3227,6 +3227,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "my-game"
+version = "0.1.0"
+dependencies = [
+ "vg",
+]
+
+[[package]]
 name = "naga"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3338,7 +3345,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5738a2795d57ea20abec2d6d76c6081186709c0024187cd5977265eda6598b51"
 dependencies = [
  "bitflags 1.3.2",
- "crossbeam-channel",
  "filetime",
  "fsevent-sys",
  "inotify",
@@ -3755,12 +3761,6 @@ dependencies = [
  "pin-project-lite",
  "windows-sys 0.48.0",
 ]
-
-[[package]]
-name = "pollster"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22686f4785f02a4fcc856d3b3bb19bf6c8160d103f7a99cc258bddd0251dc7f2"
 
 [[package]]
 name = "polyval"
@@ -5260,10 +5260,11 @@ dependencies = [
  "egui-winit",
  "egui_extras",
  "egui_tiles",
- "pollster",
+ "tokio",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "vg-asset",
  "vg-engine",
 ]
 
@@ -5277,6 +5278,8 @@ dependencies = [
  "three-d",
  "tracing",
  "vg-asset",
+ "vg-interface",
+ "vg-runtime",
  "winit",
 ]
 
@@ -5312,6 +5315,7 @@ dependencies = [
  "serde",
  "serde_arrays",
  "tracing",
+ "vg-asset",
  "vg-interface",
  "wasmtime",
  "wasmtime-wasi",
