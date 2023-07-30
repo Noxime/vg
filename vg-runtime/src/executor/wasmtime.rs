@@ -7,7 +7,7 @@ use vg_interface::{DeBin, Request, Response, SerBin, WaitReason};
 use wasmtime::*;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
-use crate::executor::{GlobalData, MemoryData, TableData, PAGE_SIZE};
+use crate::{executor::{GlobalData, MemoryData, TableData, PAGE_SIZE}, Provider};
 
 pub struct WasmtimeInner {
     // TODO: His ass is NOT rollbackable!
@@ -23,14 +23,13 @@ pub struct WasmtimeModule {
 impl WasmtimeModule {
     pub fn instantiate(
         self: &Arc<Self>,
-        func: impl FnMut(Request) -> Response + 'static,
     ) -> Result<WasmtimeInstance> {
         let mut store = Store::new(
             &self.engine,
             WasmtimeInner {
                 wasi: WasiCtxBuilder::new().inherit_stdout().build(),
                 response: vec![],
-                func: Box::new(func),
+                func: Box::new(|_| unreachable!()),
             },
         );
 
@@ -51,7 +50,6 @@ impl WasmtimeModule {
                 // Deserialize request from instance memory
                 let bytes = &mem.data(&caller)[ptr as usize..][..len as usize];
                 let request = Request::deserialize_bin(bytes)?;
-                trace!(request = ?request, "__vg_request");
 
                 // Call to engine implementation
                 let func = &mut caller.data_mut().func;
@@ -114,7 +112,7 @@ impl AssetKind for WasmtimeInstance {
 
     fn produce(data: &mut Self::Data) -> Option<Self> {
         let bin = data.get()?;
-        super::Instance::new(&bin.bytes, false, |_| Response::Empty).ok()
+        super::Instance::new(&bin.bytes, true).ok()
     }
 }
 
@@ -122,7 +120,6 @@ impl super::Instance for WasmtimeInstance {
     fn new(
         wasm: &[u8],
         debug: bool,
-        func: impl FnMut(Request) -> Response + 'static,
     ) -> Result<WasmtimeInstance> {
         tracing::debug!(len = wasm.len(), "Creating new Wasmtime instance");
 
@@ -141,10 +138,18 @@ impl super::Instance for WasmtimeInstance {
         let module = Module::new(&engine, wasm)?;
         let module = Arc::new(WasmtimeModule { engine, module });
 
-        module.instantiate(func)
+        module.instantiate()
     }
 
-    fn step(&mut self) -> WaitReason {
+    fn step<T: Provider>(&mut self, provider: &mut T) -> WaitReason {
+        let ptr = provider as *mut T as *mut ();
+
+        self.store.data_mut().func = Box::new(move |req| {
+            let provider = ptr as *mut T;
+            // Safety: Kind of terrible, but uhh... I pinky promise to not call __vg_step outside of this function
+            unsafe { (*provider).provide(req) }
+        });
+
         let func = self
             .instance
             .get_func(&mut self.store, "__vg_step")
@@ -152,6 +157,7 @@ impl super::Instance for WasmtimeInstance {
 
         let mut ret = [Val::I32(0)];
         func.call(&mut self.store, &[], &mut ret).unwrap();
+
         WaitReason::from_raw(ret[0].unwrap_i32())
     }
 

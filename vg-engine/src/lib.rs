@@ -42,6 +42,8 @@ pub struct EngineConfig {
     pub headless: bool,
     /// File system path to game binary
     pub path: String,
+    /// Used to pause execution
+    pub running: bool,
 }
 
 impl EngineConfig {
@@ -49,6 +51,7 @@ impl EngineConfig {
         EngineConfig {
             headless: false,
             path: String::from("target/wasm32-wasi/debug/my-game.wasm"),
+            running: true,
         }
     }
 }

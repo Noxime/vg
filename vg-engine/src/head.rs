@@ -19,7 +19,7 @@ pub struct Head {
 impl Head {
     /// Attempt to create a new window and rendering context
     pub fn new(target: &EventLoopWindowTarget<()>) -> Result<Head> {
-        let window = WindowBuilder::new().with_title("VG").build(target)?;
+        let window = WindowBuilder::new().with_title("VG Game").build(target)?;
         let context = WindowedContext::from_winit_window(&window, Default::default())?;
 
         let size = window.inner_size();

@@ -6,7 +6,9 @@ use anyhow::Result;
 use get_size::GetSize;
 use serde::{de::Visitor, Deserialize, Serialize};
 use vg_asset::AssetKind;
-use vg_interface::{Request, Response, WaitReason};
+use vg_interface::WaitReason;
+
+use crate::Provider;
 
 /// Instance type capable of executing WebAssemmbly
 pub type WasmInstance = wasmtime::WasmtimeInstance;
@@ -17,11 +19,10 @@ pub trait Instance: AssetKind {
     fn new(
         bytes: &[u8],
         debug: bool,
-        func: impl FnMut(Request) -> Response + 'static,
     ) -> Result<Self>;
 
     /// Step instance state by one. Note that this is different from a _tick_
-    fn step(&mut self) -> WaitReason;
+    fn step<T: Provider>(&mut self, provider: &mut T) -> WaitReason;
     /// Serialize instance data
     fn get_data(&mut self) -> InstanceData;
     /// Deserialize in place. Data must come from identical Instance

@@ -52,3 +52,9 @@ def_enum! {
         Present = 1
     }
 }
+
+impl WaitReason {
+    pub fn is_present(&self) -> bool {
+        *self == WaitReason::Present
+    }
+}

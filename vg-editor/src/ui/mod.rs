@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{cell::Cell, sync::Arc};
 
 use egui::*;
 use egui_tiles::{
@@ -19,7 +19,7 @@ pub struct EditorUi {
 }
 
 struct Pane {
-    name: String,
+    name: Cell<String>,
     kind: PaneKind,
 }
 
@@ -49,22 +49,12 @@ impl TreeBehavior {
 
 impl Behavior<Pane> for TreeBehavior {
     fn tab_title_for_pane(&mut self, pane: &Pane) -> WidgetText {
-        pane.name.to_string().into()
+        let s = pane.name.take();
+        pane.name.set(s.clone());
+        s.into()
     }
 
-    fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
-        ui.horizontal(|ui| {
-            ui.menu_button("Rename", |ui| {
-                TextEdit::singleline(&mut pane.name)
-                    .desired_width(60.0)
-                    .show(ui);
-            });
-
-            if ui.small_button("Close tab").clicked() {
-                self.remove = Some(tile_id);
-            }
-        });
-
+    fn pane_ui(&mut self, ui: &mut Ui, _: TileId, pane: &mut Pane) -> UiResponse {
         match &mut pane.kind {
             PaneKind::Logger(logger) => logger.ui(ui),
             PaneKind::Controller(controller) => controller.ui(ui),
@@ -75,15 +65,11 @@ impl Behavior<Pane> for TreeBehavior {
 
     fn top_bar_rtl_ui(
         &mut self,
-        _tiles: &Tiles<Pane>,
+        tiles: &Tiles<Pane>,
         ui: &mut Ui,
         id: TileId,
-        _tabs: &egui_tiles::Tabs,
+        tabs: &egui_tiles::Tabs,
     ) {
-        if ui.button("Close all tabs").clicked() {
-            self.remove = Some(id);
-        }
-
         ui.menu_button("New", |ui| {
             if ui.button("Logger").clicked() {
                 self.insert = Some((id, NewPane::Logger));
@@ -92,6 +78,21 @@ impl Behavior<Pane> for TreeBehavior {
                 self.insert = Some((id, NewPane::Controller));
             }
         });
+
+        let Some(id) = tabs.active else { return };
+        let Some(active) = tiles.get(id) else { return };
+        let Tile::Pane(pane) = active else { return };
+        let mut name = pane.name.take();
+
+        ui.menu_button("Rename", |ui| {
+            ui.add(TextEdit::singleline(&mut name)).request_focus();
+        });
+
+        if ui.button("Close").clicked() {
+            self.remove = Some(id);
+        }
+
+        pane.name.set(name);
     }
 
     fn simplification_options(&self) -> SimplificationOptions {
@@ -178,11 +179,11 @@ impl EditorUi {
     fn create(&self, kind: NewPane) -> Pane {
         match kind {
             NewPane::Logger => Pane {
-                name: "Logger".into(),
+                name: Cell::new("Logger".into()),
                 kind: PaneKind::Logger(Logger::new(Arc::clone(&self.tracing))),
             },
             NewPane::Controller => Pane {
-                name: "Controller".into(),
+                name: Cell::new("Controller".into()),
                 kind: PaneKind::Controller(Controller::new()),
             },
         }

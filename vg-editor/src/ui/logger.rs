@@ -14,7 +14,6 @@ pub struct Logger {
     id: usize,
     tracing: Arc<Tracing>,
     selected: Option<usize>,
-    auto_scroll: bool,
     hide: bool,
     mask: LevelMask,
 }
@@ -27,7 +26,6 @@ impl Logger {
             id: UNIQUE.fetch_add(1, Ordering::Relaxed),
             tracing,
             selected: None,
-            auto_scroll: true,
             hide: true,
             mask: LevelMask::all(),
         }
@@ -73,31 +71,24 @@ impl Logger {
             // Event list
             CentralPanel::default().show_inside(ui, |ui| {
                 let height = ui.available_height();
-                let mut builder = TableBuilder::new(ui)
-                .auto_shrink([false, false])
-                .max_scroll_height(height)
-                .striped(true)
-                .column(Column::exact(80.0)) //  Time
-                .column(Column::exact(50.0)) // Level
-                .column(
-                    // Target
-                    Column::initial(120.0)
-                        .at_least(40.0)
-                        .resizable(true)
-                        .clip(true),
-                )
-                .column(Column::remainder().clip(true)) // Message
-                ;
-
-                if self.auto_scroll && self.tracing.len() != 0 {
-                    builder = builder.scroll_to_row(self.tracing.len(), None);
-                }
-
-                builder
+                TableBuilder::new(ui)
+                    .auto_shrink([false, false])
+                    .max_scroll_height(height)
+                    .stick_to_bottom(true)
+                    .striped(true)
+                    .column(Column::exact(80.0)) //  Time
+                    .column(Column::exact(50.0)) // Level
+                    .column(
+                        // Target
+                        Column::initial(120.0)
+                            .at_least(40.0)
+                            .resizable(true)
+                            .clip(true),
+                    )
+                    .column(Column::remainder().clip(true)) // Message
                     .header(20.0, |mut header| {
                         header.col(|ui| {
-                            ui.checkbox(&mut self.auto_scroll, "Time")
-                                .on_hover_text("Auto-scroll to latest");
+                            ui.label("Time");
                         });
                         header.col(|ui| {
                             ui.menu_button("Level", |ui| {
