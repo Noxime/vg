@@ -6,7 +6,7 @@ pub enum Request {
     Draw(Draw),
 }
 
-#[derive(SerBin, DeBin, Debug)]
+#[derive(SerBin, DeBin, Debug, Clone)]
 pub enum Draw {
     Line {
         color: (f32, f32, f32, f32),

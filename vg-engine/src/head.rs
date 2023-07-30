@@ -1,8 +1,12 @@
 //! Rendering and presentation related functionality
 
 use anyhow::Result;
-use three_d::{HasContext, WindowedContext};
+use three_d::{
+    camera2d, ClearState, Color, ColorMaterial, Gm, HasContext, Line, Object, RenderTarget,
+    Viewport, WindowedContext,
+};
 use tracing::{debug, error, info};
+use vg_interface::Draw;
 use winit::{
     dpi::PhysicalSize,
     event_loop::EventLoopWindowTarget,
@@ -61,7 +65,43 @@ impl Engine {
     }
 
     pub fn render(&mut self) {
+        let scene = self.scene.clone();
         self.with_head(|head| {
+            let (width, height) = head.window.inner_size().into();
+            let camera = camera2d(Viewport {
+                x: 0,
+                y: 0,
+                width,
+                height,
+            });
+
+            let mut lines = vec![];
+            for draw in &scene.draws {
+                match draw {
+                    Draw::Line {
+                        color: (r, g, b, a),
+                        points,
+                    } => {
+                        for ends in points.windows(2) {
+                            let line = Gm::new(
+                                Line::new(&head.context, ends[0].into(), ends[1].into(), 5.0),
+                                ColorMaterial {
+                                    color: Color::from_rgba_slice(&[*r, *g, *b, *a]),
+                                    ..Default::default()
+                                },
+                            );
+
+                            lines.push(line);
+                        }
+                    }
+                }
+            }
+
+
+            RenderTarget::screen(&head.context, width, height)
+                .clear(ClearState::color_and_depth(0.0, 0.0, 0.0, 0.0, 1.0))
+                .render(&camera, lines, &[]);
+
             head.context.swap_buffers()?;
             Ok(())
         })

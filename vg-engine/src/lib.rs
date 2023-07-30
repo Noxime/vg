@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use head::Head;
-use vg_asset::{Assets, Asset};
+use vg_asset::{Asset, Assets};
 use vg_runtime::executor::WasmInstance;
 use winit::{
     event::{Event, WindowEvent},
@@ -34,6 +34,8 @@ pub struct Engine {
     assets: Arc<Assets>,
     /// Game logic instance
     instance: Asset<WasmInstance>,
+    /// TODO
+    scene: runtime::SceneState,
 }
 
 #[derive(Clone)]
@@ -44,14 +46,20 @@ pub struct EngineConfig {
     pub path: String,
     /// Used to pause execution
     pub running: bool,
+    /// URL of the signaling service. Unused if not connected to a room
+    pub signaling: String,
+    /// Room to connect to, if networking is used
+    pub room: Option<String>,
 }
 
 impl EngineConfig {
     pub fn new() -> EngineConfig {
         EngineConfig {
             headless: false,
-            path: String::from("target/wasm32-wasi/debug/my-game.wasm"),
+            path: "target/wasm32-wasi/debug/my-game.wasm".into(),
             running: true,
+            signaling: "ws://vg.noxim.xyz:3536/".into(),
+            room: None,
         }
     }
 }
@@ -78,6 +86,7 @@ impl Engine {
             instance: assets.get(&config.path),
             assets,
             config,
+            scene: Default::default(),
         }
     }
 
@@ -111,11 +120,10 @@ impl Engine {
                 }
             }
             Event::RedrawRequested(window_id) if self.is_my_window(window_id) => {
+                self.run_frame();
                 self.render();
             }
             Event::MainEventsCleared => {
-                self.run_frame();
-
                 self.redraw();
             }
             _ => (),

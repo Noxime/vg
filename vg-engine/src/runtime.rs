@@ -1,4 +1,4 @@
-use vg_interface::{Request, Response};
+use vg_interface::{Draw, Request, Response};
 use vg_runtime::{executor::Instance, Provider};
 
 use crate::Engine;
@@ -10,20 +10,32 @@ impl Engine {
         let Some(instance) = self.instance.get() else { return };
 
         if !self.config.running {
-            return
+            return;
         }
 
-        let mut blah = SceneState {};
+        self.scene.reset_frame();
 
         // Run until frame is ready
-        while !instance.step(&mut blah).is_present() {}
+        while !instance.step(&mut self.scene).is_present() {}
     }
 }
 
-struct SceneState {}
+#[derive(Default, Clone)]
+pub struct SceneState {
+    pub draws: Vec<Draw>,
+}
+impl SceneState {
+    fn reset_frame(&mut self) {
+        self.draws.clear();
+    }
+}
 
 impl Provider for SceneState {
-    fn provide(&mut self, _request: Request) -> Response {
+    fn provide(&mut self, request: Request) -> Response {
+        match request {
+            Request::Draw(draw) => self.draws.push(draw),
+        }
+
         Response::Empty
     }
 }
