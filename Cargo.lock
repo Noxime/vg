@@ -5276,6 +5276,7 @@ dependencies = [
  "anyhow",
  "log",
  "three-d",
+ "tokio",
  "tracing",
  "vg-asset",
  "vg-interface",

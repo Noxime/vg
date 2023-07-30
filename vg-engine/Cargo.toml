@@ -19,6 +19,7 @@ vg-interface = { workspace = true }
 # vg-network = { workspace = true }
 
 winit = { version = "0.28" }
+tokio = { version = "1", features = ["full"] }
 
 anyhow = "1"
 tracing = "0.1"

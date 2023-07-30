@@ -11,6 +11,9 @@ fn android_main(app: AndroidApp) {
     let event_loop = EventLoopBuilder::new().with_android_app(app).build();
 
     let mut engine = crate::Engine::new();
+
+    // TODO: Asset loading for Android
+
     event_loop.run(move |event, target, control_flow| {
         engine.event(&event, target);
 
