@@ -15,7 +15,7 @@ path = "src/platform/desktop.rs"
 # Android build
 [lib]
 # TODO: cargo-apk mistakenly looks for libvg-engine
-# name = "vg_lib"
+# name = "vg-engine"
 crate_type = ["cdylib", "lib"]
 
 [dependencies]
@@ -25,11 +25,10 @@ vg-interface = { workspace = true }
 # vg-network = { workspace = true }
 
 glam = { workspace = true }
-# femtovg = { workspace = true }
-# femtovg-wgpu = { workspace = true }
 wgpu = { workspace = true }
 # rend3 = { git = "https://github.com/bve-reborn/rend3", rev = "a68c76a" }
 # rend3-routine = { git = "https://github.com/bve-reborn/rend3", rev = "a68c76a" }
+vello = "0.1"
 
 winit = { version = "0.29", features = ["rwh_05"] }
 tokio = { version = "1", features = ["full"] }

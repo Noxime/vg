@@ -1,5 +1,5 @@
 //! The compositor handles management of the swapchain and compositing together
-//! the frames from rend3 and femtovg
+//! the frames from <3d> and vello
 
 use std::sync::Arc;
 
@@ -7,19 +7,22 @@ use wgpu::*;
 use winit::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
 
 use super::Head;
-use crate::{head::scene::Scene, prelude::*};
+use crate::{
+    head::{canvas::Canvas, scene::Scene},
+    prelude::*,
+};
 
 impl Head {
     /// Attempt to create a new window and rendering context
     pub async fn new(target: &EventLoopWindowTarget<()>) -> Result<Head> {
         let window = WindowBuilder::new().with_title("VG Game").build(target)?;
+        let window = Arc::new(window);
 
         let size = window.inner_size();
         info!(size.width, size.height, "Created new window");
 
         let instance = Instance::default();
-        // SAFETY: We trust Winit to provide a valid window object
-        let surface = unsafe { instance.create_surface(&window)? };
+        let surface = instance.create_surface(window.clone())?;
 
         let adapter = instance
             .request_adapter(&RequestAdapterOptions {
@@ -36,8 +39,8 @@ impl Head {
             .request_device(
                 &DeviceDescriptor {
                     label: Some("vg"),
-                    features: Features::empty(),
-                    limits: Limits::default(), // Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
+                    required_features: Features::empty(),
+                    required_limits: Limits::default(), // Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
                 },
                 None,
             )
@@ -46,6 +49,8 @@ impl Head {
         let adapter = Arc::new(adapter);
         let device = Arc::new(device);
         let queue = Arc::new(queue);
+
+        let canvas = Canvas::new(Arc::clone(&device), Arc::clone(&queue))?;
 
         let scene = Scene::new(
             Arc::new(instance),
@@ -60,6 +65,7 @@ impl Head {
             queue,
             window,
             surface,
+            canvas,
             scene,
         };
 
@@ -82,6 +88,8 @@ impl Head {
         if config.width * config.height != 0 {
             self.surface.configure(&self.device, &config);
         }
+
+        self.canvas.configure(config.format);
         self.scene.configure(config.format);
 
         debug!(format = ?config.format, present = ?config.present_mode, "Configured surface");
@@ -106,7 +114,7 @@ impl Head {
 
         // First render 3D content, then overlay 2D content
         self.scene.render(&surface.texture);
-        self.render_canvas(&surface.texture);
+        self.canvas.render(&surface);
 
         // Flip the surface to the screen. End of (render) frame
         surface.present();

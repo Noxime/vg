@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use egui::{Context, ViewportId};
 use egui_wgpu::{
-    renderer::ScreenDescriptor,
+    ScreenDescriptor,
     wgpu::{
         Color, Instance, LoadOp, Operations, RenderPassColorAttachment, RenderPassDescriptor,
         StoreOp,
@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
         .build(&event_loop)?;
 
     let instance = Instance::new(Default::default());
-    let surface = unsafe { instance.create_surface(&editor_window)? };
+    let surface = instance.create_surface(&editor_window)?;
 
     let adapter = instance
         .request_adapter(&Default::default())
@@ -60,13 +60,14 @@ async fn main() -> Result<()> {
     );
     let mut ui = ui::EditorUi::new(tracing);
 
+    let editor_window = &editor_window;
     event_loop.run(move |event, target| {
         target.set_control_flow(ControlFlow::Poll);
 
         match &event {
             WinitEvent::WindowEvent { window_id, event } => {
                 // This is an event for our editor window
-                if *window_id == editor_window.id() {
+                if *window_id == (editor_window).id() {
                     match event {
                         WindowEvent::Resized(size) => {
                             if size.width != 0 && size.height != 0 {

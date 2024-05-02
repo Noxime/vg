@@ -18,16 +18,12 @@ vg-network = { path = "vg-network" }
 vg-runtime = { path = "vg-runtime" }
 vg-scene = { path = "vg-scene" }
 
-# femtovg = { path = "dogfood/femtovg" }
-# femtovg-wgpu = { path = "dogfood/femtovg-wgpu" }
-
-# TODO: https://github.com/johanhelsing/matchbox/pull/225
 matchbox_signaling = { git = "https://github.com/johanhelsing/matchbox", rev = "6001c1e" }
 matchbox_protocol = { git = "https://github.com/johanhelsing/matchbox", rev = "6001c1e" }
 matchbox_socket = { git = "https://github.com/johanhelsing/matchbox", rev = "6001c1e" }
 
-glam = "0.24"
-wgpu = "0.18"
+glam = "0.27"
+wgpu = "0.19"
 
 # [profile.dev]
 # opt-level = 3

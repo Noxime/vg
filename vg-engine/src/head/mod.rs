@@ -14,7 +14,7 @@ use winit::{
 
 use crate::Engine;
 
-use self::scene::Scene;
+use self::{canvas::Canvas, scene::Scene};
 
 mod canvas;
 mod compositor;
@@ -24,8 +24,9 @@ pub struct Head {
     adapter: Arc<Adapter>,
     device: Arc<Device>,
     queue: Arc<Queue>,
-    window: Window,
-    surface: Surface,
+    window: Arc<Window>,
+    surface: Surface<'static>,
+    canvas: Canvas,
     scene: Scene,
 }
 

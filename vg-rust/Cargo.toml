@@ -10,7 +10,7 @@ publish = { workspace = true }
 [dependencies]
 # Public
 vg-interface = { workspace = true }
-glam = "0.24"
+glam = { workspace = true }
 
 # Private
 futures-executor = "0.3"
