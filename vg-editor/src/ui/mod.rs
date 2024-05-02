@@ -63,12 +63,13 @@ impl Behavior<Pane> for TreeBehavior {
         UiResponse::None
     }
 
-    fn top_bar_rtl_ui(
+    fn top_bar_right_ui(
         &mut self,
         tiles: &Tiles<Pane>,
         ui: &mut Ui,
         id: TileId,
         tabs: &egui_tiles::Tabs,
+        _scroll_offset: &mut f32,
     ) {
         ui.menu_button("New", |ui| {
             if ui.button("Logger").clicked() {
@@ -102,7 +103,7 @@ impl Behavior<Pane> for TreeBehavior {
             prune_single_child_tabs: true,
             prune_single_child_containers: true,
             all_panes_must_have_tabs: true,
-            join_nested_linear_containerss: true,
+            join_nested_linear_containers: true,
         }
     }
 }
@@ -114,7 +115,7 @@ impl EditorUi {
         let root = tiles.insert_tab_tile(vec![]);
 
         let mut this = EditorUi {
-            tree: Tree::new(root, tiles),
+            tree: Tree::new("tree", root, tiles),
             behavior: TreeBehavior::new(),
             tracing,
         };
@@ -171,7 +172,7 @@ impl EditorUi {
     }
 
     fn set_root(&mut self, id: TileId) -> TileId {
-        self.tree = Tree::new(id, std::mem::take(&mut self.tree.tiles));
+        self.tree = Tree::new("tree", id, std::mem::take(&mut self.tree.tiles));
         self.tree.root().unwrap()
     }
 

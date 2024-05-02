@@ -23,7 +23,6 @@ impl Controller {
     pub fn ui(&mut self, ui: &mut Ui) {
         match &mut self.engine {
             Lifecycle::Dead(config) => {
-
                 // Networking config
                 let mut networking = config.room.is_some();
                 ui.checkbox(&mut networking, "Networking");
@@ -56,7 +55,12 @@ impl Controller {
             }
             Lifecycle::Live(engine) => {
                 ui.collapsing("Assets", |ui| {
+                    ui.label("Pending:");
                     for path in engine.assets().missing() {
+                        ui.monospace(path.to_string_lossy());
+                    }
+                    ui.label("Available:");
+                    for path in engine.assets().available() {
                         ui.monospace(path.to_string_lossy());
                     }
                 });

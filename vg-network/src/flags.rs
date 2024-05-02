@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use matchbox_socket::PeerId;
 use uuid::Uuid;
 

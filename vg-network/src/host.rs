@@ -21,7 +21,9 @@ impl HostData {
         socket.poll();
 
         // Collected for lifetime reasons
-        let Some((peer, message)) = socket.receive::<Serverbound>()? else { return Ok(()) };
+        let Some((peer, message)) = socket.receive::<Serverbound>()? else {
+            return Ok(());
+        };
 
         match message {
             Serverbound::Symmetric(Symmetric::Ping) => {

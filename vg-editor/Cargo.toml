@@ -18,15 +18,15 @@ vg-engine = { workspace = true }
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-log = "0.1"
 tokio = { version = "1", features = ["full"] }
 
-egui = "0.22"
-egui-winit = "0.22"
-egui-wgpu = { version = "0.22", features = ["winit"] }
-egui_extras = "0.22"
-egui_tiles = "0.2"
+egui = "0.25"
+egui-winit = "0.25"
+egui-wgpu = { version = "0.25", features = ["winit"] }
+egui_extras = "0.25"
+egui_tiles = "0.6"
 
 chrono = "0.4"
 dashmap = "5"

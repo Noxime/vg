@@ -19,6 +19,17 @@ pub enum Response {
     Empty,
 }
 
+impl Response {
+    /// Checks the response is empty
+    pub fn unwrap_empty(&self) {
+        #[allow(unreachable_patterns)]
+        match self {
+            Response::Empty => (),
+            _ => panic!("expected empty response")
+        }
+    }
+}
+
 macro_rules! def_enum {
     (enum $name: ident { $($variant: ident = $value: expr),* }) => {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]

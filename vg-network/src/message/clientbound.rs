@@ -15,7 +15,7 @@ pub enum Clientbound {
     /// Fragment of a sync response
     SyncFragment {
         chunk: Vec<u8>,
-    }
+    },
 }
 
 impl Message for Clientbound {

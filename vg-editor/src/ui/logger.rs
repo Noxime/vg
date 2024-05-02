@@ -38,34 +38,34 @@ impl Logger {
             TopBottomPanel::bottom(format!("Inspector {}", self.id))
                 .resizable(true)
                 .show_animated_inside(ui, self.selected.is_some(), |ui| {
-                    if let Some(i) = self.selected {
-                        self.tracing.with(i, |event| {
-                            ui.horizontal(|ui| {
-                                ui.vertical(|ui| {
-                                    if ui.button("Close").clicked() {
-                                        self.selected = None;
+                    let Some(i) = self.selected else { return };
+
+                    self.tracing.with(i, |event| {
+                        ui.horizontal(|ui| {
+                            ui.vertical(|ui| {
+                                if ui.button("Close").clicked() {
+                                    self.selected = None;
+                                }
+                                ui.checkbox(&mut self.hide, "Hide reduntant");
+
+                                ui.label(format!("Time: {}", format_time(event.time)));
+                                ui.label(format!("Level: {}", event.metadata.level().as_str()));
+                                ui.label(format!("Name: {}", event.metadata.name().as_str()));
+                                ui.label(format!("Target: {}", event.metadata.target()));
+                            });
+
+                            ui.vertical(|ui| {
+                                let hidden = ["log.file", "log.line", "log.target"];
+
+                                for (name, value) in event.fields() {
+                                    if self.hide && hidden.contains(&name) {
+                                        continue;
                                     }
-                                    ui.checkbox(&mut self.hide, "Hide reduntant");
-
-                                    ui.label(format!("Time: {}", format_time(event.time)));
-                                    ui.label(format!("Level: {}", event.metadata.level().as_str()));
-                                    ui.label(format!("Name: {}", event.metadata.name().as_str()));
-                                    ui.label(format!("Target: {}", event.metadata.target()));
-                                });
-
-                                ui.vertical(|ui| {
-                                    let hidden = ["log.file", "log.line", "log.target"];
-
-                                    for (name, value) in event.fields() {
-                                        if self.hide && hidden.contains(&name) {
-                                            continue;
-                                        }
-                                        ui.label(format!("{name}={value}"));
-                                    }
-                                });
+                                    ui.label(format!("{name}={value}"));
+                                }
                             });
                         });
-                    }
+                    });
                 });
 
             // Event list
@@ -112,7 +112,9 @@ impl Logger {
                         });
                     })
                     .body(|body| {
-                        body.rows(20.0, self.tracing.len(), |i, mut row| {
+                        body.rows(20.0, self.tracing.len(), |mut row| {
+                            let i = row.index();
+
                             self.tracing.with(i, |event| {
                                 row.col(|ui| {
                                     ui.label(format_time(event.time));

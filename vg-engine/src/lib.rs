@@ -1,6 +1,7 @@
+#![feature(try_trait_v2)]
+
 use std::sync::Arc;
 
-use head::Head;
 use vg_asset::{Asset, Assets};
 use vg_runtime::executor::WasmInstance;
 use winit::{
@@ -8,23 +9,19 @@ use winit::{
     event_loop::EventLoopWindowTarget,
 };
 
+mod check;
 mod head;
+mod platform;
+mod prelude;
 mod runtime;
 
-#[cfg(target_os = "android")]
-pub mod platform {
-    mod android;
-    pub use android::*;
-}
+pub(crate) use prelude::*;
 
-#[cfg(not(target_os = "android"))]
-pub mod platform {
-    mod desktop;
-    pub use desktop::*;
-}
+use head::Head;
 
 pub struct Engine {
     config: EngineConfig,
+    /// If not headless, everything related to engine visuals. Windowing/gfx
     head: Option<Head>,
     /// Is engine instance alive? False if should exit
     alive: bool,
@@ -56,6 +53,7 @@ impl EngineConfig {
     pub fn new() -> EngineConfig {
         EngineConfig {
             headless: false,
+            // backends: wgpu::Backends::all(),
             path: "target/wasm32-wasi/debug/my-game.wasm".into(),
             running: true,
             signaling: "ws://vg.noxim.xyz:3536/".into(),
@@ -102,32 +100,52 @@ impl Engine {
     }
 
     /// Process a winit event
-    pub fn event(&mut self, event: &Event<()>, target: &EventLoopWindowTarget<()>) {
+    pub fn event(&mut self, event: &Event<()>, target: &EventLoopWindowTarget<()>) -> Nil {
         self.ensure_window(target);
+
+        // Filter out events that arent belong to us
+        self.check_my_event(event)?;
 
         match event {
             Event::Resumed => self.between_resumes = true,
             Event::Suspended => self.between_resumes = false,
-            Event::WindowEvent { window_id, event } if self.is_my_window(window_id) => {
-                match event {
-                    WindowEvent::Resized(size) => {
-                        self.resize(*size);
-                    }
-                    WindowEvent::CloseRequested => {
-                        self.alive = false;
-                    }
-                    _ => (),
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(size) => {
+                    self.resize(*size);
                 }
-            }
-            Event::RedrawRequested(window_id) if self.is_my_window(window_id) => {
-                self.run_frame();
-                self.render();
-            }
-            Event::MainEventsCleared => {
+                WindowEvent::CloseRequested => {
+                    self.alive = false;
+                }
+                WindowEvent::RedrawRequested => {
+                    self.render();
+                }
+                _ => (),
+            },
+            Event::AboutToWait => {
+                self.run_frame(); // TODO: Should not run tied to FPS
                 self.redraw();
             }
             _ => (),
         }
+
+        Nil
+    }
+
+    /// Checks if the event is relevant to our engine instance
+    fn check_my_event(&self, event: &Event<()>) -> Check {
+        // These are not specific to any instance, always accept
+        if matches!(
+            event,
+            Event::AboutToWait | Event::Resumed | Event::Suspended
+        ) {
+            return PASS;
+        }
+
+        // These are per window
+        let Event::WindowEvent { window_id, .. } = event else {
+            return FAIL;
+        };
+        self.is_my_window(*window_id)
     }
 
     /// Is this engine instance still active
@@ -135,6 +153,12 @@ impl Engine {
     /// If this returns false, game should exit
     pub fn alive(&self) -> bool {
         self.alive
+    }
+
+    /// Runs async close blockingly
+    fn block_on<T>(&self, f: impl std::future::Future<Output = T>) -> T {
+        // TODO: Tokio
+        pollster::block_on(f)
     }
 }
 

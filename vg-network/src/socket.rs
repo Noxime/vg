@@ -102,7 +102,9 @@ impl Socket {
         }
 
         // Short out if not actual peer data (magic mismatch etc)
-        let Ok(flags) = Flags::decode(peer) else { return };
+        let Ok(flags) = Flags::decode(peer) else {
+            return;
+        };
 
         debug!(?flags, "Received flags");
 
@@ -182,7 +184,9 @@ impl Socket {
         self.queue.extend(packets);
 
         // Deserialize message data
-        let Some((peer, packet)) = self.queue.pop_front() else { return Ok(None) };
+        let Some((peer, packet)) = self.queue.pop_front() else {
+            return Ok(None);
+        };
 
         self.stats.recv_packets += 1;
         self.stats.recv_bytes += packet.len();

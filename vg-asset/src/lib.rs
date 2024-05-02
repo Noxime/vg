@@ -7,4 +7,3 @@ mod file;
 pub use asset::{Asset, AssetKind, BinAsset};
 pub use assets::Assets;
 pub use file::FileSource;
-

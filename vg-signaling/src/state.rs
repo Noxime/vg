@@ -81,7 +81,9 @@ impl Room {
 
     /// Remove a peer from this room, resetting it if host disconnected
     pub fn remove_peer(&mut self, peer: PeerId) {
-        let Some(host) = self.host().cloned() else { return };
+        let Some(host) = self.host().cloned() else {
+            return;
+        };
 
         if host.id() == peer {
             debug!(room = ?self.key, peer = ?peer, "Host disconnected");
@@ -132,7 +134,9 @@ impl VgState {
     /// Returns false if address is not found
     pub fn upgrade(&self, addr: SocketAddr, peer: PeerId) -> bool {
         // Take the key from sockets and insert into peers
-        let Some((_, key)) = self.sockets.remove(&addr) else { return false };
+        let Some((_, key)) = self.sockets.remove(&addr) else {
+            return false;
+        };
         self.peers.insert(peer, key);
         true
     }

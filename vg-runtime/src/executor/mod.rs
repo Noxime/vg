@@ -16,10 +16,7 @@ pub type WasmInstance = wasmtime::WasmtimeInstance;
 /// Instance of a game that can be de/serialized
 pub trait Instance: AssetKind {
     /// Create a new instance from bytes
-    fn new(
-        bytes: &[u8],
-        debug: bool,
-    ) -> Result<Self>;
+    fn new(bytes: &[u8], debug: bool) -> Result<Self>;
 
     /// Step instance state by one. Note that this is different from a _tick_
     fn step<T: Provider>(&mut self, provider: &mut T) -> WaitReason;

@@ -7,6 +7,12 @@ license = { workspace = true }
 homepage = { workspace = true }
 publish = { workspace = true }
 
+# Desktop build
+[[bin]]
+name = "vg-engine"
+path = "src/platform/desktop.rs"
+
+# Android build
 [lib]
 # TODO: cargo-apk mistakenly looks for libvg-engine
 # name = "vg_lib"
@@ -18,17 +24,25 @@ vg-runtime = { workspace = true }
 vg-interface = { workspace = true }
 # vg-network = { workspace = true }
 
-winit = { version = "0.28" }
+glam = { workspace = true }
+# femtovg = { workspace = true }
+# femtovg-wgpu = { workspace = true }
+wgpu = { workspace = true }
+# rend3 = { git = "https://github.com/bve-reborn/rend3", rev = "a68c76a" }
+# rend3-routine = { git = "https://github.com/bve-reborn/rend3", rev = "a68c76a" }
+
+winit = { version = "0.29", features = ["rwh_05"] }
 tokio = { version = "1", features = ["full"] }
 
 anyhow = "1"
 tracing = "0.1"
 
-three-d = "0.15"
+# TODO: Remove in favor of proper tokio usage
+pollster = "0.3"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 
 [target.'cfg(target_os = "android")'.dependencies]
-winit = { version = "0.28", features = ["android-native-activity"] }
+winit = { version = "0.29", features = ["android-native-activity", "rwh_05"] }
 log = "0.4"
 android_logger = "0.13.0"

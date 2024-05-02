@@ -18,5 +18,5 @@ get-size = { version = "0.1", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_arrays = "0.1"
 
-wasmtime = "10"
+wasmtime = { version = "10", default-features = false, features = ["cranelift"] }
 wasmtime-wasi = "10"

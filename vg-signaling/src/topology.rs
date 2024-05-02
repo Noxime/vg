@@ -33,7 +33,7 @@ impl SignalingTopology<NoCallbacks, VgState> for VgTopology {
 
         let Some(key) = state.key(peer_id) else {
             error!(peer = ?peer_id, "Peer didn't have associated key");
-            return
+            return;
         };
 
         // Add new host or client

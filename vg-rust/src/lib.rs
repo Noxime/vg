@@ -24,12 +24,11 @@ macro_rules! main {
 }
 
 pub fn line(color: Vec4, points: impl IntoIterator<Item = Vec2>) {
-    let Response::Empty = ffi::dispatch(Request::Draw(Draw::Line {
+    ffi::dispatch(Request::Draw(Draw::Line {
         color: color.into(),
-        points: points.into_iter().map(Into::into).collect()
-    })) else {
-        panic!("line request returned non-empty");
-    };
+        points: points.into_iter().map(Into::into).collect(),
+    }))
+    .unwrap_empty();
 }
 
 /// Present the current frame to the screen, concluding this game tick

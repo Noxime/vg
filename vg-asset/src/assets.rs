@@ -44,6 +44,11 @@ impl Assets {
         self.missing.iter().map(|item| item.to_path_buf())
     }
 
+    /// List every path known to this asset
+    pub fn available(&self) -> impl Iterator<Item = PathBuf> + '_ {
+        self.paths.iter().map(|item| item.key().clone())
+    }
+
     /// Waits until a new file is declared as missing
     pub async fn wait_missing(&self) {
         self.notify.notified().await

@@ -1,22 +1,24 @@
 use vg_interface::{Draw, Request, Response};
 use vg_runtime::{executor::Instance, Provider};
 
+use crate::prelude::*;
 use crate::Engine;
 
 impl Engine {
     /// Run the instance until a new frame is ready
-    pub(crate) fn run_frame(&mut self) {
+    pub(crate) fn run_frame(&mut self) -> Nil {
         // Done before check to keep asset loading active
-        let Some(instance) = self.instance.get() else { return };
+        let instance = Check::from(self.instance.get())?;
 
-        if !self.config.running {
-            return;
-        }
+        // If runtime is paused, don't advance
+        Check::from(self.config.running)?;
 
         self.scene.reset_frame();
 
         // Run until frame is ready
         while !instance.step(&mut self.scene).is_present() {}
+
+        Nil
     }
 }
 

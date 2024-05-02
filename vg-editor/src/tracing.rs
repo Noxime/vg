@@ -5,7 +5,7 @@ use dashmap::DashSet;
 use tracing::{
     field::{Field, FieldSet, Visit},
     metadata::Kind,
-    Event, Metadata, Subscriber, Level,
+    Event, Level, Metadata, Subscriber,
 };
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::{layer::Context, prelude::*, util::SubscriberInitExt, EnvFilter, Layer};
@@ -134,11 +134,11 @@ impl<S: Subscriber> Layer<S> for EditorLayer {
     fn on_event(&self, event: &Event<'_>, _ctx: Context<'_, S>) {
         // Filter non-vg messages above Info level
         if !event.metadata().target().starts_with("vg_") {
-            if *event.metadata().level() > Level::INFO  {
-                return
+            if *event.metadata().level() > Level::INFO {
+                return;
             }
         }
-        
+
         let time = Local::now();
 
         let metadata = if let Some(m) = event.normalized_metadata() {
@@ -159,16 +159,16 @@ impl<S: Subscriber> Layer<S> for EditorLayer {
             event.metadata()
         };
 
-        struct Visitor<'a>(&'a Tracing, &'a mut Vec<String>);
+        struct Visitor<'a>(&'a mut Vec<String>);
 
         impl<'a> Visit for Visitor<'a> {
             fn record_debug(&mut self, _: &Field, value: &dyn std::fmt::Debug) {
-                self.1.push(format!("{value:?}"));
+                self.0.push(format!("{value:?}"));
             }
         }
 
         let mut values = vec![];
-        event.record(&mut Visitor(&self.tracing, &mut values));
+        event.record(&mut Visitor(&mut values));
 
         self.tracing.push(TracingEvent {
             time,

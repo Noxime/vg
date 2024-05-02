@@ -1,10 +1,8 @@
-use std::ops::FnOnce;
-
 use crate::{Vec2, Vec3, Vec4};
 
 /// More general version of `Into<f32>`
 pub trait F32Ext {
-    fn to(self) -> f32;
+    fn to_f32(self) -> f32;
 }
 
 macro_rules! impl_f32ext {
@@ -15,7 +13,7 @@ macro_rules! impl_f32ext {
     ) => {
         $(
             impl F32Ext for $ty_ {
-                fn to(self) -> f32 {
+                fn to_f32(self) -> f32 {
                     self as f32
                 }
             }
@@ -32,7 +30,7 @@ impl<X: F32Ext, Y: F32Ext> FnOnce<(X, Y)> for V {
     type Output = Vec2;
 
     extern "rust-call" fn call_once(self, (x, y): (X, Y)) -> Self::Output {
-        Vec2::new(x.to(), y.to())
+        Vec2::new(x.to_f32(), y.to_f32())
     }
 }
 
@@ -40,7 +38,7 @@ impl<X: F32Ext, Y: F32Ext, Z: F32Ext> FnOnce<(X, Y, Z)> for V {
     type Output = Vec3;
 
     extern "rust-call" fn call_once(self, (x, y, z): (X, Y, Z)) -> Self::Output {
-        (x.to(), y.to(), z.to()).into()
+        (x.to_f32(), y.to_f32(), z.to_f32()).into()
     }
 }
 
@@ -48,6 +46,6 @@ impl<X: F32Ext, Y: F32Ext, Z: F32Ext, W: F32Ext> FnOnce<(X, Y, Z, W)> for V {
     type Output = Vec4;
 
     extern "rust-call" fn call_once(self, (x, y, z, w): (X, Y, Z, W)) -> Self::Output {
-        (x.to(), y.to(), z.to(), w.to()).into()
+        (x.to_f32(), y.to_f32(), z.to_f32(), w.to_f32()).into()
     }
 }

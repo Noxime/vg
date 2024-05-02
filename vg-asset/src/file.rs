@@ -5,10 +5,7 @@ use std::{
 
 use dashmap::DashMap;
 use notify::{recommended_watcher, NullWatcher, RecursiveMode, Watcher};
-use tokio::{
-    sync::mpsc,
-    task::JoinHandle,
-};
+use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{error, info, trace};
 
 use crate::Assets;
@@ -105,7 +102,7 @@ impl FileSource {
 
             // Ignore some events
             if event.kind.is_remove() || event.kind.is_access() {
-                continue
+                continue;
             }
 
             for full_path in event.paths {

@@ -63,7 +63,9 @@ impl ClientData {
         socket.poll();
 
         // Collected for lifetime reasons
-        let Some((_, message)) = socket.receive::<Clientbound>()? else { return Ok(None) };
+        let Some((_, message)) = socket.receive::<Clientbound>()? else {
+            return Ok(None);
+        };
 
         let mut ret = None;
 

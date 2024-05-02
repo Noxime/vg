@@ -1,13 +1,16 @@
-use std::{sync::Arc, path::Path};
+use std::{path::Path, sync::Arc};
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use tracing::trace;
-use vg_asset::{AssetKind, BinAsset, Assets, Asset};
+use vg_asset::{Asset, AssetKind, Assets, BinAsset};
 use vg_interface::{DeBin, Request, Response, SerBin, WaitReason};
 use wasmtime::*;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
-use crate::{executor::{GlobalData, MemoryData, TableData, PAGE_SIZE}, Provider};
+use crate::{
+    executor::{GlobalData, MemoryData, TableData, PAGE_SIZE},
+    Provider,
+};
 
 pub struct WasmtimeInner {
     // TODO: His ass is NOT rollbackable!
@@ -21,9 +24,7 @@ pub struct WasmtimeModule {
 }
 
 impl WasmtimeModule {
-    pub fn instantiate(
-        self: &Arc<Self>,
-    ) -> Result<WasmtimeInstance> {
+    pub fn instantiate(self: &Arc<Self>) -> Result<WasmtimeInstance> {
         let mut store = Store::new(
             &self.engine,
             WasmtimeInner {
@@ -117,15 +118,12 @@ impl AssetKind for WasmtimeInstance {
 }
 
 impl super::Instance for WasmtimeInstance {
-    fn new(
-        wasm: &[u8],
-        debug: bool,
-    ) -> Result<WasmtimeInstance> {
+    fn new(wasm: &[u8], debug: bool) -> Result<WasmtimeInstance> {
         tracing::debug!(len = wasm.len(), "Creating new Wasmtime instance");
 
         let engine = Engine::new(
             &Config::new()
-                .cache_config_load_default()?
+                // .cache_config_load_default()?
                 .debug_info(debug)
                 .wasm_backtrace(debug)
                 .wasm_backtrace_details(
