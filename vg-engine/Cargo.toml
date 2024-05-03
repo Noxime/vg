@@ -26,6 +26,7 @@ vg-interface = { workspace = true }
 
 glam = { workspace = true }
 wgpu = { workspace = true }
+profiling = { workspace = true }
 # rend3 = { git = "https://github.com/bve-reborn/rend3", rev = "a68c76a" }
 # rend3-routine = { git = "https://github.com/bve-reborn/rend3", rev = "a68c76a" }
 vello = "0.1"

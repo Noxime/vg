@@ -9,11 +9,17 @@ publish = { workspace = true }
 
 default-run = "vg-editor"
 
+[features]
+tracy = ["dep:tracing-tracy"]
+
 [dependencies]
 vg-asset = { workspace = true }
 # vg-interface = { workspace = true }
 # vg-network = { workspace = true }
 vg-engine = { workspace = true }
+
+profiling = { workspace = true }
+tracing-tracy = { version = "0.11", optional = true, features = ["enable", "only-localhost"] }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

@@ -1,4 +1,5 @@
 #![feature(try_trait_v2)]
+#![feature(array_windows)]
 
 use std::sync::Arc;
 
@@ -32,7 +33,7 @@ pub struct Engine {
     /// Game logic instance
     instance: Asset<WasmInstance>,
     /// TODO
-    scene: runtime::SceneState,
+    world: runtime::WorldState,
 }
 
 #[derive(Clone)]
@@ -84,7 +85,7 @@ impl Engine {
             instance: assets.get(&config.path),
             assets,
             config,
-            scene: Default::default(),
+            world: Default::default(),
         }
     }
 
@@ -100,6 +101,7 @@ impl Engine {
     }
 
     /// Process a winit event
+    #[profile]
     pub fn event(&mut self, event: &Event<()>, target: &EventLoopWindowTarget<()>) -> Nil {
         self.ensure_window(target);
 
@@ -118,6 +120,8 @@ impl Engine {
                 }
                 WindowEvent::RedrawRequested => {
                     self.render();
+
+                    profiling::finish_frame!();
                 }
                 _ => (),
             },

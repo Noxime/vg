@@ -1,12 +1,11 @@
 use anyhow::{anyhow, Result};
 use egui::{Context, ViewportId};
 use egui_wgpu::{
-    ScreenDescriptor,
     wgpu::{
         Color, Instance, LoadOp, Operations, RenderPassColorAttachment, RenderPassDescriptor,
         StoreOp,
     },
-    Renderer,
+    Renderer, ScreenDescriptor,
 };
 use egui_winit::{
     winit::{
@@ -61,6 +60,8 @@ async fn main() -> Result<()> {
     let mut ui = ui::EditorUi::new(tracing);
 
     let editor_window = &editor_window;
+
+    let mut frame_span = None;
     event_loop.run(move |event, target| {
         target.set_control_flow(ControlFlow::Poll);
 
@@ -136,8 +137,14 @@ async fn main() -> Result<()> {
                             renderer.render(&mut pass, &clipped, &screen);
                             drop(pass);
 
+                            
                             queue.submit([encoder.finish()]);
                             texture.present();
+                            
+                            // End frame
+                            let _ = frame_span.take();
+                            // Begin new frame
+                            frame_span = Some(::tracing::debug_span!("Editor frame").entered());
                         }
                         _ => (),
                     }

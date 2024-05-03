@@ -4,8 +4,9 @@ use anyhow::anyhow;
 use tracing::trace;
 use vg_asset::{Asset, AssetKind, Assets, BinAsset};
 use vg_interface::{DeBin, Request, Response, SerBin, WaitReason};
+use wasi_common::WasiCtx;
 use wasmtime::*;
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
+use wasmtime_wasi::WasiCtxBuilder;
 
 use crate::{
     executor::{GlobalData, MemoryData, TableData, PAGE_SIZE},
@@ -24,6 +25,7 @@ pub struct WasmtimeModule {
 }
 
 impl WasmtimeModule {
+    #[tracing::instrument(skip_all)]
     pub fn instantiate(self: &Arc<Self>) -> Result<WasmtimeInstance> {
         let mut store = Store::new(
             &self.engine,
@@ -111,6 +113,7 @@ impl AssetKind for WasmtimeInstance {
         assets.get(path)
     }
 
+    #[tracing::instrument(skip_all)]
     fn produce(data: &mut Self::Data) -> Option<Self> {
         let bin = data.get()?;
         super::Instance::new(&bin.bytes, true).ok()
@@ -118,27 +121,31 @@ impl AssetKind for WasmtimeInstance {
 }
 
 impl super::Instance for WasmtimeInstance {
-    fn new(wasm: &[u8], debug: bool) -> Result<WasmtimeInstance> {
+    #[tracing::instrument(skip(wasm))]
+    fn new(wasm: &[u8], debugging: bool) -> Result<WasmtimeInstance> {
         tracing::debug!(len = wasm.len(), "Creating new Wasmtime instance");
 
+        // let _engine = tracing::trace_span!("Wasmtime engine").enter();
         let engine = Engine::new(
             &Config::new()
-                // .cache_config_load_default()?
-                .debug_info(debug)
-                .wasm_backtrace(debug)
+                .cache_config_load_default()?
+                .debug_info(debugging)
+                .wasm_backtrace(debugging)
                 .wasm_backtrace_details(
-                    debug
+                    debugging
                         .then_some(WasmBacktraceDetails::Enable)
                         .unwrap_or(WasmBacktraceDetails::Disable),
                 ),
         )?;
 
+        tracing::debug!("Compiling module");
         let module = Module::new(&engine, wasm)?;
         let module = Arc::new(WasmtimeModule { engine, module });
 
         module.instantiate()
     }
 
+    #[tracing::instrument(skip_all)]
     fn step<T: Provider>(&mut self, provider: &mut T) -> WaitReason {
         let ptr = provider as *mut T as *mut ();
 
@@ -159,6 +166,7 @@ impl super::Instance for WasmtimeInstance {
         WaitReason::from_raw(ret[0].unwrap_i32())
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_data(&mut self) -> super::InstanceData {
         trace!("Serializing instance data");
 
@@ -194,53 +202,16 @@ impl super::Instance for WasmtimeInstance {
                             Val::I64(v) => GlobalData::I64(v),
                             Val::F32(v) => GlobalData::F32(v),
                             Val::F64(v) => GlobalData::F64(v),
-                            Val::V128(_) => todo!(),
-                            Val::FuncRef(_) => todo!(),
-                            Val::ExternRef(_) => todo!(),
+                            _ => todo!(),
                         },
                     ))
                 })
                 .collect(),
-            tables: tables
-                .into_iter()
-                .map(|(n, t)| {
-                    (
-                        n,
-                        match t.ty(&self.store).element() {
-                            ValType::I32 => TableData::I32(
-                                (0..t.size(&self.store))
-                                    .map(|i| t.get(&mut self.store, i).unwrap().unwrap_i32())
-                                    .collect(),
-                            ),
-                            ValType::I64 => TableData::I64(
-                                (0..t.size(&self.store))
-                                    .map(|i| t.get(&mut self.store, i).unwrap().unwrap_i64())
-                                    .collect(),
-                            ),
-                            ValType::F32 => TableData::F32(
-                                (0..t.size(&self.store))
-                                    .map(|i| {
-                                        t.get(&mut self.store, i).unwrap().unwrap_f32().to_bits()
-                                    })
-                                    .collect(),
-                            ),
-                            ValType::F64 => TableData::F64(
-                                (0..t.size(&self.store))
-                                    .map(|i| {
-                                        t.get(&mut self.store, i).unwrap().unwrap_f64().to_bits()
-                                    })
-                                    .collect(),
-                            ),
-                            ValType::V128 => todo!(),
-                            ValType::FuncRef => todo!(),
-                            ValType::ExternRef => todo!(),
-                        },
-                    )
-                })
-                .collect(),
+            tables: tables.into_iter().map(|(n, t)| todo!()).collect(),
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn set_data(&mut self, data: &super::InstanceData) {
         trace!("Deserializing instance data");
 
@@ -281,12 +252,10 @@ impl super::Instance for WasmtimeInstance {
 
             // New data might be larger than what we have, grow to match
             let delta = data.len().saturating_sub(table.size(&self.store));
-            table
-                .grow(&mut self.store, delta, data.default_val())
-                .unwrap();
+            table.grow(&mut self.store, delta, todo!()).unwrap();
 
             for (i, v) in data.iter_val().enumerate() {
-                table.set(&mut self.store, i as u32, v).unwrap();
+                table.set(&mut self.store, i as u32, todo!()).unwrap();
             }
         }
     }

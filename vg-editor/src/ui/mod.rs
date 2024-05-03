@@ -5,13 +5,11 @@ use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree, UiResponse,
 };
 use egui_winit::winit::{event::Event as WinitEvent, event_loop::EventLoopWindowTarget};
-
 mod controller;
 mod logger;
-
+use self::{controller::Controller, logger::Logger};
 use crate::tracing::Tracing;
 
-use self::{controller::Controller, logger::Logger};
 pub struct EditorUi {
     tree: Tree<Pane>,
     behavior: TreeBehavior,
@@ -150,6 +148,7 @@ impl EditorUi {
         });
     }
 
+    #[profiling::function]
     pub fn event(&mut self, event: &WinitEvent<()>, target: &EventLoopWindowTarget<()>) {
         for tile in self.tree.tiles.tiles_mut() {
             if let Tile::Pane(pane) = tile {

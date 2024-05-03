@@ -31,6 +31,7 @@ impl Logger {
         }
     }
 
+    #[profiling::function]
     pub fn ui(&mut self, ui: &mut Ui) {
         // Logger
         ui.vertical(|ui| {

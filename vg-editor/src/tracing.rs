@@ -112,10 +112,16 @@ impl TracingEvent {
 pub fn init() -> Arc<Tracing> {
     let this = Arc::new(Tracing::new());
 
-    tracing_subscriber::registry()
-        .with(EditorLayer::new(Arc::clone(&this)))
-        .with(tracing_subscriber::fmt::Layer::new().with_filter(EnvFilter::from_default_env()))
-        .init();
+    let reg = tracing_subscriber::registry();
+
+    #[cfg(feature = "tracy")]
+    let reg = reg.with(tracing_tracy::TracyLayer::default());
+
+    let reg = reg.with(EditorLayer::new(Arc::clone(&this)));
+    let reg =
+        reg.with(tracing_subscriber::fmt::Layer::new().with_filter(EnvFilter::from_default_env()));
+
+    reg.init();
 
     this
 }

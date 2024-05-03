@@ -25,8 +25,10 @@ matchbox_socket = { git = "https://github.com/johanhelsing/matchbox", rev = "600
 glam = "0.27"
 wgpu = "0.19"
 
-# [profile.dev]
-# opt-level = 3
+profiling = { version = "1", features = ["profile-with-tracing"] }
+
+[profile.dev.package."*"]
+opt-level = 2
 
 [profile.release]
 debug = true

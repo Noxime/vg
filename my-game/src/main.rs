@@ -7,10 +7,12 @@ async fn my_game() {
 
     loop {
         let color = V(0.0, 0.5, 0.2, 1.0);
+
         let start = V(20.0, 20.0);
+        let mid = V(30.0, 30.0);
         let end = V(40.0, 60.0);
 
-        line(color, [start, end]);
+        line(color, [start, mid, end]);
 
         present().await;
     }

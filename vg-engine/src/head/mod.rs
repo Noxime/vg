@@ -30,6 +30,7 @@ pub struct Head {
     scene: Scene,
 }
 
+#[profile_all]
 impl Engine {
     /// Check if the ID matches our window. False if headless
     pub fn is_my_window(&self, id: WindowId) -> Check {
@@ -59,10 +60,11 @@ impl Engine {
 
     /// Render current frame
     pub fn render(&mut self) -> Nil {
+        let world = &self.world.clone();
         let head = self.head_mut()?;
 
         // This internally invokes 3D and 2D render
-        head.render_composite();
+        head.render_composite(&world);
 
         Nil
     }

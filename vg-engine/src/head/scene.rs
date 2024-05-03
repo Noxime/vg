@@ -17,6 +17,7 @@ pub struct Scene {
     // tonemapping: TonemappingRoutine,
 }
 
+#[profile_all]
 impl Scene {
     pub fn new(
         instance: Arc<Instance>,

@@ -20,6 +20,7 @@ impl Controller {
         }
     }
 
+    #[profiling::function]
     pub fn ui(&mut self, ui: &mut Ui) {
         match &mut self.engine {
             Lifecycle::Dead(config) => {
@@ -74,6 +75,7 @@ impl Controller {
         }
     }
 
+    #[profiling::function]
     pub fn event(&mut self, event: &Event<()>, target: &EventLoopWindowTarget<()>) {
         if let Lifecycle::Live(engine) = &mut self.engine {
             engine.event(event, target);

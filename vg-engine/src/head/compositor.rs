@@ -10,8 +10,10 @@ use super::Head;
 use crate::{
     head::{canvas::Canvas, scene::Scene},
     prelude::*,
+    runtime::WorldState,
 };
 
+#[profile_all]
 impl Head {
     /// Attempt to create a new window and rendering context
     pub async fn new(target: &EventLoopWindowTarget<()>) -> Result<Head> {
@@ -109,12 +111,15 @@ impl Head {
     }
 
     /// Perform all rendering
-    pub fn render_composite(&mut self) -> Nil {
+    pub fn render_composite(&mut self, world: &WorldState) -> Nil {
+        // We are a good citizen
+        self.device.poll(Maintain::Poll);
+
         let surface = self.acquire_surface()?;
 
         // First render 3D content, then overlay 2D content
         self.scene.render(&surface.texture);
-        self.canvas.render(&surface);
+        self.canvas.render(&surface, world);
 
         // Flip the surface to the screen. End of (render) frame
         surface.present();

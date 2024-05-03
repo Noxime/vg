@@ -1,0 +1,8 @@
+
+parallel-compiler = true
+
+[target.x86_64-pc-windows-msvc]
+linker = "lld-link.exe"
+
+[target.wasm32-wasi]
+linker = "lld-wasm"
