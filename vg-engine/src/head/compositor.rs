@@ -1,8 +1,6 @@
 //! The compositor handles management of the swapchain and compositing together
 //! the frames from <3d> and vello
 
-use std::sync::Arc;
-
 use wgpu::*;
 use winit::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
 
@@ -120,6 +118,9 @@ impl Head {
         // First render 3D content, then overlay 2D content
         self.scene.render(&surface.texture);
         self.canvas.render(&surface, world);
+
+        // Just before presentation, this helps the OS schedule things
+        self.window.pre_present_notify();
 
         // Flip the surface to the screen. End of (render) frame
         surface.present();

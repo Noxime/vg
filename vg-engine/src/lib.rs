@@ -1,8 +1,8 @@
 #![feature(try_trait_v2)]
 #![feature(array_windows)]
+#![allow(non_local_definitions)]
 
-use std::sync::Arc;
-
+use runtime::WorldState;
 use vg_asset::{Asset, Assets};
 use vg_runtime::executor::WasmInstance;
 use winit::{
@@ -20,6 +20,8 @@ pub(crate) use prelude::*;
 
 use head::Head;
 
+pub use runtime::{RuntimeInstant, SaveState};
+
 pub struct Engine {
     config: EngineConfig,
     /// If not headless, everything related to engine visuals. Windowing/gfx
@@ -32,8 +34,10 @@ pub struct Engine {
     assets: Arc<Assets>,
     /// Game logic instance
     instance: Asset<WasmInstance>,
-    /// TODO
-    world: runtime::WorldState,
+    /// Current engine time
+    instant: RuntimeInstant,
+    /// Most recently calculate world state
+    world: WorldState,
 }
 
 #[derive(Clone)]
@@ -42,8 +46,6 @@ pub struct EngineConfig {
     pub headless: bool,
     /// File system path to game binary
     pub path: String,
-    /// Used to pause execution
-    pub running: bool,
     /// URL of the signaling service. Unused if not connected to a room
     pub signaling: String,
     /// Room to connect to, if networking is used
@@ -56,7 +58,6 @@ impl EngineConfig {
             headless: false,
             // backends: wgpu::Backends::all(),
             path: "target/wasm32-wasi/debug/my-game.wasm".into(),
-            running: true,
             signaling: "ws://vg.noxim.xyz:3536/".into(),
             room: None,
         }
@@ -83,9 +84,10 @@ impl Engine {
             alive: true,
             between_resumes: !has_app_lifecycle(),
             instance: assets.get(&config.path),
+            instant: RuntimeInstant::EPOCH,
+            world: Default::default(),
             assets,
             config,
-            world: Default::default(),
         }
     }
 
@@ -120,19 +122,32 @@ impl Engine {
                 }
                 WindowEvent::RedrawRequested => {
                     self.render();
-
                     profiling::finish_frame!();
                 }
                 _ => (),
             },
             Event::AboutToWait => {
-                self.run_frame(); // TODO: Should not run tied to FPS
                 self.redraw();
+
+                // TODO: Winit bug, Redraws are not always delivered. For 
+                // example, when out of focus on windows
+                self.render();
             }
             _ => (),
         }
 
         Nil
+    }
+
+    /// Keep calling this function as often as possible
+    #[profile]
+    pub fn poll(&mut self) -> PollResult {
+        check::check_default(|| {
+            // TODO: Tick rate
+            self.run_tick()?;
+
+            Check::Pass(PollResult::Tick {})
+        })
     }
 
     /// Checks if the event is relevant to our engine instance
@@ -164,6 +179,16 @@ impl Engine {
         // TODO: Tokio
         pollster::block_on(f)
     }
+}
+
+/// What happened after a call to `Engine::poll`
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PollResult {
+    /// Nothing of mention happened
+    #[default]
+    None,
+    /// A tick has occurred
+    Tick,
 }
 
 /*

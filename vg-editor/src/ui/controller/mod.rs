@@ -1,28 +1,29 @@
-use std::sync::Arc;
-
 use egui::{TextEdit, Ui};
 use egui_winit::winit::{event::Event, event_loop::EventLoopWindowTarget};
-use vg_asset::FileSource;
-use vg_engine::{Engine, EngineConfig};
+use vg_engine::EngineConfig;
+
+use self::live::Live;
+mod live;
+
 pub struct Controller {
-    engine: Lifecycle,
+    lifecycle: Lifecycle,
 }
 
 enum Lifecycle {
     Dead(EngineConfig),
-    Live(Engine),
+    Live(Live),
 }
 
 impl Controller {
     pub fn new() -> Controller {
         Controller {
-            engine: Lifecycle::Dead(EngineConfig::new()),
+            lifecycle: Lifecycle::Dead(EngineConfig::new()),
         }
     }
 
     #[profiling::function]
     pub fn ui(&mut self, ui: &mut Ui) {
-        match &mut self.engine {
+        match &mut self.lifecycle {
             Lifecycle::Dead(config) => {
                 // Networking config
                 let mut networking = config.room.is_some();
@@ -46,30 +47,13 @@ impl Controller {
                 ui.checkbox(&mut config.headless, "Run in headless mode");
 
                 if ui.button("Start").clicked() {
-                    let engine = Engine::with_config(config.clone());
-
-                    let assets = Arc::clone(engine.assets());
-                    tokio::spawn(FileSource::run(assets, "."));
-
-                    self.engine = Lifecycle::Live(engine);
+                    let live = Live::from_config(config.clone());
+                    self.lifecycle = Lifecycle::Live(live);
                 }
             }
-            Lifecycle::Live(engine) => {
-                ui.collapsing("Assets", |ui| {
-                    ui.label("Pending:");
-                    for path in engine.assets().missing() {
-                        ui.monospace(path.to_string_lossy());
-                    }
-                    ui.label("Available:");
-                    for path in engine.assets().available() {
-                        ui.monospace(path.to_string_lossy());
-                    }
-                });
-
-                ui.checkbox(&mut engine.config_mut().running, "Execute");
-
-                if ui.button("Stop").clicked() || !engine.alive() {
-                    self.engine = Lifecycle::Dead(engine.config_mut().clone());
+            Lifecycle::Live(live) => {
+                if let Some(config) = live.ui(ui) {
+                    self.lifecycle = Lifecycle::Dead(config)
                 }
             }
         }
@@ -77,8 +61,15 @@ impl Controller {
 
     #[profiling::function]
     pub fn event(&mut self, event: &Event<()>, target: &EventLoopWindowTarget<()>) {
-        if let Lifecycle::Live(engine) = &mut self.engine {
-            engine.event(event, target);
+        if let Lifecycle::Live(live) = &mut self.lifecycle {
+            live.event(event, target);
+        };
+    }
+
+    #[profiling::function]
+    pub fn poll(&mut self) {
+        if let Lifecycle::Live(live) = &mut self.lifecycle {
+            live.poll()
         }
     }
 }

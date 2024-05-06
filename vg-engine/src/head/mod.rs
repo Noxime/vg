@@ -1,8 +1,6 @@
 //! Rendering and presentation related functionality
 //! TODO: This is a dumb ass name
 
-use std::sync::Arc;
-
 use crate::prelude::*;
 
 use wgpu::{Adapter, Device, Queue, Surface};
@@ -59,14 +57,12 @@ impl Engine {
     }
 
     /// Render current frame
-    pub fn render(&mut self) -> Nil {
-        let world = &self.world.clone();
-        let head = self.head_mut()?;
-
-        // This internally invokes 3D and 2D render
-        head.render_composite(&world);
-
-        Nil
+    pub fn render(&mut self) {
+        // Using map style for borrowing rules
+        self.head.as_mut().map(|head| {
+            // This internally invokes 3D and 2D render
+            head.render_composite(&self.world);
+        });
     }
 
     pub fn resize(&mut self, size: PhysicalSize<u32>) -> Nil {
@@ -78,6 +74,7 @@ impl Engine {
         Nil
     }
 
+    /// Request that the window contents are re-rendered
     pub fn redraw(&mut self) -> Nil {
         self.head()?.window.request_redraw();
         Nil

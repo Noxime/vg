@@ -1,4 +1,4 @@
-use std::{num::NonZeroUsize, sync::Arc};
+use std::num::NonZeroUsize;
 
 use vg_interface::Draw;
 use wgpu::*;

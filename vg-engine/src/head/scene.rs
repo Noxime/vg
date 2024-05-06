@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::sync::Arc;
 
 // use rend3::{
 //     graph::ViewportRect,

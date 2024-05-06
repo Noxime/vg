@@ -14,6 +14,15 @@ pub enum Check<T = Nil> {
     Fail,
 }
 
+impl<T> Check<T> {
+    pub fn option(self) -> Option<T> {
+        match self {
+            Check::Fail => None,
+            Check::Pass(value) => Some(value),
+        }
+    }
+}
+
 pub const PASS: Check = Check::Pass(Nil);
 pub const FAIL: Check = Check::Fail;
 
@@ -53,5 +62,13 @@ impl From<bool> for Check<Nil> {
             true => PASS,
             false => FAIL,
         }
+    }
+}
+
+/// Execute a closure, and if the result is Fail, return the Default value
+pub fn check_default<T: Default>(f: impl FnOnce() -> Check<T>) -> T {
+    match f() {
+        Check::Fail => T::default(),
+        Check::Pass(value) => value
     }
 }

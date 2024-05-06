@@ -137,10 +137,9 @@ async fn main() -> Result<()> {
                             renderer.render(&mut pass, &clipped, &screen);
                             drop(pass);
 
-                            
                             queue.submit([encoder.finish()]);
                             texture.present();
-                            
+
                             // End frame
                             let _ = frame_span.take();
                             // Begin new frame
@@ -157,6 +156,7 @@ async fn main() -> Result<()> {
             }
             WinitEvent::AboutToWait => {
                 editor_window.request_redraw();
+                ui.poll();
             }
             _ => {}
         };

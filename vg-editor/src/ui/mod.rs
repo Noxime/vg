@@ -150,12 +150,25 @@ impl EditorUi {
 
     #[profiling::function]
     pub fn event(&mut self, event: &WinitEvent<()>, target: &EventLoopWindowTarget<()>) {
+        self.foreach_pane(|pane| match &mut pane.kind {
+            PaneKind::Logger(_) => (),
+            PaneKind::Controller(c) => c.event(event, target),
+        });
+    }
+
+    #[profiling::function]
+    pub fn poll(&mut self) {
+        self.foreach_pane(|pane| match &mut pane.kind {
+            PaneKind::Logger(_) => (),
+            PaneKind::Controller(c) => c.poll(),
+        });
+    }
+
+    /// Iterate through all the panes
+    fn foreach_pane(&mut self, f: impl Fn(&mut Pane)) {
         for tile in self.tree.tiles.tiles_mut() {
             if let Tile::Pane(pane) = tile {
-                match &mut pane.kind {
-                    PaneKind::Logger(_) => (),
-                    PaneKind::Controller(c) => c.event(event, target),
-                }
+                f(pane)
             }
         }
     }

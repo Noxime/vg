@@ -25,7 +25,7 @@ impl Response {
         #[allow(unreachable_patterns)]
         match self {
             Response::Empty => (),
-            _ => panic!("expected empty response")
+            _ => panic!("expected empty response"),
         }
     }
 }
