@@ -4,6 +4,7 @@ use vg_engine::EngineConfig;
 
 use self::live::Live;
 mod live;
+mod timeline;
 
 pub struct Controller {
     lifecycle: Lifecycle,

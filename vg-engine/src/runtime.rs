@@ -23,13 +23,16 @@ impl RuntimeInstant {
         self.frame as isize - before.frame as isize
     }
 
-    pub fn prev_frame(mut self) -> RuntimeInstant {
-        self.frame -= 1;
-        self
+    pub fn prev_frame(self) -> RuntimeInstant {
+        self.relative_frame(-1)
     }
 
-    pub fn next_frame(mut self) -> RuntimeInstant {
-        self.frame += 1;
+    pub fn next_frame(self) -> RuntimeInstant {
+        self.relative_frame(1)
+    }
+
+    pub fn relative_frame(mut self, i: isize) -> RuntimeInstant {
+        self.frame = self.frame.checked_add_signed(i).expect("Can't go into negative time");
         self
     }
 }
